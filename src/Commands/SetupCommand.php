@@ -116,11 +116,13 @@ class SetupCommand extends Command
     {
         $extensions = ['js', 'jsx', 'tsx'];
         $appPath = null;
+        $activeExtension = 'js';
 
         foreach ($extensions as $ext) {
             $path = base_path("resources/js/app.{$ext}");
             if (File::exists($path)) {
                 $appPath = $path;
+                $activeExtension = $ext;
                 break;
             }
         }
@@ -138,27 +140,42 @@ class SetupCommand extends Command
         }
 
         $globPattern = "../../app/Domain/*/Frontend/Pages/**/*.{js,jsx,ts,tsx,vue}";
-        $injection = "\nconst domainPages = import.meta.glob('{$globPattern}');\n";
         
         if (str_contains($content, 'createInertiaApp')) {
+            $injection = "\nconst domainPages = import.meta.glob('{$globPattern}');\n" .
+                "const resolveDomainPage = (name, domainPages, resolver) => {\n" .
+                "    if (name.includes('::')) {\n" .
+                "        const [domain, page] = name.split('::');\n" .
+                "        const path = Object.keys(domainPages).find(p => p.toLowerCase().includes(`/domain/\${domain.toLowerCase()}/frontend/pages/\${page.toLowerCase()}`));\n" .
+                "        if (path) return typeof domainPages[path] === 'function' ? domainPages[path]() : domainPages[path];\n" .
+                "    }\n" .
+                "    return resolver(name);\n" .
+                "};\n";
+
             $content = str_replace('createInertiaApp', $injection . 'createInertiaApp', $content);
-            $resolvePattern = '/resolve:\s*\(name\)\s*=>\s*resolvePageComponent\(/';
-            $replacement = "resolve: (name) => {\n        if (name.includes('::')) {\n            const [domain, page] = name.split('::');\n            const path = Object.keys(domainPages).find(p => p.toLowerCase().includes(`/domain/\${domain.toLowerCase()}/frontend/pages/\${page.toLowerCase()}`));\n            if (path) return domainPages[path]();\n        }\n        return resolvePageComponent(";
+            
+            $resolvePattern = '/resolve:\s*\(?name\)?\s*=>\s*resolvePageComponent\(/';
+            $replacement = "resolve: (name) => resolveDomainPage(name, domainPages, (name) => resolvePageComponent(";
             
             $content = preg_replace($resolvePattern, $replacement, $content);
             File::put($appPath, $content);
             $this->components->twoColumnDetail('Frontend Auto-Resolver', '<fg=green;options=bold>INSTALLED</>');
         }
 
-        // 3. Ensure app.blade.php exists
-        $viewPath = base_path('resources/views/app.blade.php');
+        // 3. Ensure app.blade.php exists in Shared Domain
+        $sharedViewPath = base_path('app/Domain/Shared/Resources/views');
+        if (!File::isDirectory($sharedViewPath)) {
+            File::makeDirectory($sharedViewPath, 0755, true);
+        }
+
+        $viewPath = $sharedViewPath . '/app.blade.php';
         if (!File::exists($viewPath)) {
             $this->generateFromStub('AppView', $viewPath, [
                 'mode' => $mode,
-                'ext' => $activeExtension ?? 'js',
+                'ext' => $activeExtension,
                 'viteReactRefresh' => $mode === 'react' ? '@viteReactRefresh' : ''
             ]);
-            $this->components->twoColumnDetail('Inertia Root View', '<fg=green;options=bold>CREATED</>');
+            $this->components->twoColumnDetail('Shared Root View (DDD)', '<fg=green;options=bold>CREATED</>');
         }
     }
 
@@ -285,6 +302,8 @@ class SetupCommand extends Command
         if ($tenancy) {
             $folders[] = 'app/Domain/Central';
             $folders[] = 'app/Domain/Tenant';
+        } else {
+            $folders[] = 'app/Domain/Shared';
         }
 
         foreach ($folders as $folder) {
@@ -342,13 +361,6 @@ class SetupCommand extends Command
             // Add Domain discovery to web.php as well
             if (!str_contains($content, 'DomainHelpers::loadDomainRoutes()')) {
                 $content .= "\n\nuse Samushi\Domion\Helpers\DomainHelpers;\nDomainHelpers::loadDomainRoutes();\n";
-                File::put($webPath, $content);
-            }
-
-            // Optional: Redirect / to /auth/login if it's a fresh install
-            if (str_contains($content, "view('welcome')")) {
-                $replacement = "redirect('/auth/login')";
-                $content = str_replace("view('welcome')", $replacement, $content);
                 File::put($webPath, $content);
             }
         }
@@ -413,6 +425,7 @@ class SetupCommand extends Command
     protected function installStarterKit(string $mode): void
     {
         // 1. Setup Domains
+        $this->createDomainStructure('Shared');
         $this->createDomainStructure('User');
         $this->createDomainStructure('Auth');
 
@@ -514,6 +527,7 @@ class SetupCommand extends Command
             $base . '/Database/Seeders',
             $base . '/Database/Factories',
             $base . '/Frontend/Pages',
+            $base . '/Resources/views',
             $base . '/Resources/views/pages',
             $base . '/Resources/views/components',
         ];

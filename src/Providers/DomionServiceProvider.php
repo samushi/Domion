@@ -30,6 +30,7 @@ class DomionServiceProvider extends ServiceProvider
         $this->registerDomainObservers();
         DomainHelpers::registerLivewireComponents();
         $this->registerFactories();
+        $this->configureInertiaRootView();
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
@@ -125,5 +126,22 @@ class DomionServiceProvider extends ServiceProvider
             // Fallback for standard structure
             return 'Database\\Factories\\' . class_basename($modelName) . 'Factory';
         });
+    }
+
+    /**
+     * Set the root view for Inertia if using DDD structure.
+     */
+    protected function configureInertiaRootView(): void
+    {
+        $mode = config('domion.mode');
+        
+        if (in_array($mode, ['react', 'vue'])) {
+            if (class_exists(\Inertia\Inertia::class)) {
+                // Check if shared::app exists (it should after setup)
+                if (view()->exists('shared::app')) {
+                    \Inertia\Inertia::setRootView('shared::app');
+                }
+            }
+        }
     }
 }
