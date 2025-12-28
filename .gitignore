@@ -1,0 +1,17 @@
+vendor/
+.idea/
+.vscode/
+.phpunit.result.cache
+composer.lock
+phpunit.xml.bak
+.env
+auth.json
+node_modules/
+npm-debug.log
+yarn-error.log
+public/storage
+public/hot
+public/build
+storage/*.key
+.phpunit.cache/
+tests/TestCase.php.bak

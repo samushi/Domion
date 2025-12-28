@@ -1,0 +1,52 @@
+{
+    "name": "samushi/domion",
+    "description": "Domion - Professional Architecture for Laravel with Automated Frontend & Auth Integration",
+    "keywords": [
+        "laravel",
+        "ddd",
+        "domain-driven-design",
+        "domion",
+        "architecture",
+        "inertia",
+        "react",
+        "vue",
+        "livewire"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Sami Maxhuni",
+            "email": "samimaxhuni@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0",
+        "samushi/queryfilter": "dev-master",
+        "marcin-orlowski/laravel-api-response-builder": "^10.0",
+        "laravel/prompts": "^0.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Samushi\\Domion\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Samushi\\Domion\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Samushi\\Domion\\Providers\\DomionServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "require-dev": {
+        "orchestra/testbench": "^10.8",
+        "phpunit/phpunit": "^12.5"
+    }
+}
