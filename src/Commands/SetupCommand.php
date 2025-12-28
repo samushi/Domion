@@ -321,6 +321,15 @@ class SetupCommand extends Command
             exec("COMPOSER_NO_INTERACTION=1 composer require {$packages} --quiet");
         }
 
+        if (!empty($npmPackages) && $this->confirm('Install JS dependencies (NPM)?', true)) {
+            $this->info('Installing: ' . implode(', ', $npmPackages));
+            $packages = implode(' ', $npmPackages);
+            exec("npm install {$packages} --save-dev");
+            
+            $this->info('Building frontend assets (Vite)...');
+            exec("npm run build");
+        }
+
     }
 
     protected function saveConfiguration(string $auth, string $mode, bool $tenancy = false): void
