@@ -6,6 +6,7 @@ namespace Samushi\Domion\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Symfony\Component\Console\Attribute\AsCommand;
 
 #[AsCommand(
@@ -57,17 +58,20 @@ class SetupCommand extends Command
             default: 'sanctum'
         );
 
-        // --- Execution Phase ---
+        // 4. Cleanup Legacy Structure
+        $cleanup = \Laravel\Prompts\confirm('Do you want to move default Providers to App/Providers and delete app/Models and app/Http?', true);
 
-        \Laravel\Prompts\spin(
-            fn() => $this->setupFolders($tenancy),
-            'Scaffolding directory structure...'
-        );
-
+        // 5. Install Dependencies FIRST (Interactive)
         $this->setupDependencies($mode, $auth, $tenancy);
 
         \Laravel\Prompts\spin(
-            function() use ($mode) {
+            function() use ($mode, $tenancy, $cleanup) {
+                $this->setupFolders($tenancy);
+                
+                if ($cleanup) {
+                    $this->cleanupLaravelDefaults();
+                }
+
                 $this->setupRoutes();
                 $this->setupBootstrap();
                 $this->setupComposer();
@@ -78,7 +82,7 @@ class SetupCommand extends Command
                     $this->setupJsConfig();
                 }
             },
-            'Configuring application core...'
+            'Configuring Domion Architecture...'
         );
 
         $this->saveConfiguration($auth, $mode, $tenancy);
@@ -238,31 +242,48 @@ class SetupCommand extends Command
     {
         $folders = [
             'app/App', 
+            'app/App/Providers',
             'app/Domain', 
             'app/Support',
-            'app/Support/Contracts',
-            'app/Support/Constants',
-            'app/Support/Traits',
-            'app/Support/ValueObjects',
         ];
 
         if ($tenancy) {
             $folders[] = 'app/Domain/Central';
             $folders[] = 'app/Domain/Tenant';
         }
-        
-        $this->output->progressStart(count($folders));
 
         foreach ($folders as $folder) {
             if (!File::isDirectory(base_path($folder))) {
                 File::makeDirectory(base_path($folder), 0755, true);
             }
-            $this->output->progressAdvance();
-            usleep(100000); 
+        }
+    }
+
+    protected function cleanupLaravelDefaults(): void
+    {
+        // 1. Delete Models and Http (Legacy)
+        if (File::isDirectory(base_path('app/Models'))) {
+            File::deleteDirectory(base_path('app/Models'));
+        }
+        if (File::isDirectory(base_path('app/Http'))) {
+            File::deleteDirectory(base_path('app/Http'));
         }
 
-        $this->output->progressFinish();
-        $this->components->twoColumnDetail('Directory Structure', '<fg=green;options=bold>READY</>');
+        // 2. Move Providers to app/App/Providers
+        if (File::isDirectory(base_path('app/Providers'))) {
+            if (!File::isDirectory(base_path('app/App/Providers'))) {
+                File::makeDirectory(base_path('app/App/Providers'), 0755, true);
+            }
+            
+            $files = File::files(base_path('app/Providers'));
+            foreach ($files as $file) {
+                $targetFile = base_path('app/App/Providers/' . $file->getFilename());
+                if (!File::exists($targetFile)) {
+                    File::move($file->getRealPath(), $targetFile);
+                }
+            }
+            File::deleteDirectory(base_path('app/Providers'));
+        }
     }
 
     protected function setupRoutes(): void
@@ -270,16 +291,11 @@ class SetupCommand extends Command
         $apiPath = base_path('routes/api.php');
         
         if (File::exists($apiPath)) {
-            if ($this->confirm('Do you want to automate Domain Routes loading in routes/api.php?', true)) {
-                $content = File::get($apiPath);
-                
-                if (!str_contains($content, 'DomainHelpers::loadDomainRoutes()')) {
-                    $newContent = "<?php\n\nuse Samushi\Domion\Helpers\DomainHelpers;\n\nDomainHelpers::loadDomainRoutes();\n";
-                    File::put($apiPath, $newContent);
-                    $this->components->twoColumnDetail('Route Configuration (api.php)', '<fg=green;options=bold>MODIFIED</>');
-                } else {
-                    $this->components->twoColumnDetail('Route Configuration (api.php)', '<fg=yellow;options=bold>EXISTS</>');
-                }
+            $content = File::get($apiPath);
+            
+            if (!str_contains($content, 'DomainHelpers::loadDomainRoutes()')) {
+                $newContent = "<?php\n\nuse Samushi\Domion\Helpers\DomainHelpers;\n\nDomainHelpers::loadDomainRoutes();\n";
+                File::put($apiPath, $newContent);
             }
         }
     }
@@ -289,25 +305,22 @@ class SetupCommand extends Command
         $bootstrapPath = base_path('bootstrap/app.php');
 
         if (File::exists($bootstrapPath)) {
-            if ($this->confirm('Do you want to attempt automatic modification of bootstrap/app.php?', true)) {
-                $content = File::get($bootstrapPath);
+            $content = File::get($bootstrapPath);
 
-                if (!str_contains($content, 'useAppPath')) {
-                    $pattern = '/->create\(\)/';
-                    $replacement = "->create()\n    ->useAppPath(realpath(__DIR__.'/../app/App'))";
-                    
-                    if (preg_match($pattern, $content)) {
-                        $newContent = preg_replace($pattern, $replacement, $content);
-                        File::put($bootstrapPath, $newContent);
-                        $this->components->twoColumnDetail('Bootstrap Path Update', '<fg=green;options=bold>SUCCESS</>');
-                    } else {
-                        $this->warn('Could not find ->create() call. Please add useAppPath manually.');
-                    }
-                } else {
-                    $this->components->twoColumnDetail('Bootstrap Path Update', '<fg=yellow;options=bold>EXISTS</>');
+            if (!str_contains($content, 'useAppPath')) {
+                // Target the create() call more precisely
+                $pattern = '/->create\(\)/';
+                $replacement = "->useAppPath(realpath(__DIR__.'/../app/App'))\n    ->create()";
+                
+                if (preg_match($pattern, $content)) {
+                    $newContent = preg_replace($pattern, $replacement, $content);
+                    File::put($bootstrapPath, $newContent);
                 }
             }
         }
+        
+        // Ensure providers.php exists or is updated if necessary
+        // In L11 moving Files to app/App/Providers is enough as PSR-4 will guide the class loader.
     }
 
     protected function setupComposer(): void
@@ -315,20 +328,16 @@ class SetupCommand extends Command
         $composerPath = base_path('composer.json');
 
         if (File::exists($composerPath)) {
-            if ($this->confirm('Do you want to automatically update PSR-4 in composer.json?', true)) {
-                $composer = json_decode(File::get($composerPath), true);
+            $composer = json_decode(File::get($composerPath), true);
 
-                $composer['autoload']['psr-4']['App\\'] = 'app/App/';
-                $composer['autoload']['psr-4']['App\\Domain\\'] = 'app/Domain/';
-                $composer['autoload']['psr-4']['App\\Support\\'] = 'app/Support/';
+            $composer['autoload']['psr-4']['App\\'] = 'app/App/';
+            $composer['autoload']['psr-4']['App\\Domain\\'] = 'app/Domain/';
+            $composer['autoload']['psr-4']['App\\Support\\'] = 'app/Support/';
 
-                File::put(
-                    $composerPath, 
-                    json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL
-                );
-
-                $this->components->twoColumnDetail('composer.json Update', '<fg=green;options=bold>SUCCESS</>');
-            }
+            File::put(
+                $composerPath, 
+                json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL
+            );
         }
     }
 }
