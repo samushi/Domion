@@ -5,9 +5,20 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 
 const appName = window.document.getElementsByTagName('title')[0]?.innerText || 'Laravel';
 
+// Domion DDD Resolver
+const domainPages = import.meta.glob('../../app/Domain/*/Frontend/Pages/**/*.{js,jsx,ts,tsx,vue}');
+const resolveDomainPage = (name, domainPages, resolver) => {
+    if (name.includes('::')) {
+        const [domain, page] = name.split('::');
+        const path = Object.keys(domainPages).find(p => p.toLowerCase().includes(`/domain/${domain.toLowerCase()}/frontend/pages/${page.toLowerCase()}`));
+        if (path) return typeof domainPages[path] === 'function' ? domainPages[path]() : domainPages[path];
+    }
+    return resolver(name);
+};
+
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
-    resolve: (name) => resolvePageComponent(`./Pages/${name}.tsx`, import.meta.glob('./Pages/**/*.tsx')),
+    resolve: (name) => resolveDomainPage(name, domainPages, (name) => resolvePageComponent(`./Pages/${name}.tsx`, import.meta.glob('./Pages/**/*.tsx'))),
     setup({ el, App, props }) {
         const root = createRoot(el);
         root.render(<App {...props} />);

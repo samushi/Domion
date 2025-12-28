@@ -144,11 +144,10 @@ class SetupCommand extends Command
 
         if (str_contains($content, 'app/Domain')) {
             $this->components->twoColumnDetail('Frontend Auto-Resolver', '<fg=yellow;options=bold>EXISTS</>');
-        } else {
+        } else if (str_contains($content, 'createInertiaApp')) {
             $globPattern = "../../app/Domain/*/Frontend/Pages/**/*.{js,jsx,ts,tsx,vue}";
-            
-            if (str_contains($content, 'createInertiaApp')) {
-            $injection = "\nconst domainPages = import.meta.glob('{$globPattern}');\n" .
+            $injection = "\n// Domion DDD Resolver\n" .
+                "const domainPages = import.meta.glob('{$globPattern}');\n" .
                 "const resolveDomainPage = (name, domainPages, resolver) => {\n" .
                 "    if (name.includes('::')) {\n" .
                 "        const [domain, page] = name.split('::');\n" .
@@ -156,20 +155,30 @@ class SetupCommand extends Command
                 "        if (path) return typeof domainPages[path] === 'function' ? domainPages[path]() : domainPages[path];\n" .
                 "    }\n" .
                 "    return resolver(name);\n" .
-                "};\n";
+                "};\n\n";
 
-            $content = str_replace('createInertiaApp', $injection . 'createInertiaApp', $content);
+            // Inject before the FIRST occurrence of createInertiaApp invocation (typically createInertiaApp({)
+            // but NOT in the import statement
+            if (preg_match('/(?<!import\s\{)(?<![a-zA-Z0-9])createInertiaApp\s*\(/', $content, $matches, PREG_OFFSET_CAPTURE)) {
+                $pos = $matches[0][1];
+                $content = substr($content, 0, $pos) . $injection . substr($content, $pos);
+            } else {
+                // Fallback: just append after imports or at top (less ideal if it's a mess)
+                $content = $injection . $content;
+            }
             
             // This regex captures the entire resolve line to ensure we keep its arguments and close correctly
             $resolvePattern = '/resolve:\s*\(?name\)?\s*=>\s*resolvePageComponent\((.*?)\),?/s';
             $replacement = "resolve: (name) => resolveDomainPage(name, domainPages, (name) => resolvePageComponent($1)),";
             
-            $content = preg_replace($resolvePattern, $replacement, $content);
-            File::put($appPath, $content);
-            $this->components->twoColumnDetail('Frontend Auto-Resolver', '<fg=green;options=bold>INSTALLED</>');
+            if (preg_match($resolvePattern, $content)) {
+                $content = preg_replace($resolvePattern, $replacement, $content);
+                File::put($appPath, $content);
+                $this->components->twoColumnDetail('Frontend Auto-Resolver', '<fg=green;options=bold>INSTALLED</>');
+            } else {
+                $this->warn('Could not find Inertia resolve block in app.js. Manual setup required.');
+            }
         }
-    }
-
     // 3. Ensure app.blade.php exists in Shared Domain
         $sharedViewPath = base_path('app/Domain/Shared/Resources/views');
         if (!File::isDirectory($sharedViewPath)) {
