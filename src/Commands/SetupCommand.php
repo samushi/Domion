@@ -149,6 +149,17 @@ class SetupCommand extends Command
             File::put($appPath, $content);
             $this->components->twoColumnDetail('Frontend Auto-Resolver', '<fg=green;options=bold>INSTALLED</>');
         }
+
+        // 3. Ensure app.blade.php exists
+        $viewPath = base_path('resources/views/app.blade.php');
+        if (!File::exists($viewPath)) {
+            $this->generateFromStub('AppView', $viewPath, [
+                'mode' => $mode,
+                'ext' => $activeExtension ?? 'js',
+                'viteReactRefresh' => $mode === 'react' ? '@viteReactRefresh' : ''
+            ]);
+            $this->components->twoColumnDetail('Inertia Root View', '<fg=green;options=bold>CREATED</>');
+        }
     }
 
     protected function setupVite(): void
