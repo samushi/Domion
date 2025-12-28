@@ -26,10 +26,10 @@ trait BladeHelperTrait
         $results = ['views' => [], 'lang' => []];
         $domains = glob($domainPath . DIRECTORY_SEPARATOR . '*', GLOB_ONLYDIR);
 
-        foreach ($domains as $domainPath) {
-            $viewDir = $domainPath . DIRECTORY_SEPARATOR . 'Resources' . DIRECTORY_SEPARATOR . 'views';
-            $langDir = $domainPath . DIRECTORY_SEPARATOR . 'Resources' . DIRECTORY_SEPARATOR . 'Lang';
-            $domainName = strtolower(basename($domainPath));
+        foreach ($domains as $domainDir) {
+            $viewDir = $domainDir . DIRECTORY_SEPARATOR . 'Resources' . DIRECTORY_SEPARATOR . 'views';
+            $langDir = $domainDir . DIRECTORY_SEPARATOR . 'Resources' . DIRECTORY_SEPARATOR . 'Lang';
+            $domainName = strtolower(basename($domainDir));
 
             if (is_dir($viewDir)) {
                 $results['views'][$domainName] = $viewDir;

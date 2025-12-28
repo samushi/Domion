@@ -134,14 +134,20 @@ class SetupCommand extends Command
 
         $content = File::get($appPath);
         
-        if (str_contains($content, 'app/Domain')) {
-            $this->components->twoColumnDetail('Frontend Auto-Resolver', '<fg=yellow;options=bold>EXISTS</>');
-            return;
+        // If app.js is basically empty or default Laravel, install the full starter kit app.js
+        if (!str_contains($content, 'createInertiaApp')) {
+            $stubName = $mode === 'react' ? 'ReactApp' : 'VueApp';
+            $this->generateFromStub($stubName, $appPath);
+            $content = File::get($appPath);
+            $this->components->twoColumnDetail('Inertia Entry Point', '<fg=green;options=bold>INSTALLED</>');
         }
 
-        $globPattern = "../../app/Domain/*/Frontend/Pages/**/*.{js,jsx,ts,tsx,vue}";
-        
-        if (str_contains($content, 'createInertiaApp')) {
+        if (str_contains($content, 'app/Domain')) {
+            $this->components->twoColumnDetail('Frontend Auto-Resolver', '<fg=yellow;options=bold>EXISTS</>');
+        } else {
+            $globPattern = "../../app/Domain/*/Frontend/Pages/**/*.{js,jsx,ts,tsx,vue}";
+            
+            if (str_contains($content, 'createInertiaApp')) {
             $injection = "\nconst domainPages = import.meta.glob('{$globPattern}');\n" .
                 "const resolveDomainPage = (name, domainPages, resolver) => {\n" .
                 "    if (name.includes('::')) {\n" .
@@ -162,8 +168,9 @@ class SetupCommand extends Command
             File::put($appPath, $content);
             $this->components->twoColumnDetail('Frontend Auto-Resolver', '<fg=green;options=bold>INSTALLED</>');
         }
+    }
 
-        // 3. Ensure app.blade.php exists in Shared Domain
+    // 3. Ensure app.blade.php exists in Shared Domain
         $sharedViewPath = base_path('app/Domain/Shared/Resources/views');
         if (!File::isDirectory($sharedViewPath)) {
             File::makeDirectory($sharedViewPath, 0755, true);
