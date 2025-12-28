@@ -208,7 +208,30 @@ class SetupCommand extends Command
             File::put($appPath, $content);
         }
 
+        // Ensure app.css is imported in app.js/tsx
+        if (!str_contains($content, "import '../css/app.css'")) {
+             $content = "import '../css/app.css';\n" . $content;
+             File::put($appPath, $content);
+        }
+
+        // Ensure app.css is setup correctly
+        $this->setupCss();
+
         return $activeExtension;
+    }
+
+    protected function setupCss(): void
+    {
+        $cssPath = base_path('resources/css/app.css');
+        if (!File::exists(dirname($cssPath))) {
+            File::makeDirectory(dirname($cssPath), 0755, true);
+        }
+        
+        $content = File::exists($cssPath) ? File::get($cssPath) : '';
+        if (!str_contains($content, '@tailwind base')) {
+             $tailwindDirectives = "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n";
+             File::put($cssPath, $tailwindDirectives . $content);
+        }
     }
 
     protected function setupVite(string $activeExtension = 'js'): void
