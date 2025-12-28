@@ -61,15 +61,22 @@ class SetupCommand extends Command
         // 4. Cleanup Legacy Structure
         $cleanup = \Laravel\Prompts\confirm('Do you want to move default Providers to App/Providers and delete app/Models and app/Http?', true);
 
-        // 5. Install Dependencies FIRST (Interactive)
+        // 5. Starter Kit
+        $starterKit = \Laravel\Prompts\confirm('Do you want to install an example Auth domain (Login/Register/Dashboard)?', true);
+
+        // 6. Install Dependencies FIRST (Interactive)
         $this->setupDependencies($mode, $auth, $tenancy);
 
         \Laravel\Prompts\spin(
-            function() use ($mode, $tenancy, $cleanup) {
+            function() use ($mode, $tenancy, $cleanup, $starterKit, $auth) {
                 $this->setupFolders($tenancy);
                 
                 if ($cleanup) {
                     $this->cleanupLaravelDefaults();
+                }
+
+                if ($starterKit) {
+                    $this->installStarterKit($mode);
                 }
 
                 $this->setupRoutes();
@@ -204,13 +211,13 @@ class SetupCommand extends Command
         if (!empty($composerPackages) && $this->confirm('Install PHP dependencies (Composer)?', true)) {
             $this->info('Installing: ' . implode(', ', $composerPackages));
             $packages = implode(' ', $composerPackages);
-            exec("composer require {$packages}");
+            exec("COMPOSER_NO_INTERACTION=1 composer require {$packages} --quiet");
         }
 
         if (!empty($npmPackages) && $this->confirm('Install JS dependencies (NPM)?', true)) {
             $this->info('Installing: ' . implode(', ', $npmPackages));
             $packages = implode(' ', $npmPackages);
-            exec("npm install {$packages} --save-dev");
+            exec("npm install {$packages} --save-dev --silent");
         }
     }
 
@@ -338,6 +345,37 @@ class SetupCommand extends Command
                 $composerPath, 
                 json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL
             );
+        }
+    }
+
+    protected function installStarterKit(string $mode): void
+    {
+        $basePath = base_path('app/Domain/Auth');
+        $folders = [
+            $basePath . '/Actions',
+            $basePath . '/Controllers',
+            $basePath . '/Models',
+            $basePath . '/Frontend/Pages',
+        ];
+
+        foreach ($folders as $folder) {
+            if (!File::isDirectory($folder)) {
+                File::makeDirectory($folder, 0755, true);
+            }
+        }
+
+        // Create Example Action
+        $actionContent = "<?php\n\nnamespace App\Domain\Auth\Actions;\n\nclass LoginAction\n{\n    public function handle(array \$credentials)\n    {\n        return auth()->attempt(\$credentials);\n    }\n}\n";
+        File::put($basePath . '/Actions/LoginAction.php', $actionContent);
+
+        // Create Example Controller
+        $controllerContent = "<?php\n\nnamespace App\Domain\Auth\Controllers;\n\nuse App\App\Http\Controllers\Controller;\n\nclass LoginController extends Controller\n{\n    public function index()\n    {\n        return inertia('Auth/Login');\n    }\n}\n";
+        File::put($basePath . '/Controllers/LoginController.php', $controllerContent);
+
+        // Create Example Frontend Page if React
+        if ($mode === 'react') {
+            $jsxContent = "import React from 'react';\n\nexport default function Login() {\n    return (\n        <div className=\"min-h-screen flex items-center justify-center bg-gray-100\">\n            <div className=\"bg-white p-8 rounded shadow-md w-96\">\n                <h1 className=\"text-2xl font-bold mb-6 text-center\">Login to Domion</h1>\n                <form className=\"space-y-4\">\n                    <div>\n                        <label className=\"block text-sm font-medium text-gray-700\">Email</label>\n                        <input type=\"email\" className=\"mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500\" />\n                    </div>\n                    <div>\n                        <label className=\"block text-sm font-medium text-gray-700\">Password</label>\n                        <input type=\"password\" className=\"mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500\" />\n                    </div>\n                    <button className=\"w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500\">\n                        Sign in\n                    </button>\n                </form>\n            </div>\n        </div>\n    );\n}\n";
+            File::put($basePath . '/Frontend/Pages/Login.tsx', $jsxContent);
         }
     }
 }
