@@ -201,6 +201,12 @@ class SetupCommand extends Command
             $this->components->twoColumnDetail('Support Root View (DDD)', '<fg=green;options=bold>CREATED</>');
         }
 
+        // Add explicit React import if missing (fixes ReferenceError: React is not defined)
+        if ($mode === 'react' && !str_contains($content, "import React")) {
+            $content = "import React from 'react';\n" . $content;
+            File::put($appPath, $content);
+        }
+
         return $activeExtension;
     }
 
@@ -242,6 +248,11 @@ class SetupCommand extends Command
         $config['compilerOptions']['paths']['@domain/*'] = ['app/Domain/*'];
         $config['compilerOptions']['paths']['@support/*'] = ['app/Support/*'];
         $config['compilerOptions']['paths']['@app/*'] = ['app/App/*'];
+        
+        // Ensure JSX support is enabled for React
+        if (!isset($config['compilerOptions']['jsx'])) {
+            $config['compilerOptions']['jsx'] = 'react-jsx';
+        }
 
         File::put($path, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         $label = basename($path);
@@ -532,6 +543,11 @@ class SetupCommand extends Command
             'modelNamespace' => 'App\Domain\User\Models'
         ]);
 
+        // Create Routes in Auth domain
+        // Auth controller only handles Login and Logout
+        $routeContent = "<?php\n\nuse Illuminate\Support\Facades\Route;\nuse App\Domain\Auth\Controllers\AuthController;\n\nRoute::get('/login', [AuthController::class, 'index'])->name('login');\nRoute::post('/login', [AuthController::class, 'login']);\nRoute::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');\n";
+        File::put(base_path('app/Domain/Auth/web.php'), $routeContent);
+
         // 7. Create Factory
         $this->generateFromStub('Factory', base_path('app/Domain/User/Database/Factories/UserFactory.php'), [
             'namespace' => 'App\Domain\User\Database\Factories',
@@ -540,27 +556,73 @@ class SetupCommand extends Command
             'class' => 'UserFactory'
         ]);
 
-        // 8. Create Routes
-        $routeContent = "<?php\n\nuse Illuminate\Support\Facades\Route;\nuse App\Domain\Auth\Controllers\AuthController;\n\nRoute::get('/', [AuthController::class, 'landing'])->name('landing');\nRoute::get('/login', [AuthController::class, 'index'])->name('login');\nRoute::post('/login', [AuthController::class, 'login']);\nRoute::get('/dashboard', [AuthController::class, 'dashboard'])->middleware('auth')->name('dashboard');\nRoute::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');\n";
-        File::put(base_path('app/Domain/Auth/web.php'), $routeContent);
+        // 9. Create Landing Domain & Pages
+        $this->createDomainStructure('Landing', $mode);
+        $this->generateFromStub('LandingController', base_path('app/Domain/Landing/Controllers/LandingController.php'), [
+            'namespace' => 'App\Domain\Landing\Controllers',
+            'baseController' => $baseController,
+            'class' => 'LandingController',
+            'domain' => 'landing',
+            'view' => 'Landing'
+        ]);
 
-        // 8. Create Frontend Pages
+        // Create Landing routes
+        $landingRoute = "<?php\n\nuse Illuminate\Support\Facades\Route;\nuse App\Domain\Landing\Controllers\LandingController;\n\nRoute::get('/', [LandingController::class, 'index'])->name('landing');\n";
+        File::put(base_path('app/Domain/Landing/web.php'), $landingRoute);
+        
+        // 10. Create Dashboard Domain & Pages
+        $this->createDomainStructure('Dashboard', $mode);
+        $this->generateFromStub('DashboardController', base_path('app/Domain/Dashboard/Controllers/DashboardController.php'), [
+            'namespace' => 'App\Domain\Dashboard\Controllers',
+            'baseController' => $baseController,
+            'class' => 'DashboardController',
+            'domain' => 'dashboard',
+            'view' => 'Dashboard'
+        ]);
+
+        $dashboardRoute = "<?php\n\nuse Illuminate\Support\Facades\Route;\nuse App\Domain\Dashboard\Controllers\DashboardController;\n\nRoute::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');\n";
+        File::put(base_path('app/Domain/Dashboard/web.php'), $dashboardRoute);
+
+        // Remove default web.php content
+        $webPath = base_path('routes/web.php');
+        if (File::exists($webPath)) {
+             $content = "<?php\n\nuse Samushi\Domion\Helpers\DomainHelpers;\n\n// Default Laravel routes are replaced by Domain Routes\nDomainHelpers::loadDomainRoutes();\n";
+             File::put($webPath, $content);
+        }
+
+        // Frontend Pages Generation
+        $landingFrontendPath = base_path('app/Domain/Landing/Frontend/Pages');
+        File::ensureDirectoryExists($landingFrontendPath);
+        
+        $dashboardFrontendPath = base_path('app/Domain/Dashboard/Frontend/Pages');
+        File::ensureDirectoryExists($dashboardFrontendPath);
+
         if ($mode === 'react') {
-            $this->generateFromStub('ReactLanding', base_path('app/Domain/Auth/Frontend/Pages/Landing.tsx'));
-            $this->generateFromStub('ReactLogin', base_path('app/Domain/Auth/Frontend/Pages/Login.tsx'));
-            $this->generateFromStub('ReactDashboard', base_path('app/Domain/Auth/Frontend/Pages/Dashboard.tsx'));
-        } elseif ($mode === 'vue') {
-            $this->generateFromStub('VueLanding', base_path('app/Domain/Auth/Frontend/Pages/Landing.vue'));
-            $this->generateFromStub('VueLogin', base_path('app/Domain/Auth/Frontend/Pages/Login.vue'));
-            $this->generateFromStub('VueDashboard', base_path('app/Domain/Auth/Frontend/Pages/Dashboard.vue'));
-        } else {
-            // Blade, Livewire, or API (fallback to Blade views for presentation)
-            $viewPath = base_path('app/Domain/Auth/Resources/views/pages');
-            File::ensureDirectoryExists($viewPath);
+            $this->generateFromStub('ReactLanding', $landingFrontendPath . '/Landing.tsx');
             
-            $this->generateFromStub('BladeLanding', $viewPath . '/Landing.blade.php');
-            $this->generateFromStub('BladeLogin', $viewPath . '/Login.blade.php');
-            $this->generateFromStub('BladeDashboard', $viewPath . '/Dashboard.blade.php');
+            // Auth Pages
+            $this->generateFromStub('ReactLogin', base_path('app/Domain/Auth/Frontend/Pages/Login.tsx'));
+            $this->generateFromStub('ReactDashboard', $dashboardFrontendPath . '/Dashboard.tsx');
+            
+        } elseif ($mode === 'vue') {
+            $this->generateFromStub('VueLanding', $landingFrontendPath . '/Landing.vue');
+            
+            $this->generateFromStub('VueLogin', base_path('app/Domain/Auth/Frontend/Pages/Login.vue'));
+            $this->generateFromStub('VueDashboard', $dashboardFrontendPath . '/Dashboard.vue');
+            
+        } else {
+             // Blade
+            $landingViewPath = base_path('app/Domain/Landing/Resources/views/pages');
+            File::ensureDirectoryExists($landingViewPath);
+            $this->generateFromStub('BladeLanding', $landingViewPath . '/Landing.blade.php');
+
+            $authViewPath = base_path('app/Domain/Auth/Resources/views/pages');
+            File::ensureDirectoryExists($authViewPath);
+            $this->generateFromStub('BladeLogin', $authViewPath . '/Login.blade.php');
+            
+            $dashboardViewPath = base_path('app/Domain/Dashboard/Resources/views/pages');
+            File::ensureDirectoryExists($dashboardViewPath);
+            $this->generateFromStub('BladeDashboard', $dashboardViewPath . '/Dashboard.blade.php');
         }
     }
 
@@ -587,7 +649,12 @@ class SetupCommand extends Command
             $base . '/Database/Factories',
         ];
 
+        // Only create Frontend/Resources folders if strictly necessary
         if (in_array($mode, ['react', 'vue'])) {
+            // Check if we are creating a fresh domain or updating
+            // Ideally we only create these if the user asks, but for starter kit we force them
+            // For generic domains, we might want to keep them empty if not used.
+            // But to avoid "missing directory" errors during globbing, valid empty dirs are safer.
             $folders[] = $base . '/Frontend/Pages';
             $folders[] = $base . '/Frontend/Components';
             

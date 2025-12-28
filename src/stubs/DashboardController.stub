@@ -1,0 +1,16 @@
+<?php
+
+namespace {{namespace}};
+
+use Samushi\Domion\Support\{{baseController}};
+
+class DashboardController extends {{baseController}}
+{
+    /**
+     * Display the user dashboard.
+     */
+    public function index()
+    {
+        return $this->render('dashboard::Dashboard');
+    }
+}

@@ -11,14 +11,6 @@ use Illuminate\Http\Request;
 class AuthController extends {{baseController}}
 {
     /**
-     * Display the landing page (static welcome).
-     */
-    public function landing()
-    {
-        return $this->render('auth::Landing');
-    }
-
-    /**
      * Display the login page.
      */
     public function index()
@@ -39,14 +31,6 @@ class AuthController extends {{baseController}}
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
-    }
-
-    /**
-     * Display the dashboard.
-     */
-    public function dashboard()
-    {
-        return $this->render('auth::Dashboard');
     }
 
     /**
