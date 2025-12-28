@@ -20,12 +20,12 @@ class DomionServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/domion.php', 'domion');
+        $this->configureBladeViewPaths();
         $this->registerDomainProviders();
     }
 
     public function boot(): void
     {
-        $this->configureBladeViewPaths();
         $this->configureMigrationPaths();
         $this->registerDomainObservers();
         DomainHelpers::registerLivewireComponents();
@@ -133,19 +133,17 @@ class DomionServiceProvider extends ServiceProvider
      */
     protected function configureInertiaRootView(): void
     {
-        $mode = config('domion.mode');
-        
-        if (in_array($mode, ['react', 'vue'])) {
-            if (class_exists(\Inertia\Inertia::class)) {
-                // Ensure namespaces are loaded (redundant but safe)
-                DomainHelpers::loadAllResources();
-                
-                if (view()->exists('shared::app')) {
-                    \Inertia\Inertia::setRootView('shared::app');
-                } elseif (view()->exists('auth::app')) {
-                    // Failover if for some reason they put it in Auth
-                    \Inertia\Inertia::setRootView('auth::app');
-                }
+        if (class_exists(\Inertia\Inertia::class)) {
+            // Safety: Manually register Support namespace if it exists
+            $supportPath = base_path('app/Support/Resources/views');
+            if (is_dir($supportPath)) {
+                view()->addNamespace('support', $supportPath);
+            }
+
+            if (view()->exists('support::app')) {
+                \Inertia\Inertia::setRootView('support::app');
+            } elseif (view()->exists('shared::app')) {
+                \Inertia\Inertia::setRootView('shared::app');
             }
         }
     }

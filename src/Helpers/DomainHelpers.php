@@ -59,12 +59,22 @@ class DomainHelpers
 
         $tenancy = config('domion.tenancy', false);
         
+        $allDomains = [];
+        
         if ($tenancy) {
             $central = glob($path . '/Central/*', GLOB_ONLYDIR);
             $tenant = glob($path . '/Tenant/*', GLOB_ONLYDIR);
-            return array_merge($central ?: [], $tenant ?: []);
+            $allDomains = array_merge($central ?: [], $tenant ?: []);
+        } else {
+            $allDomains = array_filter(glob($path . '/*'), 'is_dir');
         }
 
-        return array_filter(glob($path . '/*'), 'is_dir');
+        // Always check for Shared domain at root too
+        $shared = $path . '/Shared';
+        if (is_dir($shared) && !in_array($shared, $allDomains)) {
+            $allDomains[] = $shared;
+        }
+
+        return $allDomains;
     }
 }

@@ -179,20 +179,20 @@ class SetupCommand extends Command
                 $this->warn('Could not find Inertia resolve block in app.js. Manual setup required.');
             }
         }
-    // 3. Ensure app.blade.php exists in Shared Domain
-        $sharedViewPath = base_path('app/Domain/Shared/Resources/views');
-        if (!File::isDirectory($sharedViewPath)) {
-            File::makeDirectory($sharedViewPath, 0755, true);
+    // 3. Ensure app.blade.php exists in Support Resources
+        $supportViewPath = base_path('app/Support/Resources/views');
+        if (!File::isDirectory($supportViewPath)) {
+            File::makeDirectory($supportViewPath, 0755, true);
         }
 
-        $viewPath = $sharedViewPath . '/app.blade.php';
+        $viewPath = $supportViewPath . '/app.blade.php';
         if (!File::exists($viewPath)) {
             $this->generateFromStub('AppView', $viewPath, [
                 'mode' => $mode,
                 'ext' => $activeExtension,
                 'viteReactRefresh' => $mode === 'react' ? '@viteReactRefresh' : ''
             ]);
-            $this->components->twoColumnDetail('Shared Root View (DDD)', '<fg=green;options=bold>CREATED</>');
+            $this->components->twoColumnDetail('Support Root View (DDD)', '<fg=green;options=bold>CREATED</>');
         }
     }
 
@@ -287,19 +287,8 @@ class SetupCommand extends Command
     {
         $configPath = base_path('config/domion.php');
         
-        $authValue = match (true) {
-            str_contains($auth, 'Sanctum') => 'sanctum',
-            str_contains($auth, 'Passport') => 'passport',
-            default => 'none',
-        };
-
-        $modeValue = match (true) {
-            str_contains($mode, 'React') => 'react',
-            str_contains($mode, 'Vue') => 'vue',
-            str_contains($mode, 'Livewire') => 'livewire',
-            str_contains($mode, 'Blade') => 'blade',
-            default => 'api',
-        };
+        $authValue = strtolower($auth);
+        $modeValue = strtolower($mode);
 
         $content = "<?php\n\nreturn [\n    'auth' => '{$authValue}',\n    'mode' => '{$modeValue}',\n    'tenancy' => " . ($tenancy ? 'true' : 'false') . ",\n    'paths' => [\n        'apps' => 'app/App',\n        'domains' => 'app/Domain',\n        'support' => 'app/Support',\n    ]\n];\n";
 
@@ -319,9 +308,10 @@ class SetupCommand extends Command
         if ($tenancy) {
             $folders[] = 'app/Domain/Central';
             $folders[] = 'app/Domain/Tenant';
-        } else {
-            $folders[] = 'app/Domain/Shared';
         }
+
+        // Shared resources go to Support
+        $folders[] = 'app/Support/Resources/views';
 
         foreach ($folders as $folder) {
             if (!File::isDirectory(base_path($folder))) {
@@ -338,6 +328,26 @@ class SetupCommand extends Command
         }
         if (File::isDirectory(base_path('app/Http'))) {
             File::deleteDirectory(base_path('app/Http'));
+        }
+        
+        // Clean up Shared domain if it exists at root (we moved it to Support)
+        if (File::isDirectory(base_path('app/Domain/Shared'))) {
+            File::deleteDirectory(base_path('app/Domain/Shared'));
+        }
+
+        if (File::isDirectory(base_path('app/Http/Controllers'))) {
+            // Keep the folder but remove default files if needed, 
+            // actually we relocated the logic to Domains
+        }
+
+        $filesToDelete = [
+            app_path('Http/Controllers/Controller.php'),
+            base_path('resources/views/welcome.blade.php'),
+            base_path('resources/views/app.blade.php'),
+        ];
+
+        foreach ($filesToDelete as $file) {
+            if (File::exists($file)) File::delete($file);
         }
 
         // 2. Move Providers to app/App/Providers and fix namespaces
@@ -441,10 +451,12 @@ class SetupCommand extends Command
 
     protected function installStarterKit(string $mode): void
     {
-        // 1. Setup Domains
-        $this->createDomainStructure('Shared');
-        $this->createDomainStructure('User');
-        $this->createDomainStructure('Auth');
+        // 1. Setup Domains & Support
+        $this->createDomainStructure('User', $mode);
+        $this->createDomainStructure('Auth', $mode);
+        
+        // Ensure Support has view directory
+        File::ensureDirectoryExists(base_path('app/Support/Resources/views'));
 
         $baseController = match ($mode) {
             'react', 'vue' => 'InertiaControllers',
@@ -533,7 +545,17 @@ class SetupCommand extends Command
         }
     }
 
-    protected function createDomainStructure(string $domain): void
+    protected function updateConfigMode(string $mode): void
+    {
+        $configPath = config_path('domion.php');
+        if (File::exists($configPath)) {
+            $content = File::get($configPath);
+            $content = preg_replace("/'mode' => '.*'/", "'mode' => '{$mode}'", $content);
+            File::put($configPath, $content);
+        }
+    }
+
+    protected function createDomainStructure(string $domain, string $mode = 'api'): void
     {
         $base = base_path("app/Domain/{$domain}");
         $folders = [
@@ -543,11 +565,20 @@ class SetupCommand extends Command
             $base . '/Database/Migrations',
             $base . '/Database/Seeders',
             $base . '/Database/Factories',
-            $base . '/Frontend/Pages',
-            $base . '/Resources/views',
-            $base . '/Resources/views/pages',
-            $base . '/Resources/views/components',
         ];
+
+        if (in_array($mode, ['react', 'vue'])) {
+            $folders[] = $base . '/Frontend/Pages';
+            $folders[] = $base . '/Frontend/Components';
+            
+            // Cleanup Resource folder if it was created by accident
+            if (File::isDirectory($base . '/Resources')) {
+                File::deleteDirectory($base . '/Resources');
+            }
+        } else {
+            $folders[] = $base . '/Resources/views/pages';
+            $folders[] = $base . '/Resources/views/components';
+        }
 
         foreach ($folders as $folder) {
             if (!File::isDirectory($folder)) {
@@ -560,6 +591,10 @@ class SetupCommand extends Command
     {
         $migrationDir = base_path('database/migrations');
         $targetDir = base_path('app/Domain/User/Database/Migrations');
+
+        if (!File::isDirectory($targetDir)) {
+            File::makeDirectory($targetDir, 0755, true);
+        }
 
         if (File::isDirectory($migrationDir)) {
             $files = File::files($migrationDir);
