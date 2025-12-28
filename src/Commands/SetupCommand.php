@@ -80,9 +80,6 @@ class SetupCommand extends Command
                 }
 
                 $this->setupRoutes();
-                $this->setupBootstrap();
-                $this->setupDependencies($mode, $auth, $tenancy);
-                
                 if (in_array($mode, ['react', 'vue'])) {
                     $activeExtension = $this->setupFrontend($mode);
                     $this->setupVite($activeExtension);
@@ -92,6 +89,9 @@ class SetupCommand extends Command
             },
             'Configuring Domion Architecture...'
         );
+
+        // Install dependencies after configuration (Interactive)
+        $this->setupDependencies($mode, $auth, $tenancy);
 
         $this->saveConfiguration($auth, $mode, $tenancy);
 
