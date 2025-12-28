@@ -300,18 +300,6 @@ class SetupCommand extends Command
             exec("COMPOSER_NO_INTERACTION=1 composer require {$packages} --quiet");
         }
 
-        // Ensure Domain folders are scanned for Tailwind classes
-        // Use regex to avoid duplicating if already there with slight variations
-        if (!str_contains($content, './app/Domain')) {
-            $extensionPattern = $mode === 'vue' ? 'vue' : 'js,ts,jsx,tsx';
-            $domainContent = "'./app/Domain/**/*.{{$extensionPattern}}', './app/Support/**/*.{{$extensionPattern}}', ";
-            
-            // Inject into content array
-            $content = preg_replace('/content: \s*\[/', "content: [\n        {$domainContent}", $content);
-            
-            File::put($path, $content);
-            $this->components->twoColumnDetail('Tailwind Content Paths', '<fg=green;options=bold>UPDATED</>');
-        }
     }
 
     protected function saveConfiguration(string $auth, string $mode, bool $tenancy = false): void
