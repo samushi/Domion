@@ -1,0 +1,23 @@
+<?php
+
+namespace {{namespace}};
+
+use Samushi\Domion\Actions\ActionFactory;
+use Illuminate\Support\Facades\Auth;
+
+class LoginAction extends ActionFactory
+{
+    /**
+     * Handle the login attempt.
+     * 
+     * @param array $credentials
+     * @return bool
+     */
+    public function handle(...$args): mixed
+    {
+        $credentials = $args[0] ?? [];
+        $remember = $args[1] ?? false;
+
+        return Auth::attempt($credentials, $remember);
+    }
+}

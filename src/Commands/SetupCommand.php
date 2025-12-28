@@ -84,8 +84,8 @@ class SetupCommand extends Command
                 $this->setupComposer();
                 
                 if (in_array($mode, ['react', 'vue'])) {
-                    $this->setupFrontend($mode);
-                    $this->setupVite();
+                    $activeExtension = $this->setupFrontend($mode);
+                    $this->setupVite($activeExtension);
                     $this->setupJsConfig();
                 }
             },
@@ -112,7 +112,7 @@ class SetupCommand extends Command
         return self::SUCCESS;
     }
 
-    protected function setupFrontend(string $mode): void
+    protected function setupFrontend(string $mode): string
     {
         $extensions = ['js', 'jsx', 'tsx'];
         $appPath = null;
@@ -129,7 +129,18 @@ class SetupCommand extends Command
 
         if (!$appPath) {
             $this->warn('Could not find resources/js/app.js (or .jsx/.tsx). Manual Inertia setup required.');
-            return;
+            return 'js';
+        }
+
+        // If using React/Vue, ensure the file has a compatible extension for JSX/SFC
+        if (in_array($mode, ['react', 'vue']) && $activeExtension === 'js') {
+            if ($mode === 'react') {
+                $newExt = 'tsx';
+                $newPath = base_path("resources/js/app.{$newExt}");
+                File::move($appPath, $newPath);
+                $appPath = $newPath;
+                $activeExtension = $newExt;
+            }
         }
 
         $content = File::get($appPath);
@@ -141,7 +152,7 @@ class SetupCommand extends Command
             $content = File::get($appPath);
             $this->components->twoColumnDetail('Inertia Entry Point', '<fg=green;options=bold>INSTALLED</>');
         }
-
+        
         if (str_contains($content, 'app/Domain')) {
             $this->components->twoColumnDetail('Frontend Auto-Resolver', '<fg=yellow;options=bold>EXISTS</>');
         } else if (str_contains($content, 'createInertiaApp')) {
@@ -157,17 +168,13 @@ class SetupCommand extends Command
                 "    return resolver(name);\n" .
                 "};\n\n";
 
-            // Inject before the FIRST occurrence of createInertiaApp invocation (typically createInertiaApp({)
-            // but NOT in the import statement
             if (preg_match('/(?<!import\s\{)(?<![a-zA-Z0-9])createInertiaApp\s*\(/', $content, $matches, PREG_OFFSET_CAPTURE)) {
                 $pos = $matches[0][1];
                 $content = substr($content, 0, $pos) . $injection . substr($content, $pos);
             } else {
-                // Fallback: just append after imports or at top (less ideal if it's a mess)
                 $content = $injection . $content;
             }
             
-            // This regex captures the entire resolve line to ensure we keep its arguments and close correctly
             $resolvePattern = '/resolve:\s*\(?name\)?\s*=>\s*resolvePageComponent\((.*?)\),?/s';
             $replacement = "resolve: (name) => resolveDomainPage(name, domainPages, (name) => resolvePageComponent($1)),";
             
@@ -175,11 +182,10 @@ class SetupCommand extends Command
                 $content = preg_replace($resolvePattern, $replacement, $content);
                 File::put($appPath, $content);
                 $this->components->twoColumnDetail('Frontend Auto-Resolver', '<fg=green;options=bold>INSTALLED</>');
-            } else {
-                $this->warn('Could not find Inertia resolve block in app.js. Manual setup required.');
             }
         }
-    // 3. Ensure app.blade.php exists in Support Resources
+
+        // 3. Ensure app.blade.php exists in Support Resources
         $supportViewPath = base_path('app/Support/Resources/views');
         if (!File::isDirectory($supportViewPath)) {
             File::makeDirectory($supportViewPath, 0755, true);
@@ -194,14 +200,20 @@ class SetupCommand extends Command
             ]);
             $this->components->twoColumnDetail('Support Root View (DDD)', '<fg=green;options=bold>CREATED</>');
         }
+
+        return $activeExtension;
     }
 
-    protected function setupVite(): void
+    protected function setupVite(string $activeExtension = 'js'): void
     {
         $path = base_path('vite.config.js');
         if (!File::exists($path)) return;
 
         $content = File::get($path);
+        
+        // Update entry point to match the possibly renamed file (app.js -> app.tsx)
+        $content = preg_replace("/['\"]resources\/js\/app\..*?['\"]/", "'resources/js/app.{$activeExtension}'", $content);
+
         if (str_contains($content, "'@domain'")) {
             $this->components->twoColumnDetail('Vite Aliases (@domain)', '<fg=yellow;options=bold>EXISTS</>');
             return;
@@ -385,11 +397,14 @@ class SetupCommand extends Command
         if (File::exists($webPath)) {
             $content = File::get($webPath);
             
+            // Comment out or replace the default welcome view to avoid "View not found" errors
+            $content = preg_replace("/return\s+view\(\s*['\"]welcome['\"]\s*\);/", "return redirect('/login');", $content);
+            
             // Add Domain discovery to web.php as well
             if (!str_contains($content, 'DomainHelpers::loadDomainRoutes()')) {
                 $content .= "\n\nuse Samushi\Domion\Helpers\DomainHelpers;\nDomainHelpers::loadDomainRoutes();\n";
-                File::put($webPath, $content);
             }
+            File::put($webPath, $content);
         }
     }
 
@@ -468,9 +483,21 @@ class SetupCommand extends Command
         $this->relocateUserMigrations();
 
         // 3. Create User & Auth Actions
-        $this->generateFromStub('Action', base_path('app/Domain/Auth/Actions/LoginAction.php'), [
+        $this->generateFromStub('LoginAction', base_path('app/Domain/Auth/Actions/LoginAction.php'), [
             'namespace' => 'App\Domain\Auth\Actions',
             'class' => 'LoginAction'
+        ]);
+
+        $this->generateFromStub('LogoutAction', base_path('app/Domain/Auth/Actions/LogoutAction.php'), [
+            'namespace' => 'App\Domain\Auth\Actions',
+            'class' => 'LogoutAction'
+        ]);
+
+        // 3.1 Create Requests
+        $this->createDomainStructure('Auth', $mode); // Ensure Requests folder
+        $this->generateFromStub('LoginRequest', base_path('app/Domain/Auth/Requests/LoginRequest.php'), [
+            'namespace' => 'App\Domain\Auth\Requests',
+            'class' => 'LoginRequest'
         ]);
 
         if ($mode === 'api') {
@@ -484,21 +511,13 @@ class SetupCommand extends Command
             'namespace' => 'App\Domain\User\Models'
         ]);
 
-        // 5. Create Controllers
-        $this->generateFromStub('StarterController', base_path('app/Domain/Auth/Controllers/LoginController.php'), [
+        // 5. Create Unified AuthController
+        $this->generateFromStub('AuthController', base_path('app/Domain/Auth/Controllers/AuthController.php'), [
             'namespace' => 'App\Domain\Auth\Controllers',
             'baseController' => $baseController,
-            'class' => 'LoginController',
+            'class' => 'AuthController',
             'domain' => 'auth',
             'view' => 'Login'
-        ]);
-
-        $this->generateFromStub('StarterController', base_path('app/Domain/Auth/Controllers/DashboardController.php'), [
-            'namespace' => 'App\Domain\Auth\Controllers',
-            'baseController' => $baseController,
-            'class' => 'DashboardController',
-            'domain' => 'auth',
-            'view' => 'Dashboard'
         ]);
 
         // 6. Create Seeders
@@ -522,7 +541,7 @@ class SetupCommand extends Command
         ]);
 
         // 8. Create Routes
-        $routeContent = "<?php\n\nuse Illuminate\Support\Facades\Route;\nuse App\Domain\Auth\Controllers\LoginController;\nuse App\Domain\Auth\Controllers\DashboardController;\n\nRoute::get('/', [LoginController::class, 'landing'])->name('landing');\nRoute::get('/login', [LoginController::class, 'index'])->name('login');\nRoute::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');\n";
+        $routeContent = "<?php\n\nuse Illuminate\Support\Facades\Route;\nuse App\Domain\Auth\Controllers\AuthController;\n\nRoute::get('/', [AuthController::class, 'landing'])->name('landing');\nRoute::get('/login', [AuthController::class, 'index'])->name('login');\nRoute::post('/login', [AuthController::class, 'login']);\nRoute::get('/dashboard', [AuthController::class, 'dashboard'])->middleware('auth')->name('dashboard');\nRoute::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');\n";
         File::put(base_path('app/Domain/Auth/web.php'), $routeContent);
 
         // 8. Create Frontend Pages
@@ -561,6 +580,7 @@ class SetupCommand extends Command
         $folders = [
             $base . '/Actions',
             $base . '/Controllers',
+            $base . '/Requests',
             $base . '/Models',
             $base . '/Database/Migrations',
             $base . '/Database/Seeders',

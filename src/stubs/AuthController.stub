@@ -1,0 +1,60 @@
+<?php
+
+namespace {{namespace}};
+
+use Samushi\Domion\Support\{{baseController}};
+use App\Domain\Auth\Actions\LoginAction;
+use App\Domain\Auth\Actions\LogoutAction;
+use App\Domain\Auth\Requests\LoginRequest;
+use Illuminate\Http\Request;
+
+class AuthController extends {{baseController}}
+{
+    /**
+     * Display the landing page (static welcome).
+     */
+    public function landing()
+    {
+        return $this->render('auth::Landing');
+    }
+
+    /**
+     * Display the login page.
+     */
+    public function index()
+    {
+        return $this->render('auth::Login');
+    }
+
+    /**
+     * Handle an incoming login request.
+     */
+    public function login(LoginRequest $request)
+    {
+        if (LoginAction::run($request->validated())) {
+            $request->session()->regenerate();
+            return redirect()->intended(route('dashboard'));
+        }
+
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ])->onlyInput('email');
+    }
+
+    /**
+     * Display the dashboard.
+     */
+    public function dashboard()
+    {
+        return $this->render('auth::Dashboard');
+    }
+
+    /**
+     * Handle logout.
+     */
+    public function logout(Request $request)
+    {
+        LogoutAction::run($request);
+        return redirect()->route('landing');
+    }
+}
