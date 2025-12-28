@@ -22,7 +22,7 @@
     "require": {
         "php": "^8.2",
         "illuminate/support": "^11.0",
-        "samushi/queryfilter": "dev-master",
+        "samushi/queryfilter": "^2.2",
         "marcin-orlowski/laravel-api-response-builder": "^10.0",
         "laravel/prompts": "^0.1"
     },
