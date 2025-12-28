@@ -97,6 +97,17 @@ class SetupCommand extends Command
         \Laravel\Prompts\outro('✅ Domion Setup completed successfully!');
         $this->info('Please run: <fg=green;options=bold>composer dump-autoload</>');
         
+        if (\Laravel\Prompts\confirm('Do you want to start the development server now?', true)) {
+            $this->info('Starting Artisan Serve...');
+            exec('php artisan serve --quiet > /dev/null 2>&1 &');
+            $this->info('Server started at http://127.0.0.1:8000');
+            
+            if (in_array($mode, ['react', 'vue'])) {
+                $this->info('Starting Vite...');
+                exec('npm run dev --silent > /dev/null 2>&1 &');
+            }
+        }
+
         return self::SUCCESS;
     }
 
@@ -276,7 +287,7 @@ class SetupCommand extends Command
             File::deleteDirectory(base_path('app/Http'));
         }
 
-        // 2. Move Providers to app/App/Providers
+        // 2. Move Providers to app/App/Providers and fix namespaces
         if (File::isDirectory(base_path('app/Providers'))) {
             if (!File::isDirectory(base_path('app/App/Providers'))) {
                 File::makeDirectory(base_path('app/App/Providers'), 0755, true);
@@ -284,10 +295,11 @@ class SetupCommand extends Command
             
             $files = File::files(base_path('app/Providers'));
             foreach ($files as $file) {
+                $content = File::get($file->getRealPath());
+                $content = str_replace('namespace App\Providers;', 'namespace App\App\Providers;', $content);
+                
                 $targetFile = base_path('app/App/Providers/' . $file->getFilename());
-                if (!File::exists($targetFile)) {
-                    File::move($file->getRealPath(), $targetFile);
-                }
+                File::put($targetFile, $content);
             }
             File::deleteDirectory(base_path('app/Providers'));
         }
@@ -309,25 +321,33 @@ class SetupCommand extends Command
 
     protected function setupBootstrap(): void
     {
-        $bootstrapPath = base_path('bootstrap/app.php');
+        $bootstrapApp = base_path('bootstrap/app.php');
+        $bootstrapProviders = base_path('bootstrap/providers.php');
 
-        if (File::exists($bootstrapPath)) {
-            $content = File::get($bootstrapPath);
+        // 1. Handle app.php (Application Core)
+        if (File::exists($bootstrapApp)) {
+            $content = File::get($bootstrapApp);
 
             if (!str_contains($content, 'useAppPath')) {
-                // Target the create() call more precisely
                 $pattern = '/->create\(\)/';
                 $replacement = "->useAppPath(realpath(__DIR__.'/../app/App'))\n    ->create()";
                 
                 if (preg_match($pattern, $content)) {
                     $newContent = preg_replace($pattern, $replacement, $content);
-                    File::put($bootstrapPath, $newContent);
+                    File::put($bootstrapApp, $newContent);
                 }
             }
         }
         
-        // Ensure providers.php exists or is updated if necessary
-        // In L11 moving Files to app/App/Providers is enough as PSR-4 will guide the class loader.
+        // 2. Handle providers.php (Laravel 11+)
+        if (File::exists($bootstrapProviders)) {
+            $content = File::get($bootstrapProviders);
+            
+            // Fix relocated providers namespaces
+            $content = str_replace('App\Providers\\', 'App\App\Providers\\', $content);
+            
+            File::put($bootstrapProviders, $content);
+        }
     }
 
     protected function setupComposer(): void
@@ -364,17 +384,17 @@ class SetupCommand extends Command
             }
         }
 
-        // Create Example Action
-        $actionContent = "<?php\n\nnamespace App\Domain\Auth\Actions;\n\nclass LoginAction\n{\n    public function handle(array \$credentials)\n    {\n        return auth()->attempt(\$credentials);\n    }\n}\n";
+        // 1. Create Example Action (Extending ActionFactory)
+        $actionContent = "<?php\n\nnamespace App\Domain\Auth\Actions;\n\nuse Samushi\Domion\Actions\ActionFactory;\n\nclass LoginAction extends ActionFactory\n{\n    public function handle(...\$args): mixed\n    {\n        // \$credentials = \$args[0];\n        // return auth()->attempt(\$credentials);\n        \n        return true;\n    }\n}\n";
         File::put($basePath . '/Actions/LoginAction.php', $actionContent);
 
-        // Create Example Controller
-        $controllerContent = "<?php\n\nnamespace App\Domain\Auth\Controllers;\n\nuse App\App\Http\Controllers\Controller;\n\nclass LoginController extends Controller\n{\n    public function index()\n    {\n        return inertia('Auth/Login');\n    }\n}\n";
+        // 2. Create Example Controller
+        $controllerContent = "<?php\n\nnamespace App\Domain\Auth\Controllers;\n\nuse App\App\Providers\RouteServiceProvider; // Fallback or custom\nuse Illuminate\Routing\Controller;\n\nclass LoginController extends Controller\n{\n    public function index()\n    {\n        return inertia('Auth/Login');\n    }\n}\n";
         File::put($basePath . '/Controllers/LoginController.php', $controllerContent);
 
-        // Create Example Frontend Page if React
+        // 3. Create Example Frontend Page if React
         if ($mode === 'react') {
-            $jsxContent = "import React from 'react';\n\nexport default function Login() {\n    return (\n        <div className=\"min-h-screen flex items-center justify-center bg-gray-100\">\n            <div className=\"bg-white p-8 rounded shadow-md w-96\">\n                <h1 className=\"text-2xl font-bold mb-6 text-center\">Login to Domion</h1>\n                <form className=\"space-y-4\">\n                    <div>\n                        <label className=\"block text-sm font-medium text-gray-700\">Email</label>\n                        <input type=\"email\" className=\"mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500\" />\n                    </div>\n                    <div>\n                        <label className=\"block text-sm font-medium text-gray-700\">Password</label>\n                        <input type=\"password\" className=\"mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500\" />\n                    </div>\n                    <button className=\"w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500\">\n                        Sign in\n                    </button>\n                </form>\n            </div>\n        </div>\n    );\n}\n";
+            $jsxContent = "import React from 'react';\n\nexport default function Login() {\n    return (\n        <div className=\"min-h-screen flex items-center justify-center bg-gray-100\">\n            <div className=\"bg-white p-8 rounded shadow-md w-96\">\n                <h1 className=\"text-2xl font-bold mb-6 text-center text-indigo-600\">Domion Starter Kit</h1>\n                <form className=\"space-y-4\">\n                    <div>\n                        <label className=\"block text-sm font-medium text-gray-700\">Email</label>\n                        <input type=\"email\" className=\"mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500\" defaultValue=\"admin@domion.com\" />\n                    </div>\n                    <div>\n                        <label className=\"block text-sm font-medium text-gray-700\">Password</label>\n                        <input type=\"password\" className=\"mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500\" defaultValue=\"password\" />\n                    </div>\n                    <button type=\"button\" className=\"w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700\">\n                        Sign in\n                    </button>\n                </form>\n            </div>\n        </div>\n    );\n}\n";
             File::put($basePath . '/Frontend/Pages/Login.tsx', $jsxContent);
         }
     }
