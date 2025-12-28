@@ -98,14 +98,15 @@ class SetupCommand extends Command
         $this->info('Please run: <fg=green;options=bold>composer dump-autoload</>');
         
         if (\Laravel\Prompts\confirm('Do you want to start the development server now?', true)) {
-            $this->info('Starting Artisan Serve...');
-            exec('php artisan serve --quiet > /dev/null 2>&1 &');
-            $this->info('Server started at http://127.0.0.1:8000');
+            $this->info('🚀 Starting development servers... (Press Ctrl+C to stop)');
             
+            $command = 'php artisan serve';
             if (in_array($mode, ['react', 'vue'])) {
-                $this->info('Starting Vite...');
-                exec('npm run dev --silent > /dev/null 2>&1 &');
+                // Run both in parallel and wait for them to catch Ctrl+C
+                $command = 'php artisan serve & npm run dev --silent > /dev/null 2>&1 & wait';
             }
+
+            passthru($command);
         }
 
         return self::SUCCESS;
@@ -328,9 +329,10 @@ class SetupCommand extends Command
         if (File::exists($bootstrapApp)) {
             $content = File::get($bootstrapApp);
 
-            if (!str_contains($content, 'useAppPath')) {
-                $pattern = '/->create\(\)/';
-                $replacement = "->useAppPath(realpath(__DIR__.'/../app/App'))\n    ->create()";
+            if (!str_contains($content, '->useAppPath')) {
+                // Fluent chaining after create()
+                $pattern = '/->create\(\);/s';
+                $replacement = "->create()\n        ->useAppPath(realpath(__DIR__.'/../app/App'));";
                 
                 if (preg_match($pattern, $content)) {
                     $newContent = preg_replace($pattern, $replacement, $content);
@@ -345,6 +347,12 @@ class SetupCommand extends Command
             
             // Fix relocated providers namespaces
             $content = str_replace('App\Providers\\', 'App\App\Providers\\', $content);
+            
+            // Register DomionServiceProvider if not present
+            if (!str_contains($content, 'DomionServiceProvider::class')) {
+                $providerEntry = "    Samushi\Domion\Providers\DomionServiceProvider::class,\n];";
+                $content = str_replace('];', $providerEntry, $content);
+            }
             
             File::put($bootstrapProviders, $content);
         }
