@@ -260,6 +260,27 @@ class SetupCommand extends Command
         $this->components->twoColumnDetail("IDE Paths ({$label})", "<fg=green;options=bold>" . ($isNew ? 'CREATED' : 'UPDATED') . "</>");
     }
 
+    protected function setupTailwind(string $mode): void
+    {
+        $path = base_path('tailwind.config.js');
+        if (!File::exists($path)) return;
+
+        $content = File::get($path);
+        
+        // Ensure Domain folders are scanned for Tailwind classes
+        // Use regex to avoid duplicating if already there with slight variations
+        if (!str_contains($content, './app/Domain')) {
+            $extensionPattern = $mode === 'vue' ? 'vue' : 'js,ts,jsx,tsx';
+            $domainContent = "'./app/Domain/**/*.{{$extensionPattern}}', './app/Support/**/*.{{$extensionPattern}}', ";
+            
+            // Inject into content array
+            $content = preg_replace('/content: \s*\[/', "content: [\n        {$domainContent}", $content);
+            
+            File::put($path, $content);
+            $this->components->twoColumnDetail('Tailwind Content Paths', '<fg=green;options=bold>UPDATED</>');
+        }
+    }
+
     protected function setupDependencies(string $mode, string $auth, bool $tenancy = false): void
     {
         $composerPackages = [];
