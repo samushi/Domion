@@ -1,0 +1,17 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}};
+
+use Samushi\Domion\Support\DataObjects;
+
+class {{class}} extends DataObjects
+{
+    public function __construct(
+        // Add your properties here
+        // public readonly string $name,
+        // public readonly ?string $description = null,
+    ) {
+    }
+}

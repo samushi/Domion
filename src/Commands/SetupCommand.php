@@ -529,9 +529,12 @@ class SetupCommand extends Command
         // 1. Setup Domains & Support
         $this->createDomainStructure('User', $mode);
         $this->createDomainStructure('Auth', $mode);
-        
+
         // Ensure Support has view directory
         File::ensureDirectoryExists(base_path('app/Support/Resources/views'));
+
+        // Ensure DTO folder exists
+        File::ensureDirectoryExists(base_path('app/Domain/Auth/Dto'));
 
         $baseController = match ($mode) {
             'react', 'vue' => 'InertiaControllers',
@@ -542,19 +545,29 @@ class SetupCommand extends Command
         // 2. Relocate User Migration
         $this->relocateUserMigrations();
 
-        // 3. Create User & Auth Actions
+        // 3. Create DTO
+        $this->generateFromStub('LoginDto', base_path('app/Domain/Auth/Dto/LoginDto.php'), [
+            'namespace' => 'App\Domain\Auth\Dto',
+        ]);
+
+        // 4. Create User Repository
+        $this->generateFromStub('UserRepository', base_path('app/Domain/User/Repository/UserRepository.php'), [
+            'namespace' => 'App\Domain\User\Repository',
+            'modelNamespace' => 'App\Domain\User\Models',
+        ]);
+
+        // 5. Create Auth Actions
         $this->generateFromStub('LoginAction', base_path('app/Domain/Auth/Actions/LoginAction.php'), [
             'namespace' => 'App\Domain\Auth\Actions',
-            'class' => 'LoginAction'
+            'dtoNamespace' => 'App\Domain\Auth\Dto',
+            'repositoryNamespace' => 'App\Domain\User\Repository',
         ]);
 
         $this->generateFromStub('LogoutAction', base_path('app/Domain/Auth/Actions/LogoutAction.php'), [
             'namespace' => 'App\Domain\Auth\Actions',
-            'class' => 'LogoutAction'
         ]);
 
-        // 3.1 Create Requests
-        $this->createDomainStructure('Auth', $mode); // Ensure Requests folder
+        // 6. Create Requests
         $this->generateFromStub('LoginRequest', base_path('app/Domain/Auth/Requests/LoginRequest.php'), [
             'namespace' => 'App\Domain\Auth\Requests',
             'class' => 'LoginRequest'
@@ -566,18 +579,24 @@ class SetupCommand extends Command
             ]);
         }
 
-        // 4. Create User Model
+        // 7. Create User Model
         $this->generateFromStub('UserModel', base_path('app/Domain/User/Models/User.php'), [
             'namespace' => 'App\Domain\User\Models'
         ]);
 
-        // 5. Create Unified AuthController
+        // 8. Create Unified AuthController
         $this->generateFromStub('AuthController', base_path('app/Domain/Auth/Controllers/AuthController.php'), [
             'namespace' => 'App\Domain\Auth\Controllers',
             'baseController' => $baseController,
-            'class' => 'AuthController',
+            'actionsNamespace' => 'App\Domain\Auth\Actions',
+            'dtoNamespace' => 'App\Domain\Auth\Dto',
+            'requestsNamespace' => 'App\Domain\Auth\Requests',
             'domain' => 'auth',
-            'view' => 'Login'
+        ]);
+
+        // 9. Create Auth Service Provider (for route configuration)
+        $this->generateFromStub('AuthServiceProvider', base_path('app/Domain/Auth/Providers/AuthServiceProvider.php'), [
+            'namespace' => 'App\Domain\Auth\Providers',
         ]);
 
         // 6. Create Seeders
@@ -605,7 +624,7 @@ class SetupCommand extends Command
             'class' => 'UserFactory'
         ]);
 
-        // 9. Create Landing Domain & Pages
+        // 10. Create Landing Domain & Pages
         $this->createDomainStructure('Landing', $mode);
         $this->generateFromStub('LandingController', base_path('app/Domain/Landing/Controllers/LandingController.php'), [
             'namespace' => 'App\Domain\Landing\Controllers',
@@ -615,11 +634,16 @@ class SetupCommand extends Command
             'view' => 'Landing'
         ]);
 
+        // Create Landing Service Provider (for root route configuration)
+        $this->generateFromStub('LandingServiceProvider', base_path('app/Domain/Landing/Providers/LandingServiceProvider.php'), [
+            'namespace' => 'App\Domain\Landing\Providers',
+        ]);
+
         // Create Landing routes
         $landingRoute = "<?php\n\nuse Illuminate\Support\Facades\Route;\nuse App\Domain\Landing\Controllers\LandingController;\n\nRoute::get('/', [LandingController::class, 'index'])->name('landing');\n";
         File::put(base_path('app/Domain/Landing/web.php'), $landingRoute);
-        
-        // 10. Create Dashboard Domain & Pages
+
+        // 11. Create Dashboard Domain & Pages
         $this->createDomainStructure('Dashboard', $mode);
         $this->generateFromStub('DashboardController', base_path('app/Domain/Dashboard/Controllers/DashboardController.php'), [
             'namespace' => 'App\Domain\Dashboard\Controllers',
@@ -629,7 +653,7 @@ class SetupCommand extends Command
             'view' => 'Dashboard'
         ]);
 
-        $dashboardRoute = "<?php\n\nuse Illuminate\Support\Facades\Route;\nuse App\Domain\Dashboard\Controllers\DashboardController;\n\nRoute::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');\n";
+        $dashboardRoute = "<?php\n\nuse Illuminate\Support\Facades\Route;\nuse App\Domain\Dashboard\Controllers\DashboardController;\n\nRoute::get('/', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');\n";
         File::put(base_path('app/Domain/Dashboard/web.php'), $dashboardRoute);
 
         // Remove default web.php content

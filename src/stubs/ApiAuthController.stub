@@ -1,0 +1,67 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}};
+
+use Samushi\Domion\Support\ApiControllers;
+use {{actionsNamespace}}\LoginAction;
+use {{actionsNamespace}}\LogoutAction;
+use {{actionsNamespace}}\RefreshTokenAction;
+use {{dtoNamespace}}\LoginDto;
+use {{dtoNamespace}}\RefreshTokenDto;
+use {{requestsNamespace}}\LoginRequest;
+use {{requestsNamespace}}\RefreshTokenRequest;
+use Symfony\Component\HttpFoundation\Response;
+
+class AuthController extends ApiControllers
+{
+    /**
+     * Login to the application.
+     *
+     * Authenticates a user and returns access and refresh tokens.
+     */
+    public function login(LoginRequest $request): Response
+    {
+        return $this->safeCall(
+            fn () => $this->success(
+                LoginAction::run(
+                    LoginDto::fromRequest($request)
+                )
+            ),
+            fn () => $this->unAuthorized('Invalid credentials')
+        );
+    }
+
+    /**
+     * Refresh access token.
+     *
+     * Generates a new access token using a valid refresh token.
+     */
+    public function refresh(RefreshTokenRequest $request): Response
+    {
+        return $this->safeCall(
+            fn () => $this->success(
+                RefreshTokenAction::run(
+                    RefreshTokenDto::fromRequest($request)
+                )
+            ),
+            fn () => $this->unAuthorized('Invalid refresh token')
+        );
+    }
+
+    /**
+     * Logout from the application.
+     *
+     * Revokes all tokens for the authenticated user.
+     */
+    public function logout(): Response
+    {
+        return $this->safeCall(
+            fn () => $this->noContentClosure(
+                fn () => LogoutAction::run()
+            ),
+            fn () => $this->somethingWrong(0)
+        );
+    }
+}

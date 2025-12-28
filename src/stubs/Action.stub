@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{namespace}};
 
 use Samushi\Domion\Actions\ActionFactory;
@@ -12,7 +14,7 @@ class {{class}} extends ActionFactory
      * @param mixed ...$args
      * @return mixed
      */
-    public function handle(...$args): mixed
+    protected function handle(mixed ...$args): mixed
     {
         // Business logic goes here
         return true;

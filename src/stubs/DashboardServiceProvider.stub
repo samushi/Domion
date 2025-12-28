@@ -1,0 +1,42 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}};
+
+use Samushi\Domion\Support\AbstractServiceProvider;
+
+class DashboardServiceProvider extends AbstractServiceProvider
+{
+    /**
+     * Set Domain name
+     */
+    public function setDomain(): string
+    {
+        return 'Dashboard';
+    }
+
+    /**
+     * Route prefix - dashboard routes are at /dashboard
+     */
+    public function routePrefix(): string|false|null
+    {
+        return null; // Uses default (dashboard)
+    }
+
+    /**
+     * Route name prefix
+     */
+    public function routeNamePrefix(): string|false|null
+    {
+        return null; // Uses default (dashboard.)
+    }
+
+    /**
+     * Dashboard requires authentication
+     */
+    public function requiresAuth(): bool
+    {
+        return true;
+    }
+}

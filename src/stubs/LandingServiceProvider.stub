@@ -1,0 +1,35 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}};
+
+use Samushi\Domion\Support\AbstractServiceProvider;
+
+class LandingServiceProvider extends AbstractServiceProvider
+{
+    /**
+     * Set Domain name
+     */
+    public function setDomain(): string
+    {
+        return 'Landing';
+    }
+
+    /**
+     * Route prefix - false means routes at root (/)
+     * This allows / to be the landing page
+     */
+    public function routePrefix(): string|false|null
+    {
+        return false;
+    }
+
+    /**
+     * Route name prefix
+     */
+    public function routeNamePrefix(): string|false|null
+    {
+        return false;
+    }
+}

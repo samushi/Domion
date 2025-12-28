@@ -1,0 +1,20 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}};
+
+use Samushi\Domion\Support\Repositories;
+use Illuminate\Database\Eloquent\Model;
+use {{modelNamespace}}\User;
+
+class UserRepository extends Repositories
+{
+    /**
+     * Get the model for this repository
+     */
+    protected function getModel(): Model
+    {
+        return new User();
+    }
+}

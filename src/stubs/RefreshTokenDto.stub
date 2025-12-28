@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}};
+
+use Samushi\Domion\Support\DataObjects;
+
+class RefreshTokenDto extends DataObjects
+{
+    public function __construct(
+        public readonly string $refreshToken,
+    ) {
+    }
+}

@@ -1,7 +1,7 @@
-import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { FormEventHandler } from 'react';
 
-const Logo = ({ className = "w-12 h-12" }) => (
+const Logo = ({ className = "w-12 h-12" }: { className?: string }) => (
     <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M50 5L89.4019 28.75V71.25L50 95L10.5981 71.25V28.75L50 5Z" stroke="url(#paint0_linear_login)" strokeWidth="8" strokeLinejoin="round"/>
         <rect x="35" y="45" width="8" height="30" rx="2" fill="url(#paint1_linear_login)" />
@@ -24,11 +24,29 @@ const Logo = ({ className = "w-12 h-12" }) => (
     </svg>
 );
 
-export default function Login() {
+interface LoginProps {
+    status?: string;
+    canResetPassword?: boolean;
+}
+
+export default function Login({ status, canResetPassword = true }: LoginProps) {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        email: '',
+        password: '',
+        remember: false,
+    });
+
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+        post(route('login'), {
+            onFinish: () => reset('password'),
+        });
+    };
+
     return (
         <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6 relative overflow-hidden">
             <Head title="Login - Domion" />
-            
+
             {/* Background Glow */}
             <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px]" />
             <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[50%] bg-cyan-600/10 rounded-full blur-[120px]" />
@@ -43,43 +61,97 @@ export default function Login() {
                         <p className="text-slate-400 mt-3 font-medium">Elevate your architecture.</p>
                     </div>
 
-                    <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-                        <div>
-                            <label className="block text-sm font-bold text-slate-300 mb-2 ml-1">Email Address</label>
-                            <input 
-                                type="email" 
-                                className="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300" 
-                                placeholder="admin@domion.com" 
-                            />
+                    {status && (
+                        <div className="mb-4 text-sm font-medium text-green-400 text-center">
+                            {status}
                         </div>
-                        
+                    )}
+
+                    <form className="space-y-6" onSubmit={submit}>
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-bold text-slate-300 mb-2 ml-1">
+                                Email Address
+                            </label>
+                            <input
+                                id="email"
+                                type="email"
+                                name="email"
+                                value={data.email}
+                                onChange={(e) => setData('email', e.target.value)}
+                                className="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300"
+                                placeholder="admin@domion.com"
+                                autoComplete="username"
+                                autoFocus
+                            />
+                            {errors.email && (
+                                <p className="mt-2 text-sm text-red-400">{errors.email}</p>
+                            )}
+                        </div>
+
                         <div>
                             <div className="flex justify-between mb-2 ml-1">
-                                <label className="text-sm font-bold text-slate-300">Password</label>
-                                <a href="#" className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">Forgot?</a>
+                                <label htmlFor="password" className="text-sm font-bold text-slate-300">Password</label>
+                                {canResetPassword && (
+                                    <Link
+                                        href={route('password.request')}
+                                        className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                                    >
+                                        Forgot?
+                                    </Link>
+                                )}
                             </div>
-                            <input 
-                                type="password" 
-                                className="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300" 
-                                placeholder="••••••••" 
+                            <input
+                                id="password"
+                                type="password"
+                                name="password"
+                                value={data.password}
+                                onChange={(e) => setData('password', e.target.value)}
+                                className="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300"
+                                placeholder="••••••••"
+                                autoComplete="current-password"
                             />
+                            {errors.password && (
+                                <p className="mt-2 text-sm text-red-400">{errors.password}</p>
+                            )}
                         </div>
 
-                        <Link 
-                            href="/auth/dashboard" 
-                            className="w-full flex justify-center py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold text-lg hover:shadow-[0_0_30px_rgba(14,165,233,0.3)] hover:-translate-y-0.5 transition-all duration-300 active:scale-95"
+                        <div className="flex items-center">
+                            <input
+                                id="remember"
+                                type="checkbox"
+                                name="remember"
+                                checked={data.remember}
+                                onChange={(e) => setData('remember', e.target.checked)}
+                                className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                            />
+                            <label htmlFor="remember" className="ml-2 text-sm text-slate-400">
+                                Remember me
+                            </label>
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="w-full flex justify-center py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold text-lg hover:shadow-[0_0_30px_rgba(14,165,233,0.3)] hover:-translate-y-0.5 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                         >
-                            Sign In
-                        </Link>
+                            {processing ? (
+                                <svg className="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            ) : (
+                                'Sign In'
+                            )}
+                        </button>
 
                         <div className="pt-4 text-center">
-                            <Link href="/auth" className="text-sm font-bold text-slate-500 hover:text-white transition-colors">
+                            <Link href={route('landing')} className="text-sm font-bold text-slate-500 hover:text-white transition-colors">
                                 ← Back to landing
                             </Link>
                         </div>
                     </form>
                 </div>
-                
+
                 <p className="text-center text-slate-600 mt-8 text-sm font-medium">
                     Built for Enterprise Performance & Scalability
                 </p>

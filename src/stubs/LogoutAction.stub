@@ -1,29 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{namespace}};
 
 use Samushi\Domion\Actions\ActionFactory;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class LogoutAction extends ActionFactory
 {
     /**
      * Handle the logout process.
-     * 
-     * @param Request $request
-     * @return void
+     *
+     * @param Request|null $request
+     * @return bool
      */
-    public function handle(...$args): mixed
+    protected function handle(?Request $request = null): bool
     {
-        $request = $args[0] ?? request();
+        $request = $request ?? request();
 
         Auth::logout();
 
-        if ($request instanceof Request) {
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-        }
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return true;
     }

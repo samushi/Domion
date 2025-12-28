@@ -1,0 +1,57 @@
+import { PageProps as InertiaPageProps } from '@inertiajs/core';
+
+declare global {
+    interface Window {
+        route: typeof route;
+    }
+}
+
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    email_verified_at?: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Auth {
+    user: User | null;
+}
+
+export interface Flash {
+    success?: string;
+    error?: string;
+    warning?: string;
+    info?: string;
+}
+
+export interface SharedProps {
+    auth: Auth;
+    flash: Flash;
+    errors: Record<string, string>;
+}
+
+export type PageProps<T extends Record<string, unknown> = Record<string, unknown>> = T & SharedProps;
+
+declare module '@inertiajs/core' {
+    interface PageProps extends SharedProps {}
+}
+
+declare module '@inertiajs/react' {
+    export function usePage<T = PageProps>(): {
+        props: T;
+        url: string;
+        component: string;
+        version: string | null;
+    };
+}
+
+declare module '@inertiajs/vue3' {
+    export function usePage<T = PageProps>(): {
+        props: T;
+        url: string;
+        component: string;
+        version: string | null;
+    };
+}

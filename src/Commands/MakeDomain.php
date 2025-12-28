@@ -133,8 +133,8 @@ class MakeDomain extends GeneratorCommand
             'api' => 'ApiControllers',
             default => 'WebControllers',
         };
-        
-        $useStatement = "use Samushi\\DddArchitect\\Support\\{$baseController};";
+
+        $useStatement = "use Samushi\\Domion\\Support\\{$baseController};";
 
         $content = "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$namespace};\n\n{$useStatement}\n\nclass {$domain}Controller extends {$baseController}\n{\n    // Base controller for {$domain}\n}\n";
 

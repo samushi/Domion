@@ -1,0 +1,43 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}};
+
+use {{dtoNamespace}}\RegisterDto;
+use {{repositoryNamespace}}\UserRepository;
+use Samushi\Domion\Actions\ActionFactory;
+use Samushi\Domion\Support\Traits\HasLoginActionResponse;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Auth\Events\Registered;
+
+class RegisterAction extends ActionFactory
+{
+    use HasLoginActionResponse;
+
+    public function __construct(
+        protected UserRepository $userRepository,
+    ) {
+    }
+
+    /**
+     * Handle the registration.
+     */
+    protected function handle(RegisterDto $dto): mixed
+    {
+        // Create user
+        $user = $this->userRepository->create([
+            'name' => $dto->name,
+            'email' => $dto->email,
+            'password' => Hash::make($dto->password),
+        ]);
+
+        // Fire registered event
+        event(new Registered($user));
+
+        // Login the user (for session-based auth)
+        auth()->login($user);
+
+        return $user;
+    }
+}

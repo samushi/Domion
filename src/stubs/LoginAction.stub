@@ -1,23 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace {{namespace}};
 
+use {{dtoNamespace}}\LoginDto;
+use {{repositoryNamespace}}\UserRepository;
 use Samushi\Domion\Actions\ActionFactory;
-use Illuminate\Support\Facades\Auth;
+use Samushi\Domion\Support\Traits\HasLoginActionResponse;
 
 class LoginAction extends ActionFactory
 {
-    /**
-     * Handle the login attempt.
-     * 
-     * @param array $credentials
-     * @return bool
-     */
-    public function handle(...$args): mixed
-    {
-        $credentials = $args[0] ?? [];
-        $remember = $args[1] ?? false;
+    use HasLoginActionResponse;
 
-        return Auth::attempt($credentials, $remember);
+    /**
+     * Handle the login action.
+     *
+     * @param LoginDto $dto
+     * @return mixed
+     */
+    protected function handle(LoginDto $dto): mixed
+    {
+        return $this
+            ->withRepository(UserRepository::class)
+            ->responseToSessionLogin($dto->email, $dto->password, $dto->remember);
     }
 }

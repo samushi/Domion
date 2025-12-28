@@ -12,7 +12,9 @@ use Samushi\Domion\Commands\{
     MakeDomainMigration,
     SetupCommand,
     LinkFrontend,
-    MakeAction
+    MakeAction,
+    MakeDto,
+    MakeRepository
 };
 
 class DomionServiceProvider extends ServiceProvider
@@ -35,14 +37,16 @@ class DomionServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__ . '/../config/domion.php' => config_path('domion.php'),
-            ], 'architect-config');
+            ], 'domion-config');
 
             $this->commands([
-                MakeDomain::class,
-                MakeDomainMigration::class,
                 SetupCommand::class,
-                LinkFrontend::class,
+                MakeDomain::class,
                 MakeAction::class,
+                MakeDto::class,
+                MakeRepository::class,
+                MakeDomainMigration::class,
+                LinkFrontend::class,
             ]);
         }
     }
@@ -63,7 +67,7 @@ class DomionServiceProvider extends ServiceProvider
     protected function registerDomainObservers(): void
     {
         $domains = DomainHelpers::getDomains();
-        
+
         foreach ($domains as $domainPath) {
             $observerPath = $domainPath . '/Observers';
             if (is_dir($observerPath)) {
@@ -72,10 +76,14 @@ class DomionServiceProvider extends ServiceProvider
                     $observerClassName = basename($file, '.php');
                     $domainName = basename($domainPath);
                     $modelName = str_replace('Observer', '', $observerClassName);
-                    
-                    $fullObserverClass = "App\\Domain\\{$domainName}\\Observers\\{$observerClassName}";
-                    $fullModelClass = "App\\Domain\\{$domainName}\\Models\\{$modelName}";
-                    
+
+                    // Check for Central/Tenant scope
+                    $parentDir = basename(dirname($domainPath));
+                    $scope = in_array($parentDir, ['Central', 'Tenant']) ? "{$parentDir}\\" : '';
+
+                    $fullObserverClass = "App\\Domain\\{$scope}{$domainName}\\Observers\\{$observerClassName}";
+                    $fullModelClass = "App\\Domain\\{$scope}{$domainName}\\Models\\{$modelName}";
+
                     if (class_exists($fullObserverClass) && class_exists($fullModelClass)) {
                         $fullModelClass::observe($fullObserverClass);
                     }
@@ -87,7 +95,7 @@ class DomionServiceProvider extends ServiceProvider
     protected function registerDomainProviders(): void
     {
         $domains = DomainHelpers::getDomains();
-        
+
         foreach ($domains as $domainPath) {
             $providerPath = $domainPath . '/Providers';
             if (is_dir($providerPath)) {
@@ -95,8 +103,13 @@ class DomionServiceProvider extends ServiceProvider
                 foreach ($files as $file) {
                     $className = basename($file, '.php');
                     $domainName = basename($domainPath);
-                    $fullClassName = "App\\Domain\\{$domainName}\\Providers\\{$className}";
-                    
+
+                    // Check for Central/Tenant scope
+                    $parentDir = basename(dirname($domainPath));
+                    $scope = in_array($parentDir, ['Central', 'Tenant']) ? "{$parentDir}\\" : '';
+
+                    $fullClassName = "App\\Domain\\{$scope}{$domainName}\\Providers\\{$className}";
+
                     if (class_exists($fullClassName)) {
                         $this->app->register($fullClassName);
                     }
@@ -114,15 +127,23 @@ class DomionServiceProvider extends ServiceProvider
             // Check if model belongs to a Domain
             if (str_contains($modelName, 'App\\Domain\\')) {
                 $pieces = explode('\\', $modelName);
-                
-                // Expected: App\Domain\{DomainName}\Models\{ModelName}
+
+                // Handle Central/Tenant structure: App\Domain\Central\{DomainName}\Models\{ModelName}
+                if (count($pieces) >= 6 && in_array($pieces[2], ['Central', 'Tenant']) && $pieces[4] === 'Models') {
+                    $scope = $pieces[2];
+                    $domain = $pieces[3];
+                    $name = end($pieces);
+                    return "App\\Domain\\{$scope}\\{$domain}\\Database\\Factories\\{$name}Factory";
+                }
+
+                // Handle standard structure: App\Domain\{DomainName}\Models\{ModelName}
                 if (count($pieces) >= 5 && $pieces[3] === 'Models') {
                     $domain = $pieces[2];
                     $name = end($pieces);
                     return "App\\Domain\\{$domain}\\Database\\Factories\\{$name}Factory";
                 }
             }
-            
+
             // Fallback for standard structure
             return 'Database\\Factories\\' . class_basename($modelName) . 'Factory';
         });

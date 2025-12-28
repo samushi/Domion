@@ -5,21 +5,47 @@ declare(strict_types=1);
 namespace Samushi\Domion\Support;
 
 use Closure;
+use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use JsonSerializable;
 use ReflectionClass;
-use ReflectionException;
-use ReflectionMethod;
 use ReflectionParameter;
 
-abstract class DataObjects
+/**
+ * Base Data Transfer Object (DTO) class
+ *
+ * DTOs are used to transfer data between layers in DDD.
+ * They are immutable and provide type safety.
+ *
+ * @example
+ * ```php
+ * class LoginDto extends DataObjects
+ * {
+ *     public function __construct(
+ *         public readonly string $email,
+ *         public readonly string $password,
+ *     ) {}
+ * }
+ *
+ * // Usage:
+ * $dto = LoginDto::fromRequest($request);
+ * $dto = LoginDto::fromArray(['email' => '...', 'password' => '...']);
+ * ```
+ */
+abstract class DataObjects implements Arrayable, JsonSerializable
 {
+    /**
+     * Whether to convert property names to snake_case
+     */
     protected static bool $isSnakeCase = true;
 
     /**
-     * Without snake case
+     * Create DTO without snake_case conversion
      */
     public static function noSnakeCase(): static
     {
@@ -29,7 +55,7 @@ abstract class DataObjects
     }
 
     /**
-     * Get validated all data and initialize with props
+     * Create DTO from a validated FormRequest
      */
     public static function fromRequest(FormRequest $request): static
     {
@@ -37,7 +63,7 @@ abstract class DataObjects
     }
 
     /**
-     * Get from an array list and initialize with props
+     * Create DTO from an array
      */
     public static function fromArray(array $data): static
     {
@@ -45,41 +71,46 @@ abstract class DataObjects
     }
 
     /**
-     * From a collection or list array
+     * Create a collection of DTOs from an array of arrays
      */
     public static function fromList(array $data): Collection
     {
-        return Collection::make($data)->transform(fn ($item) => static::makeInstanceArgs($item)->toArray());
+        return Collection::make($data)->map(
+            fn (array $item) => static::makeInstanceArgs($item)
+        );
     }
 
     /**
-     * Transform array list
+     * Create and transform a collection of DTOs
      */
     public static function fromListTransform(array $data, ?Closure $transform = null): Collection
     {
-        return self::fromList($data)->collect()->transform($transform);
+        $collection = static::fromList($data);
+        return $transform ? $collection->map($transform) : $collection;
     }
 
     /**
-     * Paginate the collection into a simple paginator
+     * Create a paginated collection of DTOs
      */
-    public static function paginate(array $data, ?Closure $transform = null, int $perPage = 15, string $pageName = 'page', ?int $page = null, array $options = []): Paginator
-    {
-        // Resolve Current Page
+    public static function paginate(
+        array $data,
+        ?Closure $transform = null,
+        int $perPage = 15,
+        string $pageName = 'page',
+        ?int $page = null,
+        array $options = []
+    ): Paginator {
         $page = $page ?: Paginator::resolveCurrentPage($pageName);
 
-        // Transform to the current required data
         $results = Collection::make($data)
-            ->transform(fn ($item) => static::makeInstanceArgs($item)->toArray());
+            ->map(fn (array $item) => static::makeInstanceArgs($item)->toArray());
 
-        // Transform from secondary data object
-        $results = $transform ? $results->transform($transform) : $results;
+        if ($transform) {
+            $results = $results->map($transform);
+        }
 
-        // Slice the results
-        $results = $results->slice(($page - 1) * $perPage)
-            ->take($perPage + 1);
+        $results = $results->slice(($page - 1) * $perPage)->take($perPage + 1);
 
-        // Create simple options for paginator
         $options += [
             'path' => Paginator::resolveCurrentPath(),
             'pageName' => $pageName,
@@ -89,7 +120,27 @@ abstract class DataObjects
     }
 
     /**
-     * Make object to array
+     * Create a length-aware paginated collection of DTOs
+     */
+    public static function paginateWithTotal(
+        array $data,
+        int $total,
+        int $perPage = 15,
+        ?int $currentPage = null,
+        array $options = []
+    ): LengthAwarePaginator {
+        $currentPage = $currentPage ?: Paginator::resolveCurrentPage();
+
+        $results = Collection::make($data)
+            ->map(fn (array $item) => static::makeInstanceArgs($item)->toArray());
+
+        $options += ['path' => Paginator::resolveCurrentPath()];
+
+        return new LengthAwarePaginator($results, $total, $perPage, $currentPage, $options);
+    }
+
+    /**
+     * Convert DTO to array
      */
     public function toArray(array $excepts = []): array
     {
@@ -97,11 +148,59 @@ abstract class DataObjects
     }
 
     /**
-     * Make Array to the Collections
+     * Convert DTO to Collection
      */
     public function toCollection(array $excepts = []): Collection
     {
         return Collection::make($this->toArray($excepts));
+    }
+
+    /**
+     * Convert DTO to JSON
+     */
+    public function toJson(int $options = 0): string
+    {
+        return json_encode($this->toArray(), $options);
+    }
+
+    /**
+     * Get a specific property value
+     */
+    public function get(string $key, mixed $default = null): mixed
+    {
+        return $this->{$key} ?? $default;
+    }
+
+    /**
+     * Check if a property exists and is not null
+     */
+    public function has(string $key): bool
+    {
+        return isset($this->{$key});
+    }
+
+    /**
+     * Get only specific keys from the DTO
+     */
+    public function only(array $keys): array
+    {
+        return Arr::only($this->toArray(), $keys);
+    }
+
+    /**
+     * Get all except specific keys from the DTO
+     */
+    public function except(array $keys): array
+    {
+        return Arr::except($this->toArray(), $keys);
+    }
+
+    /**
+     * Implement JsonSerializable
+     */
+    public function jsonSerialize(): array
+    {
+        return $this->toArray();
     }
 
     /**
@@ -113,42 +212,46 @@ abstract class DataObjects
     }
 
     /**
-     * Make instance from array list
+     * Make instance from array
      */
     private static function makeInstanceArgs(array $data): static
     {
-        return static::getReflectionClass()->newInstanceArgs(
-            array_map(
-                fn ($param) => isset($data[self::isStringSnaked($param->getName(), static::getIsSnakeCase())]) ? $data[self::isStringSnaked($param->getName(), static::getIsSnakeCase())] : null,
-                static::getClassProperties()
-            )
+        $reflection = new ReflectionClass(static::class);
+        $constructor = $reflection->getConstructor();
+
+        if (!$constructor) {
+            return $reflection->newInstance();
+        }
+
+        $args = array_map(
+            function (ReflectionParameter $param) use ($data) {
+                $snakeName = Str::snake($param->getName());
+                $camelName = $param->getName();
+
+                // Try snake_case first, then camelCase
+                if (array_key_exists($snakeName, $data)) {
+                    return $data[$snakeName];
+                }
+                if (array_key_exists($camelName, $data)) {
+                    return $data[$camelName];
+                }
+
+                // Return default value if available
+                if ($param->isDefaultValueAvailable()) {
+                    return $param->getDefaultValue();
+                }
+
+                // Return null if nullable
+                if ($param->allowsNull()) {
+                    return null;
+                }
+
+                return null;
+            },
+            $constructor->getParameters()
         );
-    }
 
-    /**
-     * Get Reflection class
-     */
-    private static function getReflectionClass(): ReflectionClass
-    {
-        return new ReflectionClass(static::class);
-    }
-
-    /**
-     * Get Reflection class
-     */
-    private static function getStaticContruction(): ReflectionMethod
-    {
-        return static::getReflectionClass()->getConstructor();
-    }
-
-    /**
-     * Get Class parameters
-     *
-     * @return ReflectionParameter[]
-     */
-    private static function getClassProperties(): array
-    {
-        return static::getStaticContruction()->getParameters();
+        return $reflection->newInstanceArgs($args);
     }
 
     /**
@@ -160,24 +263,26 @@ abstract class DataObjects
     }
 
     /**
-     * Convert all camel properties to the snake
+     * Convert all camel properties to snake_case
      */
     private function arrayKeysFromCamelToSnake(): array
     {
         $props = get_object_vars($this);
-        $newKeys = array_map(fn ($key) => self::isStringSnaked($key, static::$isSnakeCase), array_keys($props));
+        $newKeys = array_map(
+            fn (string $key) => self::isStringSnaked($key, static::$isSnakeCase),
+            array_keys($props)
+        );
         return array_combine($newKeys, $props);
     }
 
     /**
-     * Excepts from data
+     * Exclude keys from props
      */
-    private function excepts(array $excepts = [], array $props = []): ?array
+    private function excepts(array $excepts, array $props): array
     {
         foreach ($excepts as $except) {
             Arr::pull($props, $except);
         }
-
         return $props;
     }
 }

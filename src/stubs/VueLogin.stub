@@ -1,11 +1,32 @@
-<script setup>
-import { Head, Link } from '@inertiajs/vue3';
+<script setup lang="ts">
+import { Head, Link, useForm } from '@inertiajs/vue3';
+
+interface Props {
+    status?: string;
+    canResetPassword?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+    canResetPassword: true,
+});
+
+const form = useForm({
+    email: '',
+    password: '',
+    remember: false,
+});
+
+const submit = () => {
+    form.post(route('login'), {
+        onFinish: () => form.reset('password'),
+    });
+};
 </script>
 
 <template>
     <div class="min-h-screen bg-[#020617] flex items-center justify-center p-6 relative overflow-hidden">
         <Head title="Login - Domion" />
-        
+
         <!-- Background Glow -->
         <div class="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px]" />
         <div class="absolute bottom-[-20%] left-[-10%] w-[50%] h-[50%] bg-cyan-600/10 rounded-full blur-[120px]" />
@@ -39,43 +60,85 @@ import { Head, Link } from '@inertiajs/vue3';
                     <p class="text-slate-400 mt-3 font-medium">Elevate your architecture.</p>
                 </div>
 
-                <form class="space-y-6" @submit.prevent>
+                <div v-if="props.status" class="mb-4 text-sm font-medium text-green-400 text-center">
+                    {{ props.status }}
+                </div>
+
+                <form class="space-y-6" @submit.prevent="submit">
                     <div>
-                        <label class="block text-sm font-bold text-slate-300 mb-2 ml-1">Email Address</label>
-                        <input 
-                            type="email" 
-                            class="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300" 
-                            placeholder="admin@domion.com" 
+                        <label for="email" class="block text-sm font-bold text-slate-300 mb-2 ml-1">
+                            Email Address
+                        </label>
+                        <input
+                            id="email"
+                            v-model="form.email"
+                            type="email"
+                            class="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300"
+                            placeholder="admin@domion.com"
+                            autocomplete="username"
+                            autofocus
                         />
+                        <p v-if="form.errors.email" class="mt-2 text-sm text-red-400">
+                            {{ form.errors.email }}
+                        </p>
                     </div>
-                    
+
                     <div>
                         <div class="flex justify-between mb-2 ml-1">
-                            <label class="text-sm font-bold text-slate-300">Password</label>
-                            <a href="#" class="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">Forgot?</a>
+                            <label for="password" class="text-sm font-bold text-slate-300">Password</label>
+                            <Link
+                                v-if="props.canResetPassword"
+                                :href="route('password.request')"
+                                class="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                            >
+                                Forgot?
+                            </Link>
                         </div>
-                        <input 
-                            type="password" 
-                            class="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300" 
-                            placeholder="••••••••" 
+                        <input
+                            id="password"
+                            v-model="form.password"
+                            type="password"
+                            class="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300"
+                            placeholder="••••••••"
+                            autocomplete="current-password"
                         />
+                        <p v-if="form.errors.password" class="mt-2 text-sm text-red-400">
+                            {{ form.errors.password }}
+                        </p>
                     </div>
 
-                    <Link 
-                        href="/auth/dashboard" 
-                        class="w-full flex justify-center py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold text-lg hover:shadow-[0_0_30px_rgba(14,165,233,0.3)] hover:-translate-y-0.5 transition-all duration-300 active:scale-95"
+                    <div class="flex items-center">
+                        <input
+                            id="remember"
+                            v-model="form.remember"
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900"
+                        />
+                        <label for="remember" class="ml-2 text-sm text-slate-400">
+                            Remember me
+                        </label>
+                    </div>
+
+                    <button
+                        type="submit"
+                        :disabled="form.processing"
+                        class="w-full flex justify-center py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold text-lg hover:shadow-[0_0_30px_rgba(14,165,233,0.3)] hover:-translate-y-0.5 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                     >
-                        Sign In
-                    </Link>
+                        <svg v-if="form.processing" class="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span v-else>Sign In</span>
+                    </button>
 
                     <div class="pt-4 text-center">
-                        <Link href="/auth" class="text-sm font-bold text-slate-500 hover:text-white transition-colors">
+                        <Link :href="route('landing')" class="text-sm font-bold text-slate-500 hover:text-white transition-colors">
                             ← Back to landing
                         </Link>
                     </div>
                 </form>
             </div>
-            
+
             <p class="text-center text-slate-600 mt-8 text-sm font-medium">
                 Built for Enterprise Performance & Scalability
             </p>

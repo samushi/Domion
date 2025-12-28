@@ -10,18 +10,23 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Illuminate\Support\Facades\File;
 
 #[AsCommand(
-    name: 'domion:make:action',
-    description: 'Create a new action in a domain',
+    name: 'domion:make:repository',
+    description: 'Create a new repository in a domain',
 )]
-class MakeAction extends GeneratorCommand
+class MakeRepository extends GeneratorCommand
 {
-    protected $type = 'Action';
+    protected $type = 'Repository';
 
     public function handle(): int
     {
         $name = $this->getNameInput();
 
-        \Laravel\Prompts\intro("Creating action: {$name}");
+        // Ensure name ends with Repository
+        if (!str_ends_with($name, 'Repository')) {
+            $name .= 'Repository';
+        }
+
+        \Laravel\Prompts\intro("Creating repository: {$name}");
 
         $domains = DomainHelpers::getDomains();
 
@@ -52,28 +57,36 @@ class MakeAction extends GeneratorCommand
             $scope = 'Tenant';
         }
 
-        $path = $domainPath . "/Actions/{$name}.php";
+        $path = $domainPath . "/Repository/{$name}.php";
         if (File::exists($path)) {
-            \Laravel\Prompts\error("Action already exists!");
+            \Laravel\Prompts\error("Repository already exists!");
             return self::FAILURE;
         }
 
-        $namespace = DomainHelpers::baseNamespace($domain, $scope) . "\\Actions";
+        // Get model name from repository name
+        $modelName = str_replace('Repository', '', $name);
 
-        $stubPath = __DIR__ . '/../stubs/Action.stub';
+        $namespace = DomainHelpers::baseNamespace($domain, $scope) . "\\Repository";
+        $modelNamespace = DomainHelpers::baseNamespace($domain, $scope) . "\\Models";
+
+        $stubPath = __DIR__ . '/../stubs/Repository.stub';
         $content = File::get($stubPath);
-        $content = str_replace(['{{namespace}}', '{{class}}'], [$namespace, $name], $content);
+        $content = str_replace(
+            ['{{namespace}}', '{{class}}', '{{modelNamespace}}', '{{model}}'],
+            [$namespace, $name, $modelNamespace, $modelName],
+            $content
+        );
 
         File::ensureDirectoryExists(dirname($path));
         File::put($path, $content);
 
-        \Laravel\Prompts\info("Action created successfully: {$path}");
+        \Laravel\Prompts\info("Repository created successfully: {$path}");
 
         return self::SUCCESS;
     }
 
     protected function getStub(): string
     {
-        return __DIR__ . '/../stubs/Action.stub';
+        return __DIR__ . '/../stubs/Repository.stub';
     }
 }

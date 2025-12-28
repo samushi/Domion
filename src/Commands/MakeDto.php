@@ -10,18 +10,23 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Illuminate\Support\Facades\File;
 
 #[AsCommand(
-    name: 'domion:make:action',
-    description: 'Create a new action in a domain',
+    name: 'domion:make:dto',
+    description: 'Create a new DTO (Data Transfer Object) in a domain',
 )]
-class MakeAction extends GeneratorCommand
+class MakeDto extends GeneratorCommand
 {
-    protected $type = 'Action';
+    protected $type = 'DTO';
 
     public function handle(): int
     {
         $name = $this->getNameInput();
 
-        \Laravel\Prompts\intro("Creating action: {$name}");
+        // Ensure name ends with Dto
+        if (!str_ends_with($name, 'Dto')) {
+            $name .= 'Dto';
+        }
+
+        \Laravel\Prompts\intro("Creating DTO: {$name}");
 
         $domains = DomainHelpers::getDomains();
 
@@ -52,28 +57,28 @@ class MakeAction extends GeneratorCommand
             $scope = 'Tenant';
         }
 
-        $path = $domainPath . "/Actions/{$name}.php";
+        $path = $domainPath . "/Dto/{$name}.php";
         if (File::exists($path)) {
-            \Laravel\Prompts\error("Action already exists!");
+            \Laravel\Prompts\error("DTO already exists!");
             return self::FAILURE;
         }
 
-        $namespace = DomainHelpers::baseNamespace($domain, $scope) . "\\Actions";
+        $namespace = DomainHelpers::baseNamespace($domain, $scope) . "\\Dto";
 
-        $stubPath = __DIR__ . '/../stubs/Action.stub';
+        $stubPath = __DIR__ . '/../stubs/Dto.stub';
         $content = File::get($stubPath);
         $content = str_replace(['{{namespace}}', '{{class}}'], [$namespace, $name], $content);
 
         File::ensureDirectoryExists(dirname($path));
         File::put($path, $content);
 
-        \Laravel\Prompts\info("Action created successfully: {$path}");
+        \Laravel\Prompts\info("DTO created successfully: {$path}");
 
         return self::SUCCESS;
     }
 
     protected function getStub(): string
     {
-        return __DIR__ . '/../stubs/Action.stub';
+        return __DIR__ . '/../stubs/Dto.stub';
     }
 }
