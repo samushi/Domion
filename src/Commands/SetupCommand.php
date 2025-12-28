@@ -154,8 +154,9 @@ class SetupCommand extends Command
 
             $content = str_replace('createInertiaApp', $injection . 'createInertiaApp', $content);
             
-            $resolvePattern = '/resolve:\s*\(?name\)?\s*=>\s*resolvePageComponent\(/';
-            $replacement = "resolve: (name) => resolveDomainPage(name, domainPages, (name) => resolvePageComponent(";
+            // This regex captures the entire resolve line to ensure we keep its arguments and close correctly
+            $resolvePattern = '/resolve:\s*\(?name\)?\s*=>\s*resolvePageComponent\((.*?)\),?/s';
+            $replacement = "resolve: (name) => resolveDomainPage(name, domainPages, (name) => resolvePageComponent($1)),";
             
             $content = preg_replace($resolvePattern, $replacement, $content);
             File::put($appPath, $content);

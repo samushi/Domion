@@ -137,9 +137,14 @@ class DomionServiceProvider extends ServiceProvider
         
         if (in_array($mode, ['react', 'vue'])) {
             if (class_exists(\Inertia\Inertia::class)) {
-                // Check if shared::app exists (it should after setup)
+                // Ensure namespaces are loaded (redundant but safe)
+                DomainHelpers::loadAllResources();
+                
                 if (view()->exists('shared::app')) {
                     \Inertia\Inertia::setRootView('shared::app');
+                } elseif (view()->exists('auth::app')) {
+                    // Failover if for some reason they put it in Auth
+                    \Inertia\Inertia::setRootView('auth::app');
                 }
             }
         }
