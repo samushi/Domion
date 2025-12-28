@@ -1,0 +1,20 @@
+<?php
+
+namespace {{namespace}};
+
+use Samushi\Domion\Actions\ActionFactory;
+
+class {{class}} extends ActionFactory
+{
+    /**
+     * Execute the action.
+     *
+     * @param mixed ...$args
+     * @return mixed
+     */
+    public function handle(...$args): mixed
+    {
+        // Business logic goes here
+        return true;
+    }
+}

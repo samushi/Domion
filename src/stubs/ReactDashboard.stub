@@ -1,0 +1,91 @@
+import React from 'react';
+import { Head, Link } from '@inertiajs/react';
+
+const Logo = ({ className = "w-8 h-8" }) => (
+    <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50 5L89.4019 28.75V71.25L50 95L10.5981 71.25V28.75L50 5Z" stroke="url(#paint0_linear_dash)" strokeWidth="8" strokeLinejoin="round"/>
+        <rect x="35" y="45" width="8" height="30" rx="2" fill="url(#paint1_linear_dash)" />
+        <rect x="46" y="30" width="8" height="45" rx="2" fill="white" />
+        <rect x="57" y="45" width="8" height="30" rx="2" fill="url(#paint2_linear_dash)" />
+        <defs>
+            <linearGradient id="paint0_linear_dash" x1="50" y1="5" x2="50" y2="95" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#0EA5E9"/>
+                <stop offset="1" stopColor="#2563EB"/>
+            </linearGradient>
+            <linearGradient id="paint1_linear_dash" x1="39" y1="45" x2="39" y2="75" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#7DD3FC"/>
+                <stop offset="1" stopColor="#0EA5E9"/>
+            </linearGradient>
+            <linearGradient id="paint2_linear_dash" x1="61" y1="45" x2="61" y2="75" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#7DD3FC"/>
+                <stop offset="1" stopColor="#0EA5E9"/>
+            </linearGradient>
+        </defs>
+    </svg>
+);
+
+export default function Dashboard() {
+    return (
+        <div className="min-h-screen bg-[#020617] text-white">
+            <Head title="Dashboard - Domion" />
+            
+            {/* Header / Navbar */}
+            <nav className="bg-slate-900/50 backdrop-blur-xl border-b border-slate-800 sticky top-0 z-50">
+                <div className="max-w-7xl mx-auto px-6 lg:px-8">
+                    <div className="flex justify-between h-20 items-center">
+                        <div className="flex items-center gap-3">
+                            <Logo className="w-10 h-10" />
+                            <span className="text-xl font-black tracking-tight italic">DOMION</span>
+                        </div>
+                        <div className="flex items-center gap-6">
+                            <span className="hidden md:block text-sm font-bold text-slate-400">Welcome, Developer</span>
+                            <Link href="/auth/login" className="px-5 py-2.5 bg-red-500/10 text-red-400 rounded-xl text-sm font-bold border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">
+                                Sign Out
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <main className="max-w-7xl mx-auto py-12 px-6 lg:px-8">
+                {/* Hero Section */}
+                <div className="bg-gradient-to-br from-slate-900 to-slate-950 rounded-[2.5rem] border border-slate-800 p-10 md:p-16 mb-12 shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-[80px]" />
+                    
+                    <div className="relative z-10">
+                        <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight">
+                            Master your <span className="text-blue-400">Domains.</span>
+                        </h2>
+                        <p className="text-xl text-slate-400 max-w-2xl mb-10 leading-relaxed font-medium">
+                            Your application is now running on the world's most elegant DDD architecture for Laravel. 
+                            Ready to build something legendary?
+                        </p>
+                        
+                        <div className="flex flex-wrap gap-4">
+                            <button className="px-8 py-3.5 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20">
+                                Domain Overview
+                            </button>
+                            <button className="px-8 py-3.5 bg-slate-800 text-white rounded-2xl font-bold hover:bg-slate-700 transition-all border border-slate-700">
+                                Documentation
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Stats / Features Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {[
+                        { label: 'Domains', value: '2', color: 'text-blue-400' },
+                        { label: 'Actions', value: '12', color: 'text-cyan-400' },
+                        { label: 'Performance', value: '99.9%', color: 'text-emerald-400' }
+                    ].map((stat, i) => (
+                        <div key={i} className="bg-slate-900/40 p-8 rounded-3xl border border-slate-800 backdrop-blur-sm">
+                            <p className="text-slate-500 font-bold uppercase tracking-wider text-xs mb-2">{stat.label}</p>
+                            <p className={`text-4xl font-black ${stat.color}`}>{stat.value}</p>
+                        </div>
+                    ))}
+                </div>
+            </main>
+        </div>
+    );
+}

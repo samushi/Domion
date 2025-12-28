@@ -24,9 +24,12 @@ trait RouteHelperTrait
         $domains = glob($domainPath . DIRECTORY_SEPARATOR . '*', GLOB_ONLYDIR);
 
         foreach ($domains as $domainDir) {
-            $apiFile = $domainDir . DIRECTORY_SEPARATOR . 'api.php';
-            if (file_exists($apiFile)) {
-                $results[] = $apiFile;
+            $files = ['api.php', 'web.php', 'routes.php'];
+            foreach ($files as $file) {
+                $path = $domainDir . DIRECTORY_SEPARATOR . $file;
+                if (file_exists($path)) {
+                    $results[] = $path;
+                }
             }
         }
 

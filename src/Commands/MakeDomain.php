@@ -50,6 +50,7 @@ class MakeDomain extends GeneratorCommand
                 'Controllers',
                 'Database/Migrations',
                 'Database/Seeders',
+                'Database/Factories',
                 'Dto',
                 'Events',
                 'Listeners',

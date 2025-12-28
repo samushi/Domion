@@ -1,0 +1,28 @@
+<?php
+
+namespace {{namespace}};
+
+use Illuminate\Database\Seeder;
+use {{modelNamespace}}\User;
+use Illuminate\Support\Facades\Hash;
+
+class {{class}} extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        User::create([
+            'name' => 'Admin User',
+            'email' => 'admin@domion.com',
+            'password' => Hash::make('password'),
+        ])->assignRole('admin');
+
+        User::create([
+            'name' => 'Test Writer',
+            'email' => 'writer@domion.com',
+            'password' => Hash::make('password'),
+        ])->assignRole('writer');
+    }
+}

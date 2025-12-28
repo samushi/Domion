@@ -1,0 +1,17 @@
+<?php
+
+namespace {{namespace}};
+
+use Samushi\Domion\Support\{{baseController}};
+use Illuminate\Http\Request;
+
+class {{class}} extends {{baseController}}
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        return $this->render('{{domain}}::{{view}}');
+    }
+}

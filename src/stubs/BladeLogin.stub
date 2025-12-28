@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Domion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-[#020617] text-white">
+    <div class="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
+        <!-- Background Glow -->
+        <div class="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[-20%] left-[-10%] w-[50%] h-[50%] bg-cyan-600/10 rounded-full blur-[120px]"></div>
+
+        <div class="max-w-md w-full z-10">
+            <div class="bg-slate-900/50 backdrop-blur-2xl p-10 rounded-[2.5rem] border border-slate-800 shadow-2xl">
+                <div class="text-center mb-10">
+                    <div class="flex justify-center mb-6">
+                        <svg viewBox="0 0 100 100" class="w-16 h-16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M50 5L89.4019 28.75V71.25L50 95L10.5981 71.25V28.75L50 5Z" stroke="url(#paint0_linear_blade_l)" stroke-width="8" stroke-linejoin="round"/>
+                            <rect x="35" y="45" width="8" height="30" rx="2" fill="url(#paint1_linear_blade_l)" />
+                            <rect x="46" y="30" width="8" height="45" rx="2" fill="white" />
+                            <rect x="57" y="45" width="8" height="30" rx="2" fill="url(#paint2_linear_blade_l)" />
+                            <defs>
+                                <linearGradient id="paint0_linear_blade_l" x1="50" y1="5" x2="50" y2="95" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#0EA5E9"/>
+                                    <stop offset="1" stop-color="#2563EB"/>
+                                </linearGradient>
+                                <linearGradient id="paint1_linear_blade_l" x1="39" y1="45" x2="39" y2="75" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#7DD3FC"/>
+                                    <stop offset="1" stop-color="#0EA5E9"/>
+                                </linearGradient>
+                                <linearGradient id="paint2_linear_blade_l" x1="61" y1="45" x2="61" y2="75" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#7DD3FC"/>
+                                    <stop offset="1" stop-color="#0EA5E9"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <h1 class="text-3xl font-black text-white tracking-tight italic">DOMION</h1>
+                    <p class="text-slate-400 mt-3 font-medium">Elevate your architecture.</p>
+                </div>
+
+                <form class="space-y-6" method="GET" action="{{ route('dashboard') }}">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-300 mb-2 ml-1">Email Address</label>
+                        <input type="email" class="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300" placeholder="admin@domion.com">
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between mb-2 ml-1">
+                            <label class="text-sm font-bold text-slate-300">Password</label>
+                            <a href="#" class="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">Forgot?</a>
+                        </div>
+                        <input type="password" class="w-full px-5 py-4 bg-slate-800/50 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300" placeholder="••••••••">
+                    </div>
+
+                    <button type="submit" class="w-full flex justify-center py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold text-lg hover:shadow-[0_0_30px_rgba(14,165,233,0.3)] hover:-translate-y-0.5 transition-all duration-300 active:scale-95">
+                        Sign In
+                    </button>
+
+                    <div class="pt-4 text-center">
+                        <a href="{{ route('landing') }}" class="text-sm font-bold text-slate-500 hover:text-white transition-colors">
+                            ← Back to landing
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

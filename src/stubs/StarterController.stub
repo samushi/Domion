@@ -1,0 +1,25 @@
+<?php
+
+namespace {{namespace}};
+
+use Samushi\Domion\Support\{{baseController}};
+use Illuminate\Http\Request;
+
+class {{class}} extends {{baseController}}
+{
+    /**
+     * Display the landing page.
+     */
+    public function landing()
+    {
+        return $this->render('{{domain}}::Landing');
+    }
+
+    /**
+     * Display the index page.
+     */
+    public function index()
+    {
+        return $this->render('{{domain}}::{{view}}');
+    }
+}

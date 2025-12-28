@@ -1,0 +1,23 @@
+<?php
+
+namespace {{namespace}};
+
+use Samushi\Domion\Actions\ActionFactory;
+use Illuminate\Http\Request;
+
+class RefreshTokenAction extends ActionFactory
+{
+    /**
+     * Handle the token refresh.
+     */
+    public function handle(...$args): mixed
+    {
+        $user = $args[0];
+        
+        // Revoke all tokens...
+        $user->tokens()->delete();
+
+        // Create new token
+        return $user->createToken('auth_token')->plainTextToken;
+    }
+}

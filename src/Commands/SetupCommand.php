@@ -220,6 +220,11 @@ class SetupCommand extends Command
             $composerPackages[] = 'laravel/passport';
         }
 
+        // Spatie Permissions
+        if ($this->confirm('Install Spatie Laravel Permission?', true)) {
+            $composerPackages[] = 'spatie/laravel-permission';
+        }
+
         if (!empty($composerPackages) && $this->confirm('Install PHP dependencies (Composer)?', true)) {
             $this->info('Installing: ' . implode(', ', $composerPackages));
             $packages = implode(' ', $composerPackages);
@@ -308,14 +313,32 @@ class SetupCommand extends Command
 
     protected function setupRoutes(): void
     {
+        // 1. API Discovery
         $apiPath = base_path('routes/api.php');
-        
         if (File::exists($apiPath)) {
             $content = File::get($apiPath);
-            
             if (!str_contains($content, 'DomainHelpers::loadDomainRoutes()')) {
                 $newContent = "<?php\n\nuse Samushi\Domion\Helpers\DomainHelpers;\n\nDomainHelpers::loadDomainRoutes();\n";
                 File::put($apiPath, $newContent);
+            }
+        }
+
+        // 2. Web / Landing Support
+        $webPath = base_path('routes/web.php');
+        if (File::exists($webPath)) {
+            $content = File::get($webPath);
+            
+            // Add Domain discovery to web.php as well
+            if (!str_contains($content, 'DomainHelpers::loadDomainRoutes()')) {
+                $content .= "\n\nuse Samushi\Domion\Helpers\DomainHelpers;\nDomainHelpers::loadDomainRoutes();\n";
+                File::put($webPath, $content);
+            }
+
+            // Optional: Redirect / to /auth/login if it's a fresh install
+            if (str_contains($content, "view('welcome')")) {
+                $replacement = "redirect('/auth/login')";
+                $content = str_replace("view('welcome')", $replacement, $content);
+                File::put($webPath, $content);
             }
         }
     }
@@ -378,12 +401,110 @@ class SetupCommand extends Command
 
     protected function installStarterKit(string $mode): void
     {
-        $basePath = base_path('app/Domain/Auth');
+        // 1. Setup Domains
+        $this->createDomainStructure('User');
+        $this->createDomainStructure('Auth');
+
+        $baseController = match ($mode) {
+            'react', 'vue' => 'InertiaControllers',
+            'api' => 'ApiControllers',
+            default => 'WebControllers'
+        };
+
+        // 2. Relocate User Migration
+        $this->relocateUserMigrations();
+
+        // 3. Create User & Auth Actions
+        $this->generateFromStub('Action', base_path('app/Domain/Auth/Actions/LoginAction.php'), [
+            'namespace' => 'App\Domain\Auth\Actions',
+            'class' => 'LoginAction'
+        ]);
+
+        if ($mode === 'api') {
+            $this->generateFromStub('RefreshTokenAction', base_path('app/Domain/Auth/Actions/RefreshTokenAction.php'), [
+                'namespace' => 'App\Domain\Auth\Actions'
+            ]);
+        }
+
+        // 4. Create User Model
+        $this->generateFromStub('UserModel', base_path('app/Domain/User/Models/User.php'), [
+            'namespace' => 'App\Domain\User\Models'
+        ]);
+
+        // 5. Create Controllers
+        $this->generateFromStub('StarterController', base_path('app/Domain/Auth/Controllers/LoginController.php'), [
+            'namespace' => 'App\Domain\Auth\Controllers',
+            'baseController' => $baseController,
+            'class' => 'LoginController',
+            'domain' => 'auth',
+            'view' => 'Login'
+        ]);
+
+        $this->generateFromStub('StarterController', base_path('app/Domain/Auth/Controllers/DashboardController.php'), [
+            'namespace' => 'App\Domain\Auth\Controllers',
+            'baseController' => $baseController,
+            'class' => 'DashboardController',
+            'domain' => 'auth',
+            'view' => 'Dashboard'
+        ]);
+
+        // 6. Create Seeders
+        $this->generateFromStub('RolesAndPermissionsSeeder', base_path('app/Domain/User/Database/Seeders/RolesAndPermissionsSeeder.php'), [
+            'namespace' => 'App\Domain\User\Database\Seeders',
+            'class' => 'RolesAndPermissionsSeeder'
+        ]);
+
+        $this->generateFromStub('UserSeeder', base_path('app/Domain/User/Database/Seeders/UserSeeder.php'), [
+            'namespace' => 'App\Domain\User\Database\Seeders',
+            'class' => 'UserSeeder',
+            'modelNamespace' => 'App\Domain\User\Models'
+        ]);
+
+        // 7. Create Factory
+        $this->generateFromStub('Factory', base_path('app/Domain/User/Database/Factories/UserFactory.php'), [
+            'namespace' => 'App\Domain\User\Database\Factories',
+            'modelNamespace' => 'App\Domain\User\Models',
+            'model' => 'User',
+            'class' => 'UserFactory'
+        ]);
+
+        // 8. Create Routes
+        $routeContent = "<?php\n\nuse Illuminate\Support\Facades\Route;\nuse App\Domain\Auth\Controllers\LoginController;\nuse App\Domain\Auth\Controllers\DashboardController;\n\nRoute::get('/', [LoginController::class, 'landing'])->name('landing');\nRoute::get('/login', [LoginController::class, 'index'])->name('login');\nRoute::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');\n";
+        File::put(base_path('app/Domain/Auth/web.php'), $routeContent);
+
+        // 8. Create Frontend Pages
+        if ($mode === 'react') {
+            $this->generateFromStub('ReactLanding', base_path('app/Domain/Auth/Frontend/Pages/Landing.tsx'));
+            $this->generateFromStub('ReactLogin', base_path('app/Domain/Auth/Frontend/Pages/Login.tsx'));
+            $this->generateFromStub('ReactDashboard', base_path('app/Domain/Auth/Frontend/Pages/Dashboard.tsx'));
+        } elseif ($mode === 'vue') {
+            $this->generateFromStub('VueLanding', base_path('app/Domain/Auth/Frontend/Pages/Landing.vue'));
+            $this->generateFromStub('VueLogin', base_path('app/Domain/Auth/Frontend/Pages/Login.vue'));
+            $this->generateFromStub('VueDashboard', base_path('app/Domain/Auth/Frontend/Pages/Dashboard.vue'));
+        } else {
+            // Blade, Livewire, or API (fallback to Blade views for presentation)
+            $viewPath = base_path('app/Domain/Auth/Resources/views/pages');
+            File::ensureDirectoryExists($viewPath);
+            
+            $this->generateFromStub('BladeLanding', $viewPath . '/Landing.blade.php');
+            $this->generateFromStub('BladeLogin', $viewPath . '/Login.blade.php');
+            $this->generateFromStub('BladeDashboard', $viewPath . '/Dashboard.blade.php');
+        }
+    }
+
+    protected function createDomainStructure(string $domain): void
+    {
+        $base = base_path("app/Domain/{$domain}");
         $folders = [
-            $basePath . '/Actions',
-            $basePath . '/Controllers',
-            $basePath . '/Models',
-            $basePath . '/Frontend/Pages',
+            $base . '/Actions',
+            $base . '/Controllers',
+            $base . '/Models',
+            $base . '/Database/Migrations',
+            $base . '/Database/Seeders',
+            $base . '/Database/Factories',
+            $base . '/Frontend/Pages',
+            $base . '/Resources/views/pages',
+            $base . '/Resources/views/components',
         ];
 
         foreach ($folders as $folder) {
@@ -391,19 +512,39 @@ class SetupCommand extends Command
                 File::makeDirectory($folder, 0755, true);
             }
         }
+    }
 
-        // 1. Create Example Action (Extending ActionFactory)
-        $actionContent = "<?php\n\nnamespace App\Domain\Auth\Actions;\n\nuse Samushi\Domion\Actions\ActionFactory;\n\nclass LoginAction extends ActionFactory\n{\n    public function handle(...\$args): mixed\n    {\n        // \$credentials = \$args[0];\n        // return auth()->attempt(\$credentials);\n        \n        return true;\n    }\n}\n";
-        File::put($basePath . '/Actions/LoginAction.php', $actionContent);
+    protected function relocateUserMigrations(): void
+    {
+        $migrationDir = base_path('database/migrations');
+        $targetDir = base_path('app/Domain/User/Database/Migrations');
 
-        // 2. Create Example Controller
-        $controllerContent = "<?php\n\nnamespace App\Domain\Auth\Controllers;\n\nuse App\App\Providers\RouteServiceProvider; // Fallback or custom\nuse Illuminate\Routing\Controller;\n\nclass LoginController extends Controller\n{\n    public function index()\n    {\n        return inertia('Auth/Login');\n    }\n}\n";
-        File::put($basePath . '/Controllers/LoginController.php', $controllerContent);
-
-        // 3. Create Example Frontend Page if React
-        if ($mode === 'react') {
-            $jsxContent = "import React from 'react';\n\nexport default function Login() {\n    return (\n        <div className=\"min-h-screen flex items-center justify-center bg-gray-100\">\n            <div className=\"bg-white p-8 rounded shadow-md w-96\">\n                <h1 className=\"text-2xl font-bold mb-6 text-center text-indigo-600\">Domion Starter Kit</h1>\n                <form className=\"space-y-4\">\n                    <div>\n                        <label className=\"block text-sm font-medium text-gray-700\">Email</label>\n                        <input type=\"email\" className=\"mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500\" defaultValue=\"admin@domion.com\" />\n                    </div>\n                    <div>\n                        <label className=\"block text-sm font-medium text-gray-700\">Password</label>\n                        <input type=\"password\" className=\"mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500\" defaultValue=\"password\" />\n                    </div>\n                    <button type=\"button\" className=\"w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700\">\n                        Sign in\n                    </button>\n                </form>\n            </div>\n        </div>\n    );\n}\n";
-            File::put($basePath . '/Frontend/Pages/Login.tsx', $jsxContent);
+        if (File::isDirectory($migrationDir)) {
+            $files = File::files($migrationDir);
+            foreach ($files as $file) {
+                if (str_contains($file->getFilename(), 'create_users_table')) {
+                    File::move($file->getRealPath(), $targetDir . '/' . $file->getFilename());
+                    $this->info("Moved migration: " . $file->getFilename());
+                }
+            }
         }
+    }
+
+    protected function generateFromStub(string $stub, string $target, array $replacements = []): void
+    {
+        $stubPath = __DIR__ . '/../stubs/' . $stub . '.stub';
+        
+        if (!File::exists($stubPath)) {
+            $this->error("Stub not found: {$stubPath}");
+            return;
+        }
+
+        $content = File::get($stubPath);
+
+        foreach ($replacements as $key => $value) {
+            $content = str_replace('{{' . $key . '}}', $value, $content);
+        }
+
+        File::put($target, $content);
     }
 }

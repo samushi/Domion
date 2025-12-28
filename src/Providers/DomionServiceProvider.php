@@ -6,6 +6,7 @@ namespace Samushi\Domion\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Samushi\Domion\Helpers\DomainHelpers;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Samushi\Domion\Commands\{
     MakeDomain,
     MakeDomainMigration,
@@ -28,6 +29,7 @@ class DomionServiceProvider extends ServiceProvider
         $this->configureMigrationPaths();
         $this->registerDomainObservers();
         DomainHelpers::registerLivewireComponents();
+        $this->registerFactories();
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
@@ -100,5 +102,28 @@ class DomionServiceProvider extends ServiceProvider
                 }
             }
         }
+    }
+
+    /**
+     * Register domain-level factories using Laravel's factory discovery.
+     */
+    protected function registerFactories(): void
+    {
+        Factory::guessFactoryNamesUsing(function (string $modelName) {
+            // Check if model belongs to a Domain
+            if (str_contains($modelName, 'App\\Domain\\')) {
+                $pieces = explode('\\', $modelName);
+                
+                // Expected: App\Domain\{DomainName}\Models\{ModelName}
+                if (count($pieces) >= 5 && $pieces[3] === 'Models') {
+                    $domain = $pieces[2];
+                    $name = end($pieces);
+                    return "App\\Domain\\{$domain}\\Database\\Factories\\{$name}Factory";
+                }
+            }
+            
+            // Fallback for standard structure
+            return 'Database\\Factories\\' . class_basename($modelName) . 'Factory';
+        });
     }
 }
