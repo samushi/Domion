@@ -81,7 +81,7 @@ class SetupCommand extends Command
 
                 $this->setupRoutes();
                 $this->setupBootstrap();
-                $this->setupComposer();
+                $this->setupDependencies($mode, $auth, $tenancy);
                 
                 if (in_array($mode, ['react', 'vue'])) {
                     $activeExtension = $this->setupFrontend($mode);
