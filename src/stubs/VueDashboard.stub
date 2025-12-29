@@ -1,85 +1,163 @@
-<script setup>
-import { Head, Link } from '@inertiajs/vue3';
+<script setup lang="ts">
+import { Head, Link, router } from '@inertiajs/vue3';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { LayoutDashboard, Users, Settings, LogOut, TrendingUp, Activity, CreditCard, ChevronDown } from 'lucide-vue-next';
+
+interface User {
+    id: number;
+    name: string;
+    email: string;
+}
+
+interface Props {
+    auth: {
+        user: User;
+    };
+}
+
+const props = defineProps<Props>();
+
+const handleLogout = () => {
+    router.post(route('logout'));
+};
 
 const stats = [
-    { label: 'Domains', value: '2', color: 'text-blue-400' },
-    { label: 'Actions', value: '12', color: 'text-cyan-400' },
-    { label: 'Performance', value: '99.9%', color: 'text-emerald-400' }
+    { title: 'Total Revenue', value: '$45,231.89', description: '+20.1% from last month', icon: CreditCard },
+    { title: 'Active Users', value: '+2,350', description: '+180.1% from last month', icon: Users },
+    { title: 'Sales', value: '+12,234', description: '+19% from last month', icon: TrendingUp },
+    { title: 'Active Now', value: '+573', description: '+201 since last hour', icon: Activity },
 ];
 </script>
 
 <template>
-    <div class="min-h-screen bg-[#020617] text-white">
-        <Head title="Dashboard - Domion" />
-        
-        <!-- Header / Navbar -->
-        <nav class="bg-slate-900/50 backdrop-blur-xl border-b border-slate-800 sticky top-0 z-50">
-            <div class="max-w-7xl mx-auto px-6 lg:px-8">
-                <div class="flex justify-between h-20 items-center">
-                    <div class="flex items-center gap-3">
-                        <svg viewBox="0 0 100 100" class="w-10 h-10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M50 5L89.4019 28.75V71.25L50 95L10.5981 71.25V28.75L50 5Z" stroke="url(#paint0_linear_vue_d)" stroke-width="8" stroke-linejoin="round"/>
-                            <rect x="35" y="45" width="8" height="30" rx="2" fill="url(#paint1_linear_vue_d)" />
-                            <rect x="46" y="30" width="8" height="45" rx="2" fill="white" />
-                            <rect x="57" y="45" width="8" height="30" rx="2" fill="url(#paint2_linear_vue_d)" />
-                            <defs>
-                                <linearGradient id="paint0_linear_vue_d" x1="50" y1="5" x2="50" y2="95" gradientUnits="userSpaceOnUse">
-                                    <stop stop-color="#0EA5E9"/>
-                                    <stop offset="1" stop-color="#2563EB"/>
-                                </linearGradient>
-                                <linearGradient id="paint1_linear_vue_d" x1="39" y1="45" x2="39" y2="75" gradientUnits="userSpaceOnUse">
-                                    <stop stop-color="#7DD3FC"/>
-                                    <stop offset="1" stop-color="#0EA5E9"/>
-                                </linearGradient>
-                                <linearGradient id="paint2_linear_vue_d" x1="61" y1="45" x2="61" y2="75" gradientUnits="userSpaceOnUse">
-                                    <stop stop-color="#7DD3FC"/>
-                                    <stop offset="1" stop-color="#0EA5E9"/>
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                        <span class="text-xl font-black tracking-tight italic">DOMION</span>
-                    </div>
-                    <div class="flex items-center gap-6">
-                        <span class="hidden md:block text-sm font-bold text-slate-400">Welcome, Developer</span>
-                        <Link href="/auth/login" class="px-5 py-2.5 bg-red-500/10 text-red-400 rounded-xl text-sm font-bold border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">
-                            Sign Out
+    <div class="min-h-screen bg-background">
+        <Head title="Dashboard" />
+
+        <!-- Header -->
+        <header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div class="container flex h-16 items-center justify-between">
+                <div class="flex items-center gap-6">
+                    <Link :href="route('dashboard')" class="flex items-center gap-2">
+                        <div class="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                            <LayoutDashboard class="h-4 w-4 text-primary-foreground" />
+                        </div>
+                        <span class="font-bold text-xl">Domion</span>
+                    </Link>
+
+                    <nav class="hidden md:flex items-center gap-6">
+                        <Link :href="route('dashboard')" class="text-sm font-medium text-foreground">
+                            Dashboard
                         </Link>
-                    </div>
+                        <Link href="#" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                            Analytics
+                        </Link>
+                        <Link href="#" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                            Reports
+                        </Link>
+                        <Link href="#" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                            Settings
+                        </Link>
+                    </nav>
                 </div>
-            </div>
-        </nav>
 
-        <main class="max-w-7xl mx-auto py-12 px-6 lg:px-8">
-            <!-- Hero Section -->
-            <div class="bg-gradient-to-br from-slate-900 to-slate-950 rounded-[2.5rem] border border-slate-800 p-10 md:p-16 mb-12 shadow-2xl relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-[80px]" />
-                
-                <div class="relative z-10">
-                    <h2 class="text-4xl md:text-5xl font-black mb-6 tracking-tight">
-                        Master your <span class="text-blue-400">Domains.</span>
-                    </h2>
-                    <p class="text-xl text-slate-400 max-w-2xl mb-10 leading-relaxed font-medium">
-                        Your application is now running on the world's most elegant DDD architecture for Laravel. 
-                        Ready to build something legendary?
-                    </p>
-                    
-                    <div class="flex flex-wrap gap-4">
-                        <button class="px-8 py-3.5 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/20">
-                            Domain Overview
-                        </button>
-                        <button class="px-8 py-3.5 bg-slate-800 text-white rounded-2xl font-bold hover:bg-slate-700 transition-all border border-slate-700">
-                            Documentation
-                        </button>
-                    </div>
-                </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger as-child>
+                        <Button variant="ghost" class="flex items-center gap-2">
+                            <Avatar class="h-8 w-8">
+                                <AvatarImage :src="`https://avatar.vercel.sh/${props.auth.user.email}`" />
+                                <AvatarFallback>{{ props.auth.user.name.charAt(0).toUpperCase() }}</AvatarFallback>
+                            </Avatar>
+                            <span class="hidden md:inline-block text-sm font-medium">{{ props.auth.user.name }}</span>
+                            <ChevronDown class="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" class="w-56">
+                        <DropdownMenuLabel>
+                            <div class="flex flex-col space-y-1">
+                                <p class="text-sm font-medium">{{ props.auth.user.name }}</p>
+                                <p class="text-xs text-muted-foreground">{{ props.auth.user.email }}</p>
+                            </div>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem>
+                            <Settings class="mr-2 h-4 w-4" />
+                            Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem @click="handleLogout" class="text-destructive focus:text-destructive">
+                            <LogOut class="mr-2 h-4 w-4" />
+                            Logout
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container py-8">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold tracking-tight">Dashboard</h1>
+                <p class="text-muted-foreground">Welcome back, {{ props.auth.user.name }}!</p>
             </div>
 
-            <!-- Stats / Features Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div v-for="(stat, i) in stats" :key="i" class="bg-slate-900/40 p-8 rounded-3xl border border-slate-800 backdrop-blur-sm">
-                    <p class="text-slate-500 font-bold uppercase tracking-wider text-xs mb-2">{{ stat.label }}</p>
-                    <p :class="`text-4xl font-black ${stat.color}`">{{ stat.value }}</p>
-                </div>
+            <!-- Stats Grid -->
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+                <Card v-for="(stat, index) in stats" :key="index">
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">{{ stat.title }}</CardTitle>
+                        <component :is="stat.icon" class="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div class="text-2xl font-bold">{{ stat.value }}</div>
+                        <p class="text-xs text-muted-foreground">{{ stat.description }}</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <!-- Content Cards -->
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                <Card class="lg:col-span-4">
+                    <CardHeader>
+                        <CardTitle>Overview</CardTitle>
+                        <CardDescription>Your performance this month</CardDescription>
+                    </CardHeader>
+                    <CardContent class="h-[300px] flex items-center justify-center text-muted-foreground">
+                        <div class="text-center">
+                            <TrendingUp class="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>Chart visualization goes here</p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card class="lg:col-span-3">
+                    <CardHeader>
+                        <CardTitle>Recent Activity</CardTitle>
+                        <CardDescription>Your latest actions</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="space-y-4">
+                            <div v-for="i in 5" :key="i" class="flex items-center gap-4">
+                                <div class="h-9 w-9 rounded-full bg-muted flex items-center justify-center">
+                                    <Activity class="h-4 w-4" />
+                                </div>
+                                <div class="flex-1 space-y-1">
+                                    <p class="text-sm font-medium">Action {{ i }}</p>
+                                    <p class="text-xs text-muted-foreground">2 hours ago</p>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </main>
     </div>

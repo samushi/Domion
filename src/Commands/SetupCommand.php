@@ -308,17 +308,51 @@ class SetupCommand extends Command
     {
         $composerPackages = [];
         $npmPackages = [];
+        $npmDevPackages = [];
 
         // Core DDD dependencies
         if (in_array($mode, ['react', 'vue'])) {
             $composerPackages[] = 'inertiajs/inertia-laravel';
             $composerPackages[] = 'tightenco/ziggy';
-            $npmPackages[] = $mode === 'react' ? '@inertiajs/react react react-dom' : '@inertiajs/vue3 vue';
-            $npmPackages[] = '@vitejs/plugin-react';
+
+            if ($mode === 'react') {
+                $npmPackages[] = '@inertiajs/react';
+                $npmPackages[] = 'react';
+                $npmPackages[] = 'react-dom';
+                $npmDevPackages[] = '@vitejs/plugin-react';
+                $npmDevPackages[] = '@types/react';
+                $npmDevPackages[] = '@types/react-dom';
+
+                // shadcn/ui dependencies
+                $npmPackages[] = 'class-variance-authority';
+                $npmPackages[] = 'clsx';
+                $npmPackages[] = 'tailwind-merge';
+                $npmPackages[] = 'lucide-react';
+                $npmPackages[] = '@radix-ui/react-slot';
+                $npmPackages[] = '@radix-ui/react-label';
+                $npmPackages[] = '@radix-ui/react-checkbox';
+                $npmPackages[] = '@radix-ui/react-dropdown-menu';
+                $npmPackages[] = '@radix-ui/react-avatar';
+                $npmPackages[] = '@radix-ui/react-alert-dialog';
+                $npmDevPackages[] = 'tailwindcss-animate';
+            } else {
+                $npmPackages[] = '@inertiajs/vue3';
+                $npmPackages[] = 'vue';
+                $npmDevPackages[] = '@vitejs/plugin-vue';
+
+                // shadcn-vue dependencies
+                $npmPackages[] = 'radix-vue';
+                $npmPackages[] = 'class-variance-authority';
+                $npmPackages[] = 'clsx';
+                $npmPackages[] = 'tailwind-merge';
+                $npmPackages[] = 'lucide-vue-next';
+                $npmDevPackages[] = 'tailwindcss-animate';
+            }
         }
 
         if ($mode === 'livewire') {
             $composerPackages[] = 'livewire/livewire';
+            $composerPackages[] = 'livewire/flux';
         }
 
         // Multi-tenancy
@@ -344,15 +378,726 @@ class SetupCommand extends Command
             exec("COMPOSER_NO_INTERACTION=1 composer require {$packages} --quiet");
         }
 
-        if (!empty($npmPackages) && $this->confirm('Install JS dependencies (NPM)?', true)) {
-            $this->info('Installing: ' . implode(', ', $npmPackages));
-            $packages = implode(' ', $npmPackages);
-            exec("npm install {$packages} --save-dev");
-            
+        $allNpmPackages = array_merge($npmPackages, $npmDevPackages);
+        if (!empty($allNpmPackages) && $this->confirm('Install JS dependencies (NPM)?', true)) {
+            if (!empty($npmPackages)) {
+                $this->info('Installing production packages: ' . implode(', ', $npmPackages));
+                exec("npm install " . implode(' ', $npmPackages) . " --save");
+            }
+
+            if (!empty($npmDevPackages)) {
+                $this->info('Installing dev packages: ' . implode(', ', $npmDevPackages));
+                exec("npm install " . implode(' ', $npmDevPackages) . " --save-dev");
+            }
+
+            // Setup shadcn utilities
+            if (in_array($mode, ['react', 'vue'])) {
+                $this->setupShadcnUtils($mode);
+            }
+
             $this->info('Building frontend assets (Vite)...');
             exec("npm run build");
         }
 
+    }
+
+    protected function setupShadcnUtils(string $mode): void
+    {
+        $utilsDir = base_path('resources/js/lib');
+        if (!File::isDirectory($utilsDir)) {
+            File::makeDirectory($utilsDir, 0755, true);
+        }
+
+        // Create cn utility function (used by all shadcn components)
+        $utilsContent = $mode === 'react'
+            ? "import { type ClassValue, clsx } from 'clsx';\nimport { twMerge } from 'tailwind-merge';\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs));\n}\n"
+            : "import { type ClassValue, clsx } from 'clsx';\nimport { twMerge } from 'tailwind-merge';\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs));\n}\n";
+
+        File::put($utilsDir . '/utils.ts', $utilsContent);
+
+        // Create components/ui directory
+        $componentsDir = base_path('resources/js/components/ui');
+        if (!File::isDirectory($componentsDir)) {
+            File::makeDirectory($componentsDir, 0755, true);
+        }
+
+        // Generate shadcn component stubs based on mode
+        if ($mode === 'react') {
+            $this->generateShadcnReactComponents($componentsDir);
+        } else {
+            $this->generateShadcnVueComponents($componentsDir);
+        }
+
+        $this->components->twoColumnDetail('shadcn/ui utilities', '<fg=green;options=bold>INSTALLED</>');
+    }
+
+    protected function generateShadcnReactComponents(string $dir): void
+    {
+        // Button component
+        $buttonContent = <<<'TSX'
+import * as React from 'react';
+import { Slot } from '@radix-ui/react-slot';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
+
+const buttonVariants = cva(
+  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  {
+    variants: {
+      variant: {
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        ghost: 'hover:bg-accent hover:text-accent-foreground',
+        link: 'text-primary underline-offset-4 hover:underline',
+      },
+      size: {
+        default: 'h-10 px-4 py-2',
+        sm: 'h-9 rounded-md px-3',
+        lg: 'h-11 rounded-md px-8',
+        icon: 'h-10 w-10',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
+    },
+  }
+);
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
+}
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : 'button';
+    return (
+      <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />
+    );
+  }
+);
+Button.displayName = 'Button';
+
+export { Button, buttonVariants };
+TSX;
+        File::put($dir . '/button.tsx', $buttonContent);
+
+        // Input component
+        $inputContent = <<<'TSX'
+import * as React from 'react';
+import { cn } from '@/lib/utils';
+
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, ...props }, ref) => {
+    return (
+      <input
+        type={type}
+        className={cn(
+          'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+          className
+        )}
+        ref={ref}
+        {...props}
+      />
+    );
+  }
+);
+Input.displayName = 'Input';
+
+export { Input };
+TSX;
+        File::put($dir . '/input.tsx', $inputContent);
+
+        // Label component
+        $labelContent = <<<'TSX'
+import * as React from 'react';
+import * as LabelPrimitive from '@radix-ui/react-label';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
+
+const labelVariants = cva(
+  'text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
+);
+
+const Label = React.forwardRef<
+  React.ElementRef<typeof LabelPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> & VariantProps<typeof labelVariants>
+>(({ className, ...props }, ref) => (
+  <LabelPrimitive.Root ref={ref} className={cn(labelVariants(), className)} {...props} />
+));
+Label.displayName = LabelPrimitive.Root.displayName;
+
+export { Label };
+TSX;
+        File::put($dir . '/label.tsx', $labelContent);
+
+        // Checkbox component
+        $checkboxContent = <<<'TSX'
+import * as React from 'react';
+import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
+import { Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const Checkbox = React.forwardRef<
+  React.ElementRef<typeof CheckboxPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <CheckboxPrimitive.Root
+    ref={ref}
+    className={cn(
+      'peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground',
+      className
+    )}
+    {...props}
+  >
+    <CheckboxPrimitive.Indicator className={cn('flex items-center justify-center text-current')}>
+      <Check className="h-4 w-4" />
+    </CheckboxPrimitive.Indicator>
+  </CheckboxPrimitive.Root>
+));
+Checkbox.displayName = CheckboxPrimitive.Root.displayName;
+
+export { Checkbox };
+TSX;
+        File::put($dir . '/checkbox.tsx', $checkboxContent);
+
+        // Card component
+        $cardContent = <<<'TSX'
+import * as React from 'react';
+import { cn } from '@/lib/utils';
+
+const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn('rounded-lg border bg-card text-card-foreground shadow-sm', className)}
+      {...props}
+    />
+  )
+);
+Card.displayName = 'Card';
+
+const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn('flex flex-col space-y-1.5 p-6', className)} {...props} />
+  )
+);
+CardHeader.displayName = 'CardHeader';
+
+const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
+  ({ className, ...props }, ref) => (
+    <h3 ref={ref} className={cn('text-2xl font-semibold leading-none tracking-tight', className)} {...props} />
+  )
+);
+CardTitle.displayName = 'CardTitle';
+
+const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
+  ({ className, ...props }, ref) => (
+    <p ref={ref} className={cn('text-sm text-muted-foreground', className)} {...props} />
+  )
+);
+CardDescription.displayName = 'CardDescription';
+
+const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />
+  )
+);
+CardContent.displayName = 'CardContent';
+
+const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn('flex items-center p-6 pt-0', className)} {...props} />
+  )
+);
+CardFooter.displayName = 'CardFooter';
+
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
+TSX;
+        File::put($dir . '/card.tsx', $cardContent);
+
+        // Alert component
+        $alertContent = <<<'TSX'
+import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
+
+const alertVariants = cva(
+  'relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground',
+  {
+    variants: {
+      variant: {
+        default: 'bg-background text-foreground',
+        destructive: 'border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  }
+);
+
+const Alert = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
+>(({ className, variant, ...props }, ref) => (
+  <div ref={ref} role="alert" className={cn(alertVariants({ variant }), className)} {...props} />
+));
+Alert.displayName = 'Alert';
+
+const AlertTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
+  ({ className, ...props }, ref) => (
+    <h5 ref={ref} className={cn('mb-1 font-medium leading-none tracking-tight', className)} {...props} />
+  )
+);
+AlertTitle.displayName = 'AlertTitle';
+
+const AlertDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn('text-sm [&_p]:leading-relaxed', className)} {...props} />
+  )
+);
+AlertDescription.displayName = 'AlertDescription';
+
+export { Alert, AlertTitle, AlertDescription };
+TSX;
+        File::put($dir . '/alert.tsx', $alertContent);
+
+        // Badge component
+        $badgeContent = <<<'TSX'
+import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
+
+const badgeVariants = cva(
+  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+  {
+    variants: {
+      variant: {
+        default: 'border-transparent bg-primary text-primary-foreground hover:bg-primary/80',
+        secondary: 'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        destructive: 'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80',
+        outline: 'text-foreground',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  }
+);
+
+export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
+
+function Badge({ className, variant, ...props }: BadgeProps) {
+  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
+}
+
+export { Badge, badgeVariants };
+TSX;
+        File::put($dir . '/badge.tsx', $badgeContent);
+
+        // Avatar component
+        $avatarContent = <<<'TSX'
+import * as React from 'react';
+import * as AvatarPrimitive from '@radix-ui/react-avatar';
+import { cn } from '@/lib/utils';
+
+const Avatar = React.forwardRef<
+  React.ElementRef<typeof AvatarPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <AvatarPrimitive.Root
+    ref={ref}
+    className={cn('relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full', className)}
+    {...props}
+  />
+));
+Avatar.displayName = AvatarPrimitive.Root.displayName;
+
+const AvatarImage = React.forwardRef<
+  React.ElementRef<typeof AvatarPrimitive.Image>,
+  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
+>(({ className, ...props }, ref) => (
+  <AvatarPrimitive.Image ref={ref} className={cn('aspect-square h-full w-full', className)} {...props} />
+));
+AvatarImage.displayName = AvatarPrimitive.Image.displayName;
+
+const AvatarFallback = React.forwardRef<
+  React.ElementRef<typeof AvatarPrimitive.Fallback>,
+  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback>
+>(({ className, ...props }, ref) => (
+  <AvatarPrimitive.Fallback
+    ref={ref}
+    className={cn('flex h-full w-full items-center justify-center rounded-full bg-muted', className)}
+    {...props}
+  />
+));
+AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName;
+
+export { Avatar, AvatarImage, AvatarFallback };
+TSX;
+        File::put($dir . '/avatar.tsx', $avatarContent);
+    }
+
+    protected function generateShadcnVueComponents(string $dir): void
+    {
+        // Button component for Vue
+        $buttonContent = <<<'VUE'
+<script setup lang="ts">
+import { type HTMLAttributes, computed } from 'vue';
+import { Primitive, type PrimitiveProps } from 'radix-vue';
+import { type VariantProps, cva } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
+
+const buttonVariants = cva(
+  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  {
+    variants: {
+      variant: {
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        ghost: 'hover:bg-accent hover:text-accent-foreground',
+        link: 'text-primary underline-offset-4 hover:underline',
+      },
+      size: {
+        default: 'h-10 px-4 py-2',
+        sm: 'h-9 rounded-md px-3',
+        lg: 'h-11 rounded-md px-8',
+        icon: 'h-10 w-10',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
+    },
+  }
+);
+
+type ButtonVariants = VariantProps<typeof buttonVariants>;
+
+interface Props extends PrimitiveProps {
+  variant?: ButtonVariants['variant'];
+  size?: ButtonVariants['size'];
+  class?: HTMLAttributes['class'];
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  as: 'button',
+});
+
+const delegatedProps = computed(() => {
+  const { class: _, ...delegated } = props;
+  return delegated;
+});
+</script>
+
+<template>
+  <Primitive v-bind="delegatedProps" :class="cn(buttonVariants({ variant, size }), props.class)">
+    <slot />
+  </Primitive>
+</template>
+VUE;
+        File::put($dir . '/Button.vue', $buttonContent);
+
+        // Input component for Vue
+        $inputContent = <<<'VUE'
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue';
+import { useVModel } from '@vueuse/core';
+import { cn } from '@/lib/utils';
+
+const props = defineProps<{
+  defaultValue?: string | number;
+  modelValue?: string | number;
+  class?: HTMLAttributes['class'];
+}>();
+
+const emits = defineEmits<{
+  (e: 'update:modelValue', payload: string | number): void;
+}>();
+
+const modelValue = useVModel(props, 'modelValue', emits, {
+  passive: true,
+  defaultValue: props.defaultValue,
+});
+</script>
+
+<template>
+  <input
+    v-model="modelValue"
+    :class="cn('flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50', props.class)"
+  />
+</template>
+VUE;
+        File::put($dir . '/Input.vue', $inputContent);
+
+        // Label component for Vue
+        $labelContent = <<<'VUE'
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue';
+import { Label as LabelPrimitive } from 'radix-vue';
+import { cn } from '@/lib/utils';
+
+const props = defineProps<{
+  class?: HTMLAttributes['class'];
+  for?: string;
+}>();
+</script>
+
+<template>
+  <LabelPrimitive
+    :class="cn('text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70', props.class)"
+    :for="props.for"
+  >
+    <slot />
+  </LabelPrimitive>
+</template>
+VUE;
+        File::put($dir . '/Label.vue', $labelContent);
+
+        // Checkbox component for Vue
+        $checkboxContent = <<<'VUE'
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue';
+import { CheckboxIndicator, CheckboxRoot, type CheckboxRootEmits, type CheckboxRootProps } from 'radix-vue';
+import { Check } from 'lucide-vue-next';
+import { cn } from '@/lib/utils';
+
+const props = defineProps<CheckboxRootProps & { class?: HTMLAttributes['class'] }>();
+const emits = defineEmits<CheckboxRootEmits>();
+</script>
+
+<template>
+  <CheckboxRoot
+    v-bind="props"
+    :class="cn('peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground', props.class)"
+    @update:checked="emits('update:checked', $event)"
+  >
+    <CheckboxIndicator class="flex items-center justify-center text-current">
+      <Check class="h-4 w-4" />
+    </CheckboxIndicator>
+  </CheckboxRoot>
+</template>
+VUE;
+        File::put($dir . '/Checkbox.vue', $checkboxContent);
+
+        // Card component for Vue
+        $cardContent = <<<'VUE'
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue';
+import { cn } from '@/lib/utils';
+
+const props = defineProps<{ class?: HTMLAttributes['class'] }>();
+</script>
+
+<template>
+  <div :class="cn('rounded-lg border bg-card text-card-foreground shadow-sm', props.class)">
+    <slot />
+  </div>
+</template>
+VUE;
+        File::put($dir . '/Card.vue', $cardContent);
+
+        $cardHeaderContent = <<<'VUE'
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue';
+import { cn } from '@/lib/utils';
+
+const props = defineProps<{ class?: HTMLAttributes['class'] }>();
+</script>
+
+<template>
+  <div :class="cn('flex flex-col space-y-1.5 p-6', props.class)">
+    <slot />
+  </div>
+</template>
+VUE;
+        File::put($dir . '/CardHeader.vue', $cardHeaderContent);
+
+        $cardTitleContent = <<<'VUE'
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue';
+import { cn } from '@/lib/utils';
+
+const props = defineProps<{ class?: HTMLAttributes['class'] }>();
+</script>
+
+<template>
+  <h3 :class="cn('text-2xl font-semibold leading-none tracking-tight', props.class)">
+    <slot />
+  </h3>
+</template>
+VUE;
+        File::put($dir . '/CardTitle.vue', $cardTitleContent);
+
+        $cardDescriptionContent = <<<'VUE'
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue';
+import { cn } from '@/lib/utils';
+
+const props = defineProps<{ class?: HTMLAttributes['class'] }>();
+</script>
+
+<template>
+  <p :class="cn('text-sm text-muted-foreground', props.class)">
+    <slot />
+  </p>
+</template>
+VUE;
+        File::put($dir . '/CardDescription.vue', $cardDescriptionContent);
+
+        $cardContentContent = <<<'VUE'
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue';
+import { cn } from '@/lib/utils';
+
+const props = defineProps<{ class?: HTMLAttributes['class'] }>();
+</script>
+
+<template>
+  <div :class="cn('p-6 pt-0', props.class)">
+    <slot />
+  </div>
+</template>
+VUE;
+        File::put($dir . '/CardContent.vue', $cardContentContent);
+
+        // Alert component for Vue
+        $alertContent = <<<'VUE'
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue';
+import { type VariantProps, cva } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
+
+const alertVariants = cva(
+  'relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground',
+  {
+    variants: {
+      variant: {
+        default: 'bg-background text-foreground',
+        destructive: 'border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  }
+);
+
+type AlertVariants = VariantProps<typeof alertVariants>;
+
+const props = defineProps<{
+  variant?: AlertVariants['variant'];
+  class?: HTMLAttributes['class'];
+}>();
+</script>
+
+<template>
+  <div role="alert" :class="cn(alertVariants({ variant }), props.class)">
+    <slot />
+  </div>
+</template>
+VUE;
+        File::put($dir . '/Alert.vue', $alertContent);
+
+        $alertDescriptionContent = <<<'VUE'
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue';
+import { cn } from '@/lib/utils';
+
+const props = defineProps<{ class?: HTMLAttributes['class'] }>();
+</script>
+
+<template>
+  <div :class="cn('text-sm [&_p]:leading-relaxed', props.class)">
+    <slot />
+  </div>
+</template>
+VUE;
+        File::put($dir . '/AlertDescription.vue', $alertDescriptionContent);
+
+        // Badge component for Vue
+        $badgeContent = <<<'VUE'
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue';
+import { type VariantProps, cva } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
+
+const badgeVariants = cva(
+  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+  {
+    variants: {
+      variant: {
+        default: 'border-transparent bg-primary text-primary-foreground hover:bg-primary/80',
+        secondary: 'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        destructive: 'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80',
+        outline: 'text-foreground',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+    },
+  }
+);
+
+type BadgeVariants = VariantProps<typeof badgeVariants>;
+
+const props = defineProps<{
+  variant?: BadgeVariants['variant'];
+  class?: HTMLAttributes['class'];
+}>();
+</script>
+
+<template>
+  <div :class="cn(badgeVariants({ variant }), props.class)">
+    <slot />
+  </div>
+</template>
+VUE;
+        File::put($dir . '/Badge.vue', $badgeContent);
+
+        // Avatar component for Vue
+        $avatarContent = <<<'VUE'
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue';
+import { AvatarRoot } from 'radix-vue';
+import { cn } from '@/lib/utils';
+
+const props = defineProps<{ class?: HTMLAttributes['class'] }>();
+</script>
+
+<template>
+  <AvatarRoot :class="cn('relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full', props.class)">
+    <slot />
+  </AvatarRoot>
+</template>
+VUE;
+        File::put($dir . '/Avatar.vue', $avatarContent);
+
+        $avatarFallbackContent = <<<'VUE'
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue';
+import { AvatarFallback } from 'radix-vue';
+import { cn } from '@/lib/utils';
+
+const props = defineProps<{ class?: HTMLAttributes['class'] }>();
+</script>
+
+<template>
+  <AvatarFallback :class="cn('flex h-full w-full items-center justify-center rounded-full bg-muted', props.class)">
+    <slot />
+  </AvatarFallback>
+</template>
+VUE;
+        File::put($dir . '/AvatarFallback.vue', $avatarFallbackContent);
     }
 
     protected function saveConfiguration(string $auth, string $mode, bool $tenancy = false): void
@@ -611,9 +1356,34 @@ class SetupCommand extends Command
             'modelNamespace' => 'App\Domain\User\Models'
         ]);
 
-        // Create Routes in Auth domain
-        // Auth controller only handles Login and Logout
-        $routeContent = "<?php\n\nuse Illuminate\Support\Facades\Route;\nuse App\Domain\Auth\Controllers\AuthController;\n\nRoute::get('/login', [AuthController::class, 'index'])->name('login');\nRoute::post('/login', [AuthController::class, 'login']);\nRoute::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');\n";
+        // Create Routes in Auth domain with full auth flow
+        $routeContent = <<<'ROUTES'
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Domain\Auth\Controllers\AuthController;
+
+// Guest routes
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login']);
+
+    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [AuthController::class, 'register']);
+
+    Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+
+    Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.store');
+});
+
+// Authenticated routes
+Route::middleware('auth')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+});
+
+ROUTES;
         File::put(base_path('app/Domain/Auth/web.php'), $routeContent);
 
         // 7. Create Factory
@@ -666,36 +1436,92 @@ class SetupCommand extends Command
         // Frontend Pages Generation
         $landingFrontendPath = base_path('app/Domain/Landing/Frontend/Pages');
         File::ensureDirectoryExists($landingFrontendPath);
-        
+
         $dashboardFrontendPath = base_path('app/Domain/Dashboard/Frontend/Pages');
         File::ensureDirectoryExists($dashboardFrontendPath);
 
+        $authFrontendPath = base_path('app/Domain/Auth/Frontend/Pages');
+        File::ensureDirectoryExists($authFrontendPath);
+
         if ($mode === 'react') {
+            // Landing Page
             $this->generateFromStub('ReactLanding', $landingFrontendPath . '/Landing.tsx');
-            
-            // Auth Pages
-            $this->generateFromStub('ReactLogin', base_path('app/Domain/Auth/Frontend/Pages/Login.tsx'));
+
+            // Auth Pages (shadcn/ui)
+            $this->generateFromStub('ReactLogin', $authFrontendPath . '/Login.tsx');
+            $this->generateFromStub('ReactRegister', $authFrontendPath . '/Register.tsx');
+            $this->generateFromStub('ReactForgotPassword', $authFrontendPath . '/ForgotPassword.tsx');
+            $this->generateFromStub('ReactResetPassword', $authFrontendPath . '/ResetPassword.tsx');
+
+            // Dashboard Page
             $this->generateFromStub('ReactDashboard', $dashboardFrontendPath . '/Dashboard.tsx');
-            
+
         } elseif ($mode === 'vue') {
+            // Landing Page
             $this->generateFromStub('VueLanding', $landingFrontendPath . '/Landing.vue');
-            
-            $this->generateFromStub('VueLogin', base_path('app/Domain/Auth/Frontend/Pages/Login.vue'));
+
+            // Auth Pages (shadcn-vue)
+            $this->generateFromStub('VueLogin', $authFrontendPath . '/Login.vue');
+            $this->generateFromStub('VueRegister', $authFrontendPath . '/Register.vue');
+            $this->generateFromStub('VueForgotPassword', $authFrontendPath . '/ForgotPassword.vue');
+            $this->generateFromStub('VueResetPassword', $authFrontendPath . '/ResetPassword.vue');
+
+            // Dashboard Page
             $this->generateFromStub('VueDashboard', $dashboardFrontendPath . '/Dashboard.vue');
-            
+
+        } elseif ($mode === 'livewire') {
+            // Livewire with Flux UI
+            $authViewPath = base_path('app/Domain/Auth/Resources/views/livewire');
+            File::ensureDirectoryExists($authViewPath);
+
+            $authComponentPath = base_path('app/Domain/Auth/Livewire');
+            File::ensureDirectoryExists($authComponentPath);
+
+            // Landing Page
+            $landingViewPath = base_path('app/Domain/Landing/Resources/views/livewire');
+            File::ensureDirectoryExists($landingViewPath);
+            $landingComponentPath = base_path('app/Domain/Landing/Livewire');
+            File::ensureDirectoryExists($landingComponentPath);
+            $this->generateFromStub('LivewireLanding', $landingComponentPath . '/Landing.php');
+            $this->generateFromStub('LivewireLandingView', $landingViewPath . '/landing.blade.php');
+
+            // Auth Components & Views
+            $this->generateFromStub('LivewireLogin', $authComponentPath . '/Login.php');
+            $this->generateFromStub('LivewireLoginView', $authViewPath . '/login.blade.php');
+
+            $this->generateFromStub('LivewireRegister', $authComponentPath . '/Register.php');
+            $this->generateFromStub('LivewireRegisterView', $authViewPath . '/register.blade.php');
+
+            $this->generateFromStub('LivewireForgotPassword', $authComponentPath . '/ForgotPassword.php');
+            $this->generateFromStub('LivewireForgotPasswordView', $authViewPath . '/forgot-password.blade.php');
+
+            $this->generateFromStub('LivewireResetPassword', $authComponentPath . '/ResetPassword.php');
+            $this->generateFromStub('LivewireResetPasswordView', $authViewPath . '/reset-password.blade.php');
+
+            // Dashboard
+            $dashboardViewPath = base_path('app/Domain/Dashboard/Resources/views/livewire');
+            File::ensureDirectoryExists($dashboardViewPath);
+            $dashboardComponentPath = base_path('app/Domain/Dashboard/Livewire');
+            File::ensureDirectoryExists($dashboardComponentPath);
+            $this->generateFromStub('LivewireDashboard', $dashboardComponentPath . '/Dashboard.php');
+            $this->generateFromStub('LivewireDashboardView', $dashboardViewPath . '/dashboard.blade.php');
+
         } else {
-             // Blade
+            // Blade with Tailwind
             $landingViewPath = base_path('app/Domain/Landing/Resources/views/pages');
             File::ensureDirectoryExists($landingViewPath);
-            $this->generateFromStub('BladeLanding', $landingViewPath . '/Landing.blade.php');
+            $this->generateFromStub('BladeLanding', $landingViewPath . '/landing.blade.php');
 
             $authViewPath = base_path('app/Domain/Auth/Resources/views/pages');
             File::ensureDirectoryExists($authViewPath);
-            $this->generateFromStub('BladeLogin', $authViewPath . '/Login.blade.php');
-            
+            $this->generateFromStub('BladeLogin', $authViewPath . '/login.blade.php');
+            $this->generateFromStub('BladeRegister', $authViewPath . '/register.blade.php');
+            $this->generateFromStub('BladeForgotPassword', $authViewPath . '/forgot-password.blade.php');
+            $this->generateFromStub('BladeResetPassword', $authViewPath . '/reset-password.blade.php');
+
             $dashboardViewPath = base_path('app/Domain/Dashboard/Resources/views/pages');
             File::ensureDirectoryExists($dashboardViewPath);
-            $this->generateFromStub('BladeDashboard', $dashboardViewPath . '/Dashboard.blade.php');
+            $this->generateFromStub('BladeDashboard', $dashboardViewPath . '/dashboard.blade.php');
         }
     }
 

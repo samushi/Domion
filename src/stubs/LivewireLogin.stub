@@ -1,0 +1,40 @@
+<?php
+
+namespace {{namespace}};
+
+use Livewire\Component;
+use Livewire\Attributes\Layout;
+use Livewire\Attributes\Rule;
+use Livewire\Attributes\Title;
+use Illuminate\Support\Facades\Auth;
+
+#[Layout('layouts.guest')]
+#[Title('Login')]
+class Login extends Component
+{
+    #[Rule('required|email')]
+    public string $email = '';
+
+    #[Rule('required|min:6')]
+    public string $password = '';
+
+    public bool $remember = false;
+
+    public function login(): void
+    {
+        $this->validate();
+
+        if (Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+            session()->regenerate();
+            $this->redirect(route('dashboard'), navigate: true);
+            return;
+        }
+
+        $this->addError('email', 'The provided credentials do not match our records.');
+    }
+
+    public function render()
+    {
+        return view('{{domain}}::livewire.login');
+    }
+}

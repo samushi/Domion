@@ -1,0 +1,147 @@
+<div class="min-h-screen bg-white dark:bg-zinc-900">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 bg-white/95 dark:bg-zinc-900/95 backdrop-blur border-b border-zinc-200 dark:border-zinc-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <div class="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                        <flux:icon.squares-plus class="size-4 text-white" />
+                    </div>
+                    <span class="font-bold text-xl">Domion</span>
+                </div>
+
+                <nav class="flex items-center gap-4">
+                    <flux:button href="{{ route('login') }}" variant="ghost" wire:navigate>
+                        Sign in
+                    </flux:button>
+                    <flux:button href="{{ route('register') }}" variant="primary" wire:navigate>
+                        Get Started
+                    </flux:button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="py-24 md:py-32">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col items-center text-center gap-8">
+                <flux:badge variant="pill" color="zinc">
+                    <flux:icon.sparkles class="size-3.5 mr-1" />
+                    Built for Laravel 11+
+                </flux:badge>
+
+                <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter max-w-4xl">
+                    Domain-Driven Design for
+                    <span class="text-primary">Modern Laravel</span>
+                </h1>
+
+                <flux:text size="xl" class="text-zinc-500 max-w-2xl">
+                    The enterprise framework that transforms your Laravel application into a clean,
+                    scalable architecture. Build faster, maintain easier, ship confidently.
+                </flux:text>
+
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <flux:button href="{{ route('register') }}" variant="primary" size="lg" wire:navigate>
+                        Start Building
+                        <flux:icon.arrow-right class="size-4 ml-2" />
+                    </flux:button>
+                    <flux:button href="https://github.com/samushi/domion" variant="outline" size="lg" target="_blank">
+                        View on GitHub
+                    </flux:button>
+                </div>
+
+                <!-- Code Preview -->
+                <div class="mt-12 w-full max-w-3xl">
+                    <flux:card class="bg-zinc-950 border-zinc-800">
+                        <flux:card.body class="p-6">
+                            <pre class="text-sm text-zinc-300 overflow-x-auto"><code># Install Domion in your Laravel project
+composer require samushi/domion
+
+# Run the setup wizard
+php artisan domion:setup
+
+# Create your first domain
+php artisan domion:domain Product</code></pre>
+                        </flux:card.body>
+                    </flux:card>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-24 border-t border-zinc-200 dark:border-zinc-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <flux:heading size="3xl" class="mb-4">
+                    Everything you need to build at scale
+                </flux:heading>
+                <flux:text size="lg" class="text-zinc-500 max-w-2xl mx-auto">
+                    Domion provides the architectural foundation that growing teams need,
+                    without the complexity of traditional DDD frameworks.
+                </flux:text>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @php
+                    $features = [
+                        ['icon' => 'squares-plus', 'title' => 'Domain Isolation', 'description' => 'Keep your business logic perfectly organized with zero-config domain isolation that scales with your team.'],
+                        ['icon' => 'bolt', 'title' => 'Action Factories', 'description' => 'Reusable, single-responsibility actions that replace bloated controllers and keep your codebase clean.'],
+                        ['icon' => 'shield-check', 'title' => 'Type-Safe DTOs', 'description' => 'Data transfer objects with full TypeScript support, ensuring type safety across your entire stack.'],
+                        ['icon' => 'circle-stack', 'title' => 'Repository Pattern', 'description' => 'Eloquent repositories with built-in caching, query filters, and soft delete support out of the box.'],
+                        ['icon' => 'code-bracket', 'title' => 'Full-Stack Harmony', 'description' => 'Livewire integration that makes PHP feel like a reactive frontend framework.'],
+                        ['icon' => 'sparkles', 'title' => 'Modern UI Ready', 'description' => 'Pre-configured with Flux UI components for beautiful, accessible interfaces from day one.'],
+                    ];
+                @endphp
+
+                @foreach ($features as $feature)
+                    <flux:card class="group hover:shadow-lg transition-shadow">
+                        <flux:card.header>
+                            <div class="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                                <flux:icon :name="$feature['icon']" class="size-6 text-primary" />
+                            </div>
+                            <flux:heading>{{ $feature['title'] }}</flux:heading>
+                            <flux:subheading>{{ $feature['description'] }}</flux:subheading>
+                        </flux:card.header>
+                    </flux:card>
+                @endforeach
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-24 border-t border-zinc-200 dark:border-zinc-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <flux:card class="bg-primary text-white">
+                <flux:card.body class="flex flex-col md:flex-row items-center justify-between gap-8 p-8 md:p-12">
+                    <div>
+                        <flux:heading size="2xl" class="text-white mb-2">Ready to transform your architecture?</flux:heading>
+                        <flux:text class="text-white/80">
+                            Join thousands of developers building better Laravel applications with Domion.
+                        </flux:text>
+                    </div>
+                    <flux:button href="{{ route('register') }}" variant="filled" class="bg-white text-primary hover:bg-zinc-100 whitespace-nowrap" wire:navigate>
+                        Get Started Free
+                        <flux:icon.arrow-right class="size-4 ml-2" />
+                    </flux:button>
+                </flux:card.body>
+            </flux:card>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-zinc-200 dark:border-zinc-700 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <div class="h-6 w-6 rounded bg-primary flex items-center justify-center">
+                    <flux:icon.squares-plus class="size-3 text-white" />
+                </div>
+                <span class="font-semibold">Domion</span>
+            </div>
+            <flux:text size="sm" class="text-zinc-500">
+                Built with Laravel & Livewire. Open source under MIT License.
+            </flux:text>
+        </div>
+    </footer>
+</div>
