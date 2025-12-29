@@ -17,19 +17,21 @@ class DashboardServiceProvider extends AbstractServiceProvider
     }
 
     /**
-     * Route prefix - dashboard routes are at /dashboard
+     * Route prefix - false means routes at root (/)
+     * Routes define their own paths (e.g., /dashboard)
      */
     public function routePrefix(): string|false|null
     {
-        return null; // Uses default (dashboard)
+        return false;
     }
 
     /**
-     * Route name prefix
+     * Route name prefix - false means no prefix
+     * This allows route('dashboard') instead of route('dashboard.dashboard')
      */
     public function routeNamePrefix(): string|false|null
     {
-        return null; // Uses default (dashboard.)
+        return false;
     }
 
     /**
