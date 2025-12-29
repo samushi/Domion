@@ -30,15 +30,6 @@ use Throwable;
 abstract class ActionFactory
 {
     /**
-     * Handle the action logic.
-     * Override in subclasses with specific parameter types.
-     *
-     * @param mixed ...$args
-     * @return mixed
-     */
-    abstract protected function handle(mixed ...$args): mixed;
-
-    /**
      * Make a new instance via Laravel's container.
      * This allows for dependency injection in constructors.
      *

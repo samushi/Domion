@@ -1,6 +1,6 @@
 {
     "name": "samushi/domion",
-    "version": "1.0.9",
+    "version": "1.1.0",
     "description": "Domion - Professional Architecture for Laravel with Automated Frontend & Auth Integration",
     "keywords": [
         "laravel",
