@@ -1423,7 +1423,7 @@ ROUTES;
             'view' => 'Dashboard'
         ]);
 
-        $dashboardRoute = "<?php\n\nuse Illuminate\Support\Facades\Route;\nuse App\Domain\Dashboard\Controllers\DashboardController;\n\nRoute::get('/', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');\n";
+        $dashboardRoute = "<?php\n\nuse Illuminate\Support\Facades\Route;\nuse App\Domain\Dashboard\Controllers\DashboardController;\n\nRoute::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');\n";
         File::put(base_path('app/Domain/Dashboard/web.php'), $dashboardRoute);
 
         // Remove default web.php content
