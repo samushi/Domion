@@ -1490,6 +1490,9 @@ VUE;
         $this->createDomainStructure('User', $mode);
         $this->createDomainStructure('Auth', $mode);
 
+        // Update auth.php to use Domain User model
+        $this->updateAuthConfig();
+
         // Ensure Support has view directory
         File::ensureDirectoryExists(base_path('app/Support/Resources/views'));
 
@@ -1794,6 +1797,33 @@ ROUTES;
                 File::makeDirectory($folder, 0755, true);
             }
         }
+    }
+
+    protected function updateAuthConfig(): void
+    {
+        $authConfigPath = config_path('auth.php');
+        if (!File::exists($authConfigPath)) {
+            return;
+        }
+
+        $content = File::get($authConfigPath);
+
+        // Update User model path from App\Models\User to App\Domain\User\Models\User
+        $content = str_replace(
+            "App\\Models\\User::class",
+            "App\\Domain\\User\\Models\\User::class",
+            $content
+        );
+
+        // Also handle the escaped version
+        $content = str_replace(
+            "'model' => App\\Models\\User::class",
+            "'model' => App\\Domain\\User\\Models\\User::class",
+            $content
+        );
+
+        File::put($authConfigPath, $content);
+        $this->components->twoColumnDetail('Auth Config (User Model)', '<fg=green;options=bold>UPDATED</>');
     }
 
     protected function relocateUserMigrations(): void
