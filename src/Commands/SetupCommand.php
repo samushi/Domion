@@ -1612,6 +1612,9 @@ ROUTES;
             'class' => 'UserFactory'
         ]);
 
+        // Update DatabaseSeeder to use Domain seeders
+        $this->updateDatabaseSeeder();
+
         // 10. Create Landing Domain & Pages
         $this->createDomainStructure('Landing', $mode);
         $this->generateFromStub('LandingController', base_path('app/Domain/Landing/Controllers/LandingController.php'), [
@@ -1824,6 +1827,42 @@ ROUTES;
 
         File::put($authConfigPath, $content);
         $this->components->twoColumnDetail('Auth Config (User Model)', '<fg=green;options=bold>UPDATED</>');
+    }
+
+    protected function updateDatabaseSeeder(): void
+    {
+        $seederPath = base_path('database/seeders/DatabaseSeeder.php');
+        if (!File::exists($seederPath)) {
+            return;
+        }
+
+        $content = <<<'PHP'
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use App\Domain\User\Database\Seeders\RolesAndPermissionsSeeder;
+use App\Domain\User\Database\Seeders\UserSeeder;
+
+class DatabaseSeeder extends Seeder
+{
+    /**
+     * Seed the application's database.
+     */
+    public function run(): void
+    {
+        // Run Domain seeders
+        $this->call([
+            RolesAndPermissionsSeeder::class,
+            UserSeeder::class,
+        ]);
+    }
+}
+PHP;
+
+        File::put($seederPath, $content);
+        $this->components->twoColumnDetail('Database Seeder', '<fg=green;options=bold>UPDATED</>');
     }
 
     protected function relocateUserMigrations(): void

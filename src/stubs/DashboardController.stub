@@ -2,6 +2,7 @@
 
 namespace {{namespace}};
 
+use Illuminate\Support\Facades\Auth;
 use Samushi\Domion\Support\{{baseController}};
 
 class DashboardController extends {{baseController}}
@@ -11,6 +12,10 @@ class DashboardController extends {{baseController}}
      */
     public function index()
     {
-        return $this->render('dashboard::Dashboard');
+        return $this->render('dashboard::Dashboard', [
+            'auth' => [
+                'user' => Auth::user(),
+            ],
+        ]);
     }
 }
