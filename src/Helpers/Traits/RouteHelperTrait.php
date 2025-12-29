@@ -143,13 +143,15 @@ trait RouteHelperTrait
         // Check if provider exists and get config
         if (class_exists($namespace)) {
             try {
-                $provider = app()->make($namespace);
+                // Use new instead of app()->make() to avoid circular dependency issues
+                $provider = new $namespace(app());
                 if ($provider instanceof AbstractServiceProvider) {
                     self::$domainProviders[$cacheKey] = $provider->getRouteConfig();
                     return self::$domainProviders[$cacheKey];
                 }
-            } catch (\Throwable) {
-                // Provider couldn't be instantiated, use defaults
+            } catch (\Throwable $e) {
+                // Log error for debugging if needed
+                // logger()->warning("Failed to instantiate {$namespace}: " . $e->getMessage());
             }
         }
 

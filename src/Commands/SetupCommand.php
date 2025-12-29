@@ -1456,22 +1456,10 @@ VUE;
             $content = str_replace('App\Providers\\', 'App\App\Providers\\', $content);
             
             // Register DomionServiceProvider if not present
+            // Note: Domain service providers are auto-registered by DomionServiceProvider::registerDomainProviders()
             if (!str_contains($content, 'DomionServiceProvider::class')) {
                 $providerEntry = "    Samushi\Domion\Providers\DomionServiceProvider::class,\n];";
                 $content = str_replace('];', $providerEntry, $content);
-            }
-
-            // Register Domain Service Providers
-            $domainProviders = [
-                'App\Domain\Landing\Providers\LandingServiceProvider::class',
-                'App\Domain\Auth\Providers\AuthServiceProvider::class',
-                'App\Domain\Dashboard\Providers\DashboardServiceProvider::class',
-            ];
-
-            foreach ($domainProviders as $provider) {
-                if (!str_contains($content, $provider)) {
-                    $content = str_replace('];', "    {$provider},\n];", $content);
-                }
             }
 
             File::put($bootstrapProviders, $content);
