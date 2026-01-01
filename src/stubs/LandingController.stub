@@ -6,13 +6,12 @@ namespace {{namespace}};
 
 use Samushi\Domion\Support\{{base_controller}};
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class LandingController extends {{base_controller}}
 {
     public function index()
     {
-        // Domion automatically finds 'Landing::Landing' in
-        // app/Domain/Landing/Frontend/Pages/Landing.{tsx,vue,blade.php}
         return $this->render('Landing::Landing', [
             'laravelVersion' => app()->version(),
             'phpVersion' => PHP_VERSION,

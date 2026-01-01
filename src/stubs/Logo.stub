@@ -1,0 +1,5 @@
+<svg {{attributes}} viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="50" height="50" rx="12" fill="currentColor"/>
+    <path d="M25 10L38 32H12L25 10Z" fill="white"/>
+    <circle cx="25" cy="38" r="4" fill="white"/>
+</svg>

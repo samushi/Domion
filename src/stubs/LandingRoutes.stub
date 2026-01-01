@@ -3,5 +3,4 @@
 use Illuminate\Support\Facades\Route;
 use App\Domain\Landing\Controllers\LandingController;
 
-// Route is registered at root '/' because Prefix is null in ServiceProvider
 Route::get('/', [LandingController::class, 'index'])->name('home');

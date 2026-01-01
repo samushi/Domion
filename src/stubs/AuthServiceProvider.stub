@@ -10,8 +10,6 @@ class AuthServiceProvider extends AbstractServiceProvider
 {
     public function getDomainName(): string
     {
-        return 'Auth';
+        return '{{domain}}';
     }
-
-    // Uses default prefix: /auth
 }

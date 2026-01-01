@@ -10,7 +10,7 @@ class LandingServiceProvider extends AbstractServiceProvider
 {
     public function getDomainName(): string
     {
-        return 'Landing';
+        return '{{domain}}';
     }
 
     /**
