@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace {{namespace}};
 
-use Illuminate\Foundation\Http\FormRequest;
+use Samushi\Domion\Support\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
 class RegisterRequest extends FormRequest

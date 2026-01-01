@@ -17,54 +17,125 @@ class ConfigureArchitecture
         $this->updateComposer();
         $this->cleanup($mode);
         $this->setupBootstrap();
+        $this->setupProviders();
+        $this->setupRootView($mode);
         $this->cleanDefaultRoutes();
         $this->setupInertiaResolver($mode);
     }
 
-    protected function setupInertiaResolver(string $mode): void
+    protected function setupRootView(string $mode): void
     {
-        if ($mode === 'api' || $mode === 'blade' || $mode === 'livewire') {
+        if ($mode === 'api') {
             return;
         }
 
-        $ext = $mode === 'react' ? 'tsx' : 'vue';
-        $possiblePaths = [
-            base_path('resources/js/app.js'),
-            base_path('resources/js/app.tsx'),
-            base_path('resources/js/app.jsx'),
-            base_path('resources/js/app.vue'),
-        ];
+        $target = base_path('app/Support/Frontend/Views/app.blade.php');
+        if (File::exists($target)) {
+            return;
+        }
 
-        foreach ($possiblePaths as $path) {
-            if (File::exists($path)) {
-                $content = File::get($path);
+        File::ensureDirectoryExists(dirname($target));
 
-                // If already configured, skip
-                if (str_contains($content, 'domain')) {
-                    continue;
+        $stubName = match($mode) {
+            'react' => 'ReactApp',
+            'vue' => 'VueApp',
+            default => 'AppView',
+        };
+
+        $stubPath = __DIR__ . "/../stubs/{$stubName}.stub";
+        if (File::exists($stubPath)) {
+            $content = File::get($stubPath);
+            
+            // Set dynamic extension for Vite
+            $ext = match($mode) {
+                'react' => 'tsx',
+                'vue' => 'vue',
+                default => 'js'
+            };
+            
+            $content = str_replace('{{ext}}', $ext, $content);
+            $content = str_replace('{{viteReactRefresh}}', $mode === 'react' ? '@viteReactRefresh' : '', $content);
+            
+            File::put($target, $content);
+        }
+    }
+
+    protected function setupProviders(): void
+    {
+        // 1. Laravel 11+ bootstrap/providers.php
+        $providersPath = base_path('bootstrap/providers.php');
+        if (File::exists($providersPath)) {
+            $content = File::get($providersPath);
+            $content = str_replace('App\Providers', 'App\App\Providers', $content);
+            File::put($providersPath, $content);
+        }
+
+        // 2. config/app.php (for older versions or if still used)
+        $configPath = base_path('config/app.php');
+        if (File::exists($configPath)) {
+            $content = File::get($configPath);
+            $content = str_replace('App\Providers', 'App\App\Providers', $content);
+            File::put($configPath, $content);
+        }
+    }
+
+    protected function setupInertiaResolver(string $mode): void
+    {
+        if ($mode === 'api' || $mode === 'blade') {
+            return;
+        }
+
+        $ext = match($mode) {
+            'react' => 'tsx',
+            'vue' => 'vue',
+            'livewire' => 'js',
+            default => 'js'
+        };
+
+        $target = base_path("app/Support/Frontend/app.{$ext}");
+        
+        // Match stub names to modes
+        $stubName = match($mode) {
+            'react' => 'ReactApp',
+            'vue' => 'VueApp',
+            default => null
+        };
+
+        if ($stubName) {
+            $stubPath = __DIR__ . "/../stubs/{$stubName}.stub";
+            if (File::exists($stubPath)) {
+                $content = File::get($stubPath);
+                
+                // If we moved bootstrap.js, we should update the import or copy it
+                // For now, let's keep it simple and assume bootstrap.js is in resources/js
+                // or we can copy it to Support/Frontend
+                if (File::exists(base_path('resources/js/bootstrap.js'))) {
+                    File::ensureDirectoryExists(base_path('app/Support/Frontend'));
+                    File::copy(base_path('resources/js/bootstrap.js'), base_path('app/Support/Frontend/bootstrap.js'));
                 }
 
-                $dddResolver = "resolve: (name) => {\n" .
-                    "        if (name.includes('/')) {\n" .
-                    "            const parts = name.split('/');\n" .
-                    "            const domain = parts[0];\n" .
-                    "            const page = parts.slice(1).join('/');\n" .
-                    "            return resolvePageComponent(`../../app/Domain/\${domain}/Frontend/Pages/\${page}.{$ext}`, import.meta.glob('../../app/Domain/*/Frontend/Pages/**/*.{$ext}'));\n" .
-                    "        }\n" .
-                    "        return resolvePageComponent(`./Pages/\${name}.{$ext}`, import.meta.glob('./Pages/**/*.{$ext}'));\n" .
-                    "    },";
-
-                $content = preg_replace('/resolve:\s*\(name\)\s*=>\s*resolvePageComponent\([^)]+\),?/', $dddResolver, $content);
-
-                File::put($path, $content);
-                break;
+                File::put($target, $content);
             }
+        }
+        
+        // Clean up the old resources/js if it exists to avoid confusion
+        // But maybe the user wants to keep it? The user said "pjese e Support... jo ne resource"
+        // So we can safely delete or at least warn.
+        if (File::isDirectory(base_path('resources/js'))) {
+            // File::deleteDirectory(base_path('resources/js')); 
+            // Better to keep it for now but the entry point is moved in vite.config.js
         }
     }
 
     protected function createFolders(bool $tenancy): void
     {
-        $dirs = ['app/App/Providers', 'app/Domain', 'app/Support/Frontend/Views'];
+        $dirs = [
+            'app/App/Providers', 
+            'app/Domain', 
+            'app/Support/Frontend/Views',
+            'app/Support/Frontend/Components',
+        ];
+        
         if ($tenancy) array_push($dirs, 'app/Domain/Central', 'app/Domain/Tenant');
 
         foreach ($dirs as $dir) File::ensureDirectoryExists(base_path($dir));
@@ -88,36 +159,45 @@ class ConfigureArchitecture
 
     protected function cleanup(string $mode): void
     {
+        // 1. Move Providers
         if (File::isDirectory(base_path('app/Providers'))) {
             foreach (File::files(base_path('app/Providers')) as $file) {
                 $content = File::get($file);
+                
+                // Update Namespace
                 $content = str_replace('namespace App\Providers;', 'namespace App\App\Providers;', $content);
                 
-                // If it's AppServiceProvider, inject DomainLoader and Volt if needed
+                // Robust injection for AppServiceProvider
                 if ($file->getFilename() === 'AppServiceProvider.php') {
+                    // 1. Inject registerDomainProviders in register()
                     if (!str_contains($content, 'DomainLoader::registerDomainProviders')) {
-                        $content = str_replace(
-                            'public function register(): void',
-                            "public function register(): void\n    {\n        \\Samushi\\Domion\\Support\\DomainLoader::registerDomainProviders(\$this->app);",
-                            $content
-                        );
-                        $content = preg_replace('/register\(\): void\n    \{\s*\}/', "register(): void\n    {", $content);
+                        $registration = "\n        \\Samushi\\Domion\\Support\\DomainLoader::registerDomainProviders(\$this->app);";
+                        // Find register function and its opening brace. Inject right after it.
+                        $content = preg_replace('/(public function register\(\): void\s*\{)/', "$1" . $registration, $content);
                     }
 
+                    // 2. Inject Volt::mount in boot() if needed
                     if ($mode === 'livewire' && !str_contains($content, 'Volt::mount')) {
-                        $content = str_replace(
-                            'public function boot(): void',
-                            "public function boot(): void\n    {\n        \\Livewire\\Volt\\Volt::mount([realpath(__DIR__.'/../../../app/Domain')]);",
-                            $content
-                        );
-                        $content = preg_replace('/boot\(\): void\n    \{\s*\}/', "boot(): void\n    {", $content);
+                        $bootInjection = "\n        \\Livewire\\Volt\\Volt::mount([realpath(__DIR__.'/../../../app/Domain')]);";
+                        $content = preg_replace('/(public function boot\(\): void\s*\{)/', "$1" . $bootInjection, $content);
                     }
+                    
+                    // 3. Clean up the standard Laravel comments/empty space if they follow our injection badly
+                    // This handles cases where we might have double braces or trailing redundant code
+                    $content = preg_replace('/\{\s*\{\s*\/\/\s*\}\s*\}/', "{\n        //\n    }", $content);
+                    $content = str_replace("{\n    {", "{", $content);
+                    $content = str_replace("}\n}", "}", $content);
                 }
 
                 File::put(base_path('app/App/Providers/' . $file->getFilename()), $content);
             }
             File::deleteDirectory(base_path('app/Providers'));
         }
+
+        // 2. Delete app/Http (not used in this DDD structure)
+        File::deleteDirectory(base_path('app/Http'));
+
+        // 3. Delete app/Models
         File::deleteDirectory(base_path('app/Models'));
     }
 

@@ -6,7 +6,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 const appName = window.document.getElementsByTagName('title')[0]?.innerText || 'Laravel';
 
 // Domion DDD Resolver
-const domainPages = import.meta.glob('../../app/Domain/*/Frontend/Pages/**/*.{js,jsx,ts,tsx,vue}');
+const domainPages = import.meta.glob('../../Domain/*/Frontend/Pages/**/*.{js,jsx,ts,tsx,vue}');
 
 const resolveDomainPage = async (name, domainPages, defaultResolver) => {
     if (name.includes('::')) {

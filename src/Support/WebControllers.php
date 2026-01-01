@@ -26,6 +26,11 @@ abstract class WebControllers extends BaseController
      */
     protected function render(string $view, array $data = []): View
     {
+        if (str_contains($view, '::')) {
+            [$domain, $path] = explode('::', $view, 2);
+            $view = strtolower($domain) . '::' . $path;
+        }
+        
         return view($view, $data);
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Samushi\Domion\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\File;
 use Samushi\Domion\Tasks\ConfigureArchitecture;
 use Samushi\Domion\Tasks\InstallAuth;
 use Samushi\Domion\Tasks\InstallFrontend;
@@ -26,39 +27,59 @@ class SetupCommand extends Command
         $config = $this->gatherConfiguration();
 
         // 2. Execute Tasks
+        
+        // Task 1: Architecture
         \Laravel\Prompts\spin(
-            function () use ($config) {
-                // Task: Structure & Cleanup
-                (new ConfigureArchitecture($this))->run($config['tenancy'], $config['mode']);
-
-                // Task: Frontend Setup
-                if (in_array($config['mode'], ['react', 'vue', 'livewire'])) {
-                    (new InstallFrontend($this))->run($config['mode']);
-                }
-
-                // Task: Starter Kit (Generates Auth/Landing Providers with correct prefixes)
-                if ($config['starterKit']) {
-                    (new InstallAuth($this))->run($config['auth']);
-                    (new ScaffoldStarterKit($this))->run($config['mode']);
-                }
-
-                $this->saveConfiguration($config);
-            },
-            'Configuring Architecture...'
+            fn() => (new ConfigureArchitecture($this))->run($config['tenancy'], $config['mode']),
+            'Configuring Architecture folders and namespaces...'
         );
 
-        \Laravel\Prompts\outro('✅ Setup completed!');
+        // Task 2: Refresh Autoloader & Discovery
+        \Laravel\Prompts\spin(
+            function() {
+                // Pre-emptively clear cache if possible to avoid discovery errors
+                File::delete(base_path('bootstrap/cache/services.php'));
+                File::delete(base_path('bootstrap/cache/packages.php'));
+                File::delete(base_path('bootstrap/cache/config.php'));
+
+                exec('composer dump-autoload 2>&1', $output, $returnVar);
+            },
+            'Refreshing autoloader and package discovery...'
+        );
+
+        // Task 3: Frontend Setup
+        if (in_array($config['mode'], ['react', 'vue', 'livewire'])) {
+            \Laravel\Prompts\spin(
+                fn() => (new InstallFrontend($this))->run($config['mode']),
+                'Installing frontend dependencies and configuring Vite...'
+            );
+        }
+
+        // Task 4: Starter Kit
+        if ($config['starterKit']) {
+            \Laravel\Prompts\spin(
+                function() use ($config) {
+                    (new InstallAuth($this))->run($config['auth']);
+                    (new ScaffoldStarterKit($this))->run($config['mode']);
+                },
+                'Scaffolding Auth and Dashboard domains...'
+            );
+        }
+
+        // Task 5: Permissions & Cleanup
+        \Laravel\Prompts\spin(
+            fn() => $this->saveConfiguration($config),
+            'Finalizing configuration...'
+        );
+
+        \Laravel\Prompts\outro('✅ Setup completed successfully!');
         
-        $this->info("\n🚀 Next steps:");
-        $this->line("1. <fg=green>composer dump-autoload</>");
-        $this->line("2. <fg=green>npm install && npm run dev</>");
+        $this->info("\n🚀 Your DDD project is ready!");
+        $this->line("• Domains created: <fg=green>Auth, Dashboard, Landing (Root)</>");
+        $this->line("• Frontend: <fg=green>{$config['mode']}</>");
         
         if (in_array($config['mode'], ['react', 'vue'])) {
-            $this->line("3. <fg=green>npx shadcn-ui@latest init</> (to initialize shadcn-ui)");
-        }
-        
-        if ($config['mode'] === 'livewire') {
-            $this->line("3. <fg=green>composer require livewire/flux</> (for the UI components)");
+            $this->warn("\n⚠️  Action required: Run 'npx shadcn-ui@latest init' to complete the UI setup.");
         }
 
         return self::SUCCESS;

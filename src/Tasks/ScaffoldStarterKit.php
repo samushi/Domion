@@ -28,25 +28,53 @@ class ScaffoldStarterKit
         $this->command->info('Scaffolding Auth Domain...');
         $base = base_path('app/Domain/Auth');
 
-        $this->ensureDirectories($base);
+        $this->ensureDirectories($base, $mode);
+
+        $replacements = [
+            'actionsNamespace' => 'App\Domain\Auth\Actions',
+            'dtoNamespace' => 'App\Domain\Auth\Dto',
+            'requestsNamespace' => 'App\Domain\Auth\Requests',
+            'repositoryNamespace' => 'App\Domain\Auth\Repository',
+            'modelNamespace' => 'App\Domain\User\Models',
+            'domain' => 'Auth',
+        ];
 
         // 1. Service Provider
-        $this->generateFile('AuthServiceProvider', $base . '/Providers/AuthServiceProvider.php', [
+        $this->generateFile('AuthServiceProvider', $base . '/Providers/AuthServiceProvider.php', array_merge($replacements, [
             'namespace' => 'App\Domain\Auth\Providers',
-            'domain' => 'Auth'
-        ]);
+        ]));
 
         // 2. Controller
         $controllerStub = $mode === 'api' ? 'ApiAuthController' : 'AuthController';
-        $this->generateFile($controllerStub, $base . '/Controllers/AuthController.php', [
+        $this->generateFile($controllerStub, $base . '/Controllers/AuthController.php', array_merge($replacements, [
             'namespace' => 'App\Domain\Auth\Controllers',
             'base_controller' => $this->getBaseController($mode)
-        ]);
+        ]));
 
         // 3. Routes
         $this->generateFile('AuthRoutes', $base . '/web.php');
 
-        // 4. Frontend
+        // Actions
+        $this->generateFile('LoginAction', $base . '/Actions/LoginAction.php', array_merge($replacements, ['namespace' => $replacements['actionsNamespace']]));
+        $this->generateFile('LogoutAction', $base . '/Actions/LogoutAction.php', array_merge($replacements, ['namespace' => $replacements['actionsNamespace']]));
+        $this->generateFile('RegisterAction', $base . '/Actions/RegisterAction.php', array_merge($replacements, ['namespace' => $replacements['actionsNamespace']]));
+        $this->generateFile('ForgotPasswordAction', $base . '/Actions/ForgotPasswordAction.php', array_merge($replacements, ['namespace' => $replacements['actionsNamespace']]));
+        $this->generateFile('ResetPasswordAction', $base . '/Actions/ResetPasswordAction.php', array_merge($replacements, ['namespace' => $replacements['actionsNamespace']]));
+        
+        // DTOs
+        $this->generateFile('LoginDto', $base . '/Dto/LoginDto.php', array_merge($replacements, ['namespace' => $replacements['dtoNamespace']]));
+        $this->generateFile('RegisterDto', $base . '/Dto/RegisterDto.php', array_merge($replacements, ['namespace' => $replacements['dtoNamespace']]));
+        
+        // Requests
+        $this->generateFile('LoginRequest', $base . '/Requests/LoginRequest.php', array_merge($replacements, ['namespace' => $replacements['requestsNamespace'], 'class' => 'LoginRequest']));
+        $this->generateFile('RegisterRequest', $base . '/Requests/RegisterRequest.php', array_merge($replacements, ['namespace' => $replacements['requestsNamespace']]));
+        $this->generateFile('ForgotPasswordRequest', $base . '/Requests/ForgotPasswordRequest.php', array_merge($replacements, ['namespace' => $replacements['requestsNamespace']]));
+        $this->generateFile('ResetPasswordRequest', $base . '/Requests/ResetPasswordRequest.php', array_merge($replacements, ['namespace' => $replacements['requestsNamespace']]));
+        
+        // Repository
+        $this->generateFile('UserRepository', $base . '/Repository/UserRepository.php', array_merge($replacements, ['namespace' => $replacements['repositoryNamespace']]));
+
+        // 5. Frontend
         if ($mode !== 'api') {
             $this->scaffoldAuthFrontend($mode, $base);
         }
@@ -57,7 +85,7 @@ class ScaffoldStarterKit
         $this->command->info('Scaffolding Dashboard Domain...');
         $base = base_path('app/Domain/Dashboard');
 
-        $this->ensureDirectories($base);
+        $this->ensureDirectories($base, $mode);
 
         // 1. Service Provider
         $this->generateFile('DashboardServiceProvider', $base . '/Providers/DashboardServiceProvider.php', [
@@ -84,7 +112,7 @@ class ScaffoldStarterKit
         $this->command->info('Scaffolding Landing Domain (Root)...');
         $base = base_path('app/Domain/Landing');
 
-        $this->ensureDirectories($base);
+        $this->ensureDirectories($base, $mode);
 
         // 1. Service Provider
         $this->generateFile('LandingServiceProvider', $base . '/Providers/LandingServiceProvider.php', [
@@ -110,7 +138,6 @@ class ScaffoldStarterKit
     protected function scaffoldAuthFrontend(string $mode, string $basePath): void
     {
         $pages = ['Login', 'Register', 'ForgotPassword', 'ResetPassword'];
-        $ext = $this->getExtension($mode);
 
         foreach ($pages as $page) {
             $stub = ucfirst($mode) . $page;
@@ -122,6 +149,11 @@ class ScaffoldStarterKit
                     'namespace' => 'App\Domain\Auth\Frontend\Livewire',
                     'domain' => 'auth'
                 ];
+                
+                // Also generate the view for Livewire
+                $viewStub = $stub . 'View';
+                $viewTarget = $basePath . "/Frontend/Views/livewire/" . Str::lower($page) . ".blade.php";
+                $this->generateFile($viewStub, $viewTarget);
             }
             
             $this->generateFile($stub, $target, $replacements);
@@ -132,7 +164,18 @@ class ScaffoldStarterKit
     {
         $stub = ucfirst($mode) . 'Dashboard';
         $target = $this->getFrontendPath($mode, $basePath, 'Dashboard');
-        $this->generateFile($stub, $target);
+        
+        $replacements = [];
+        if ($mode === 'livewire') {
+            $replacements = [
+                'namespace' => 'App\Domain\Dashboard\Frontend\Livewire',
+                'domain' => 'dashboard'
+            ];
+            
+            $this->generateFile('LivewireDashboardView', $basePath . '/Frontend/Views/livewire/dashboard.blade.php');
+        }
+
+        $this->generateFile($stub, $target, $replacements);
     }
 
     protected function scaffoldLandingView(string $mode, string $basePath): void
@@ -177,9 +220,9 @@ class ScaffoldStarterKit
         $stub = 'Logo';
         // Logic to determine target based on stack
         $target = match($mode) {
-            'react' => resource_path('js/components/Logo.tsx'),
-            'vue' => resource_path('js/components/Logo.vue'),
-            default => resource_path('views/components/logo.blade.php'),
+            'react' => base_path('app/Support/Frontend/Components/Logo.tsx'),
+            'vue' => base_path('app/Support/Frontend/Components/Logo.vue'),
+            default => base_path('app/Support/Frontend/Views/components/logo.blade.php'),
         };
 
         // Special handling for wrapping SVG in Component syntax
@@ -218,14 +261,25 @@ class ScaffoldStarterKit
         File::put($targetPath, $content);
     }
 
-    protected function ensureDirectories(string $base): void
+    protected function ensureDirectories(string $base, string $mode): void
     {
-        File::ensureDirectoryExists($base . '/Providers');
-        File::ensureDirectoryExists($base . '/Controllers');
-        File::ensureDirectoryExists($base . '/Frontend/Pages');
-        File::ensureDirectoryExists($base . '/Frontend/Views/pages');
-        File::ensureDirectoryExists($base . '/Frontend/Views/livewire');
-        File::ensureDirectoryExists($base . '/Frontend/Livewire');
+        $coreFolders = ['Actions', 'Controllers', 'Dto', 'Providers', 'Repository', 'Requests'];
+        foreach ($coreFolders as $folder) {
+            File::ensureDirectoryExists($base . '/' . $folder);
+        }
+        
+        if (in_array($mode, ['react', 'vue'])) {
+            File::ensureDirectoryExists($base . '/Frontend/Pages');
+        }
+        
+        if (in_array($mode, ['blade', 'livewire'])) {
+            File::ensureDirectoryExists($base . '/Frontend/Views/pages');
+        }
+
+        if ($mode === 'livewire') {
+            File::ensureDirectoryExists($base . '/Frontend/Views/livewire');
+            File::ensureDirectoryExists($base . '/Frontend/Livewire');
+        }
     }
 
     protected function getBaseController(string $mode): string

@@ -4,21 +4,23 @@ declare(strict_types=1);
 
 namespace {{namespace}};
 
-use Samushi\Domion\Support\{{baseController}};
+use Samushi\Domion\Support\{{base_controller}};
 use {{actionsNamespace}}\LoginAction;
 use {{actionsNamespace}}\LogoutAction;
+use {{actionsNamespace}}\RegisterAction;
+use {{actionsNamespace}}\ForgotPasswordAction;
+use {{actionsNamespace}}\ResetPasswordAction;
 use {{dtoNamespace}}\LoginDto;
+use {{dtoNamespace}}\RegisterDto;
 use {{requestsNamespace}}\LoginRequest;
+use {{requestsNamespace}}\RegisterRequest;
+use {{requestsNamespace}}\ForgotPasswordRequest;
+use {{requestsNamespace}}\ResetPasswordRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Auth\Events\PasswordReset;
-use Illuminate\Support\Str;
-use App\Domain\User\Models\User;
 
-class AuthController extends {{baseController}}
+class AuthController extends {{base_controller}}
 {
     /**
      * Display the login page.
@@ -51,21 +53,11 @@ class AuthController extends {{baseController}}
     /**
      * Handle an incoming registration request.
      */
-    public function register(Request $request): RedirectResponse
+    public function register(RegisterRequest $request): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        Auth::login($user);
+        RegisterAction::run(
+            RegisterDto::fromRequest($request)
+        );
 
         return redirect()->route('dashboard');
     }
@@ -81,15 +73,9 @@ class AuthController extends {{baseController}}
     /**
      * Handle sending password reset link.
      */
-    public function sendResetLink(Request $request): RedirectResponse
+    public function sendResetLink(ForgotPasswordRequest $request): RedirectResponse
     {
-        $request->validate([
-            'email' => 'required|email',
-        ]);
-
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
+        $status = ForgotPasswordAction::run($request->email);
 
         return $status === Password::RESET_LINK_SENT
             ? back()->with('status', __($status))
@@ -110,25 +96,10 @@ class AuthController extends {{baseController}}
     /**
      * Handle the password reset.
      */
-    public function resetPassword(Request $request): RedirectResponse
+    public function resetPassword(ResetPasswordRequest $request): RedirectResponse
     {
-        $request->validate([
-            'token' => 'required',
-            'email' => 'required|email',
-            'password' => 'required|min:8|confirmed',
-        ]);
-
-        $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (User $user, string $password) {
-                $user->forceFill([
-                    'password' => Hash::make($password)
-                ])->setRememberToken(Str::random(60));
-
-                $user->save();
-
-                event(new PasswordReset($user));
-            }
+        $status = ResetPasswordAction::run(
+            $request->only('email', 'password', 'password_confirmation', 'token')
         );
 
         return $status === Password::PASSWORD_RESET

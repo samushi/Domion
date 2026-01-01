@@ -36,37 +36,32 @@ class InstallFrontend
 
         $content = File::get($path);
 
-        // Check if alias is already configured to avoid duplication
-        if (str_contains($content, '@domain')) {
-            return;
+        // 1. Update entry point to Support/Frontend
+        // This regex looks for 'resources/js/app.js' or similar in the 'input' array
+        $content = preg_replace(
+            "/'resources\/js\/app\.(js|jsx|ts|tsx|vue)'/",
+            "'app/Support/Frontend/app.$1'",
+            $content
+        );
+
+        // 2. Add aliases if not present
+        if (!str_contains($content, '@domain')) {
+            $aliasConfig = "\n" .
+                "    resolve: {\n" .
+                "        alias: {\n" .
+                "            '@': '/app/Support/Frontend',\n" .
+                "            '@domain': '/app/Domain',\n" .
+                "            '@support': '/app/Support',\n" .
+                "        },\n" .
+                "    },";
+
+            $pattern = '/(defineConfig\s*\(\s*\{)/';
+            if (preg_match($pattern, $content)) {
+                $content = preg_replace($pattern, "$1" . $aliasConfig, $content);
+            }
         }
 
-        // Configuration block to inject
-        // We use standard string format to avoid IDE confusion with Heredoc labels
-        $aliasConfig = "\n" .
-            "    resolve: {\n" .
-            "        alias: {\n" .
-            "            '@': '/resources/js',\n" .
-            "            '@domain': '/app/Domain',\n" .
-            "            '@support': '/app/Support',\n" .
-            "        },\n" .
-            "    },";
-
-        // Strategy 1: Inject safely inside defineConfig({
-        // This regex looks for 'defineConfig(' followed by optional spaces, then '{'
-        $pattern = '/(defineConfig\s*\(\s*\{)/';
-
-        if (preg_match($pattern, $content)) {
-            $content = preg_replace(
-                $pattern,
-                "$1" . $aliasConfig, // Appends alias config right after opening brace
-                $content
-            );
-
-            File::put($path, $content);
-        } else {
-            $this->command->warn('Could not locate defineConfig({ in vite.config.js. Please add aliases manually.');
-        }
+        File::put($path, $content);
     }
 
     protected function configureTailwind(string $mode): void

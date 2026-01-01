@@ -60,10 +60,8 @@ class MakeDomain extends GeneratorCommand
                 'Providers',
                 'Repository',
                 'Requests',
-                'Frontend/Lang',
                 'Tests/Unit',
                 'Tests/Feature',
-                'ValueObjects',
             ];
 
             // 2. Mode-specific Resource Folders
@@ -76,13 +74,16 @@ class MakeDomain extends GeneratorCommand
                 $folders[] = 'Frontend/Utils';
                 $folders[] = 'Frontend/Lang';
             } elseif ($mode === 'livewire') {
-                $folders[] = 'Livewire';
+                $folders[] = 'Frontend/Livewire';
                 $folders[] = 'Frontend/Views/livewire';
                 $folders[] = 'Frontend/Views/components';
                 $folders[] = 'Frontend/Lang';
             } elseif ($mode === 'blade') {
                 $folders[] = 'Frontend/Views/pages';
                 $folders[] = 'Frontend/Views/components';
+                $folders[] = 'Frontend/Lang';
+            } else {
+                // API or others still might need translations
                 $folders[] = 'Frontend/Lang';
             }
 
@@ -105,7 +106,7 @@ class MakeDomain extends GeneratorCommand
             if (in_array($mode, ['react', 'vue'])) {
                 $this->comment("2. Create your Frontend Pages in {$basePath}/Frontend/Pages");
             } elseif ($mode === 'livewire') {
-                $this->comment("2. Create your Livewire components in {$basePath}/Livewire");
+                $this->comment("2. Create your Livewire components in {$basePath}/Frontend/Livewire");
             }
 
             return ConsoleCommand::SUCCESS;
