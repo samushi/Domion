@@ -11,7 +11,7 @@ class LandingController extends {{base_controller}}
 {
     public function index()
     {
-        return $this->render('Landing::Landing', [
+        return $this->render('landing::Landing', [
             'laravelVersion' => app()->version(),
             'phpVersion' => PHP_VERSION,
         ]);

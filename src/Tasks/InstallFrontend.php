@@ -174,7 +174,7 @@ class InstallFrontend
     {
         $this->command->info('Installing NPM dependencies...');
 
-        $commonUtils = 'class-variance-authority clsx tailwind-merge lucide-react';
+        $commonUtils = 'class-variance-authority clsx tailwind-merge lucide-react ziggy-js';
 
         $packages = match ($mode) {
             'react' => "@inertiajs/react react react-dom @vitejs/plugin-react @types/react @types/react-dom {$commonUtils}",
@@ -192,8 +192,8 @@ class InstallFrontend
         }
 
         if (in_array($mode, ['react', 'vue'])) {
-            $this->command->info('Setting up Inertia PHP side...');
-            exec('composer require inertiajs/inertia-laravel --quiet');
+            $this->command->info('Setting up Inertia & Ziggy PHP side...');
+            exec('composer require inertiajs/inertia-laravel tightenco/ziggy --quiet');
         }
 
         if ($mode === 'livewire') {
