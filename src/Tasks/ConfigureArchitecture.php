@@ -36,11 +36,7 @@ class ConfigureArchitecture
 
         File::ensureDirectoryExists(dirname($target));
 
-        $stubName = match($mode) {
-            'react' => 'ReactApp',
-            'vue' => 'VueApp',
-            default => 'AppView',
-        };
+        $stubName = 'AppView';
 
         $stubPath = __DIR__ . "/../stubs/{$stubName}.stub";
         if (File::exists($stubPath)) {
@@ -149,9 +145,9 @@ class ConfigureArchitecture
         $json = json_decode(File::get($path), true);
 
         $json['autoload']['psr-4'] = array_merge($json['autoload']['psr-4'], [
-            "App\\" => "app/App/",
-            "Domain\\" => "app/Domain/",
-            "Support\\" => "app/Support/"
+            "App\\App\\" => "app/App/",
+            "App\\Domain\\" => "app/Domain/",
+            "App\\Support\\" => "app/Support/"
         ]);
 
         File::put($path, json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));

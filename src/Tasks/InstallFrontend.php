@@ -101,16 +101,25 @@ class InstallFrontend
         }
 
         $json['compilerOptions']['baseUrl'] = '.';
+        $json['compilerOptions']['jsx'] = 'react-jsx'; // For React
 
         if (!isset($json['compilerOptions']['paths'])) {
             $json['compilerOptions']['paths'] = [];
+        }
+
+        // Add vite/client types if missing
+        if (!isset($json['compilerOptions']['types'])) {
+            $json['compilerOptions']['types'] = [];
+        }
+        if (!in_array('vite/client', $json['compilerOptions']['types'])) {
+            $json['compilerOptions']['types'][] = 'vite/client';
         }
 
         // Merge new aliases
         $json['compilerOptions']['paths'] = array_merge($json['compilerOptions']['paths'], [
             '@domain/*' => ['app/Domain/*'],
             '@support/*' => ['app/Support/*'],
-            '@/*' => ['resources/js/*'],
+            '@/*' => ['app/Support/Frontend/*'],
         ]);
 
         File::put($path, json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
