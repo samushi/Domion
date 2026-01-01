@@ -19,7 +19,7 @@ class InstallFrontend
 
         $this->command->info("Configuring Frontend Stack: {$mode}...");
 
-        $this->configureVite();
+        $this->configureVite($mode);
         $this->configureTailwind($mode);
         $this->configureTsConfig();
         $this->installNpmDependencies($mode);
@@ -71,7 +71,7 @@ class InstallFrontend
         exec('npx -y shadcn@latest init -y', $output, $returnVar);
     }
 
-    public function configureVite(): void
+    public function configureVite(string $mode): void
     {
         $path = base_path('vite.config.js');
         if (!File::exists($path)) {
@@ -80,23 +80,41 @@ class InstallFrontend
 
         $content = File::get($path);
 
-        // 1. Update entry point to Support/Frontend
-        // This regex looks for 'resources/js/app.js' or similar in the 'input' array
+        // 1. Add required imports at the top
+        if (!str_contains($content, "import path from 'path'")) {
+            $content = "import path from 'path';\n" . $content;
+        }
+        if ($mode === 'react' && !str_contains($content, "@vitejs/plugin-react")) {
+            $content = "import react from '@vitejs/plugin-react';\n" . $content;
+        }
+        if ($mode === 'vue' && !str_contains($content, "@vitejs/plugin-vue")) {
+            $content = "import vue from '@vitejs/plugin-vue';\n" . $content;
+        }
+
+        // 2. Update entry point
         $content = preg_replace(
             "/'resources\/js\/app\.(js|jsx|ts|tsx|vue)'/",
             "'app/Support/Frontend/app.$1'",
             $content
         );
 
-        // 2. Add aliases if not present
-        if (!str_contains($content, '@domain')) {
+        // 3. Add plugins to defineConfig
+        if ($mode === 'react' && !str_contains($content, "react()")) {
+            $content = preg_replace('/(plugins:\s*\[)/', "$1\n        react(),", $content);
+        }
+        if ($mode === 'vue' && !str_contains($content, "vue()")) {
+            $content = preg_replace('/(plugins:\s*\[)/', "$1\n        vue(),", $content);
+        }
+
+        // 4. Add aliases with path.resolve
+        if (!str_contains($content, 'resolve: {')) {
             $aliasConfig = "\n" .
                 "    resolve: {\n" .
                 "        alias: {\n" .
-                "            '@': '/app/Support/Frontend',\n" .
-                "            '@domain': '/app/Domain',\n" .
-                "            '@support': '/app/Support',\n" .
-                "            '@ui': '/app/Support/Frontend/components/ui',\n" .
+                "            '@': path.resolve(__dirname, 'app/Support/Frontend'),\n" .
+                "            '@domain': path.resolve(__dirname, 'app/Domain'),\n" .
+                "            '@support': path.resolve(__dirname, 'app/Support'),\n" .
+                "            '@ui': path.resolve(__dirname, 'app/Support/Frontend/components/ui'),\n" .
                 "        },\n" .
                 "    },";
 

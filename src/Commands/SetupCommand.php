@@ -52,7 +52,7 @@ class SetupCommand extends Command
             $frontend = new InstallFrontend($this);
             
             \Laravel\Prompts\spin(
-                fn() => $frontend->configureVite(),
+                fn() => $frontend->configureVite($config['mode']),
                 'Configuring Vite and Aliases...'
             );
             
