@@ -57,11 +57,6 @@ class SetupCommand extends Command
             );
             
             \Laravel\Prompts\spin(
-                fn() => $frontend->configureTailwind($config['mode']),
-                'Configuring Tailwind CSS...'
-            );
-
-            \Laravel\Prompts\spin(
                 fn() => $frontend->installNpmDependencies($config['mode']),
                 'Installing NPM dependencies (this may take a minute)...'
             );
@@ -72,6 +67,11 @@ class SetupCommand extends Command
                     'Initializing Shadcn UI and Components...'
                 );
             }
+
+            \Laravel\Prompts\spin(
+                fn() => $frontend->configureTailwind($config['mode']),
+                'Finalizing Tailwind CSS configuration...'
+            );
         }
 
         // Task 4: Starter Kit

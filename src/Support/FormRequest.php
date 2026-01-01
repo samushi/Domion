@@ -16,15 +16,8 @@ abstract class FormRequest extends OFormRequest
 {
     abstract public function rules(): array;
 
-    public function expectsJson(): bool
-    {
-        return true;
-    }
-
-    public function wantsJson(): bool
-    {
-        return true;
-    }
+    // We remove forced expectsJson/wantsJson to allow Laravel/Inertia 
+    // to determine the response type naturally.
 
     public function authorize(): bool
     {
@@ -36,6 +29,13 @@ abstract class FormRequest extends OFormRequest
      */
     protected function failedValidation(Validator $validator): void
     {
+        // If it's an Inertia request, we want Laravel's default behavior 
+        // (redirect back with errors)
+        if (!$this->expectsJson() && !($this->header('X-Inertia') || $this->header('X-Inertia-Partial-Data'))) {
+            parent::failedValidation($validator);
+            return;
+        }
+
         $validators = (new ValidationException($validator));
         $message = $validators->getMessage();
         $errors = $validators->errors();

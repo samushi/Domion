@@ -131,12 +131,22 @@ abstract class DataObjects
      */
     private static function makeInstanceArgs(array $data): static
     {
-        return static::getReflectionClass()->newInstanceArgs(
-            array_map(
-                fn ($param) => isset($data[self::isStringSnaked($param->getName(), static::getIsSnakeCase())]) ? $data[self::isStringSnaked($param->getName(), static::getIsSnakeCase())] : null,
-                static::getClassProperties()
-            )
-        );
+        $parameters = static::getClassProperties();
+        $args = array_map(function (ReflectionParameter $param) use ($data) {
+            $key = self::isStringSnaked($param->getName(), static::getIsSnakeCase());
+            
+            if (array_key_exists($key, $data)) {
+                return $data[$key];
+            }
+
+            if ($param->isDefaultValueAvailable()) {
+                return $param->getDefaultValue();
+            }
+
+            return null;
+        }, $parameters);
+
+        return static::getReflectionClass()->newInstanceArgs($args);
     }
 
     /**

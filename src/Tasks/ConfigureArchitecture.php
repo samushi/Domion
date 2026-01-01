@@ -18,6 +18,7 @@ class ConfigureArchitecture
         $this->cleanup($mode);
         $this->setupBootstrap();
         $this->setupProviders();
+        $this->setupMiddleware($mode);
         $this->setupRootView($mode);
         $this->cleanDefaultRoutes();
         $this->setupInertiaResolver($mode);
@@ -127,9 +128,10 @@ class ConfigureArchitecture
     {
         $dirs = [
             'app/App/Providers', 
-            'app/Domain', 
-            'app/Support/Frontend/Views',
-            'app/Support/Frontend/Components',
+            base_path('app/Support'),
+            base_path('app/Support/Frontend'),
+            base_path('app/Support/Frontend/components'),
+            base_path('app/Support/Frontend/lib'),
         ];
         
         if ($tenancy) array_push($dirs, 'app/Domain/Central', 'app/Domain/Tenant');
@@ -202,7 +204,17 @@ class ConfigureArchitecture
         // 2. Delete app/Http (not used in this DDD structure)
         File::deleteDirectory(base_path('app/Http'));
 
-        // 3. Delete app/Models
+        // 3. Move User Model instead of deleting it
+        $oldUserPath = base_path('app/Models/User.php');
+        $targetUserPath = base_path('app/Domain/User/Models/User.php');
+
+        if (File::exists($oldUserPath)) {
+            File::ensureDirectoryExists(dirname($targetUserPath));
+            $content = File::get($oldUserPath);
+            $content = str_replace('namespace App\Models;', 'namespace App\Domain\User\Models;', $content);
+            File::put($targetUserPath, $content);
+        }
+
         File::deleteDirectory(base_path('app/Models'));
     }
 
@@ -211,17 +223,42 @@ class ConfigureArchitecture
         $path = base_path('bootstrap/app.php');
         if (File::exists($path)) {
             $content = File::get($path);
+
             if (!str_contains($content, 'useAppPath')) {
                 $content = str_replace(
-                    '->create();',
-                    "->create()\n        ->useAppPath(realpath(__DIR__.'/../app/App'));",
+                    '->create()',
+                    "->create()\n        ->useAppPath(realpath(__DIR__.'/../app/App'))",
                     $content
                 );
-                File::put($path, $content);
             }
+
+            if (!str_contains($content, 'HandleInertiaRequests::class')) {
+                $replacement = "->withMiddleware(function (Middleware \$middleware) {\n" .
+                    "        \$middleware->web(append: [\n" .
+                    "            \\App\\App\\Middleware\\HandleInertiaRequests::class,\n" .
+                    "        ]);\n" .
+                    "    })";
+
+                if (str_contains($content, '->withMiddleware')) {
+                    $content = preg_replace(
+                        '/\$middleware->web\(append: \[\s*/',
+                        "\$middleware->web(append: [\n            \\App\\App\\Middleware\\HandleInertiaRequests::class,\n",
+                        $content
+                    );
+                } else {
+                    $content = str_replace(
+                        '->create()',
+                        $replacement . "\n    ->create()",
+                        $content
+                    );
+                }
+            }
+
+            File::put($path, $content);
         }
         
         $this->updateProvidersConfig();
+        $this->updateAuthConfig();
     }
 
     protected function updateProvidersConfig(): void
@@ -257,6 +294,33 @@ class ConfigureArchitecture
         $apiPath = base_path('routes/api.php');
         if (File::exists($apiPath)) {
             File::put($apiPath, "<?php\n\nuse Illuminate\Support\Facades\Route;\n\n// Global API routes\n");
+        }
+    }
+
+    protected function setupMiddleware(string $mode): void
+    {
+        if ($mode === 'api' || $mode === 'blade') {
+            return;
+        }
+
+        $target = base_path('app/App/Middleware/HandleInertiaRequests.php');
+        File::ensureDirectoryExists(dirname($target));
+
+        if (!File::exists($target)) {
+            $stub = __DIR__ . '/../stubs/HandleInertiaRequests.stub';
+            if (File::exists($stub)) {
+                File::put($target, File::get($stub));
+            }
+        }
+    }
+
+    protected function updateAuthConfig(): void
+    {
+        $path = base_path('config/auth.php');
+        if (File::exists($path)) {
+            $content = File::get($path);
+            $content = str_replace('App\\Models\\User::class', 'App\\Domain\\User\\Models\\User::class', $content);
+            File::put($path, $content);
         }
     }
 }

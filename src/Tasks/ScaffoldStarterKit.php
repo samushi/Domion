@@ -18,6 +18,7 @@ class ScaffoldStarterKit
             $this->generateLogo($mode);
         }
 
+        $this->scaffoldUserDomain();
         $this->scaffoldAuthDomain($mode);
         $this->scaffoldLandingDomain($mode);
         $this->scaffoldDashboardDomain($mode);
@@ -289,5 +290,31 @@ class ScaffoldStarterKit
             'api' => 'ApiControllers',
             default => 'WebControllers'
         };
+    }
+
+    protected function scaffoldUserDomain(): void
+    {
+        $this->command->info('Scaffolding User Domain (Models & Core)...');
+        $base = base_path('app/Domain/User');
+
+        File::ensureDirectoryExists($base . '/Models');
+        File::ensureDirectoryExists($base . '/Repository');
+
+        // 1. User Model
+        $targetUserPath = $base . '/Models/User.php';
+        if (File::exists($targetUserPath)) {
+            return;
+        }
+
+        $oldUserPath = base_path('app/Models/User.php');
+        if (File::exists($oldUserPath)) {
+            $content = File::get($oldUserPath);
+            $content = str_replace('namespace App\Models;', 'namespace App\Domain\User\Models;', $content);
+            File::put($targetUserPath, $content);
+        } else {
+            $this->generateFile('UserModel', $targetUserPath, [
+                'namespace' => 'App\Domain\User\Models'
+            ]);
+        }
     }
 }
