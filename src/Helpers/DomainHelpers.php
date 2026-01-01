@@ -6,27 +6,15 @@ namespace Samushi\Domion\Helpers;
 
 use Illuminate\Support\Str;
 use Samushi\Domion\Helpers\Traits\BaseHelperTrait;
-use Samushi\Domion\Helpers\Traits\BladeHelperTrait;
-use Samushi\Domion\Helpers\Traits\MigrationHelperTrait;
 use Samushi\Domion\Helpers\Traits\PathResolverTrait;
-use Samushi\Domion\Helpers\Traits\RouteHelperTrait;
-use Samushi\Domion\Helpers\Traits\SupportHelperTrait;
-use Samushi\Domion\Helpers\Traits\InertiaHelperTrait;
-use Samushi\Domion\Helpers\Traits\LivewireHelperTrait;
 
 class DomainHelpers
 {
     use BaseHelperTrait;
-    use BladeHelperTrait;
-    use MigrationHelperTrait;
     use PathResolverTrait;
-    use RouteHelperTrait;
-    use SupportHelperTrait;
-    use InertiaHelperTrait;
-    use LivewireHelperTrait;
 
     /**
-     * Get the base path for a specific domain, optionally within a scope.
+     * Get the base path for a specific domain.
      */
     public static function basePath(string $rawDomain, string $scope = ''): string
     {
@@ -36,7 +24,7 @@ class DomainHelpers
     }
 
     /**
-     * Get the base namespace for a specific domain, optionally within a scope.
+     * Get base namespace for a specific domain.
      */
     public static function baseNamespace(string $rawDomain, string $scope = ''): string
     {
@@ -47,32 +35,24 @@ class DomainHelpers
 
     /**
      * Get all domain directories.
-     * @return array Array of absolute directory paths
      */
     public static function getDomains(): array
     {
-        $path = self::domain();
-        
+        $path = self::path()->domain();
+
         if (!is_dir($path)) {
             return [];
         }
 
         $tenancy = config('domion.tenancy', false);
-        
         $allDomains = [];
-        
+
         if ($tenancy) {
             $central = glob($path . '/Central/*', GLOB_ONLYDIR);
             $tenant = glob($path . '/Tenant/*', GLOB_ONLYDIR);
             $allDomains = array_merge($central ?: [], $tenant ?: []);
         } else {
             $allDomains = array_filter(glob($path . '/*'), 'is_dir');
-        }
-
-        // Always check for Shared domain at root too
-        $shared = $path . '/Shared';
-        if (is_dir($shared) && !in_array($shared, $allDomains)) {
-            $allDomains[] = $shared;
         }
 
         return $allDomains;

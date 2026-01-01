@@ -8,37 +8,10 @@ use Samushi\Domion\Support\AbstractServiceProvider;
 
 class AuthServiceProvider extends AbstractServiceProvider
 {
-    /**
-     * Set Domain name
-     */
-    public function setDomain(): string
+    public function getDomainName(): string
     {
         return 'Auth';
     }
 
-    /**
-     * Route prefix - false means routes at root (/)
-     * This allows /login instead of /auth/login
-     */
-    public function routePrefix(): string|false|null
-    {
-        return false;
-    }
-
-    /**
-     * Route name prefix - false means no prefix
-     * This allows route('login') instead of route('auth.login')
-     */
-    public function routeNamePrefix(): string|false|null
-    {
-        return false;
-    }
-
-    /**
-     * Auth routes should be accessible to guests only (except logout)
-     */
-    public function guestOnly(): bool
-    {
-        return false; // We handle middleware in routes individually
-    }
+    // Uses default prefix: /auth
 }

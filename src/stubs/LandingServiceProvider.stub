@@ -8,28 +8,16 @@ use Samushi\Domion\Support\AbstractServiceProvider;
 
 class LandingServiceProvider extends AbstractServiceProvider
 {
-    /**
-     * Set Domain name
-     */
-    public function setDomain(): string
+    public function getDomainName(): string
     {
         return 'Landing';
     }
 
     /**
-     * Route prefix - false means routes at root (/)
-     * This allows / to be the landing page
+     * Return null to serve routes at the Root URL (/).
      */
-    public function routePrefix(): string|false|null
+    public function getRoutePrefix(): ?string
     {
-        return false;
-    }
-
-    /**
-     * Route name prefix
-     */
-    public function routeNamePrefix(): string|false|null
-    {
-        return false;
+        return null;
     }
 }
