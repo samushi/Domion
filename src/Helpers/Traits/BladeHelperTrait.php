@@ -27,8 +27,8 @@ trait BladeHelperTrait
         $domains = self::getDomains();
 
         foreach ($domains as $domainDir) {
-            $viewDir = $domainDir . DIRECTORY_SEPARATOR . 'Resources' . DIRECTORY_SEPARATOR . 'views';
-            $langDir = $domainDir . DIRECTORY_SEPARATOR . 'Resources' . DIRECTORY_SEPARATOR . 'Lang';
+            $viewDir = $domainDir . DIRECTORY_SEPARATOR . 'Frontend' . DIRECTORY_SEPARATOR . 'Views';
+            $langDir = $domainDir . DIRECTORY_SEPARATOR . 'Frontend' . DIRECTORY_SEPARATOR . 'Lang';
             $domainName = strtolower(basename($domainDir));
 
             if (is_dir($viewDir)) {
@@ -43,8 +43,8 @@ trait BladeHelperTrait
         // Scan Support directory for shared resources
         $supportPath = self::path()->support();
         if (is_dir($supportPath)) {
-            $supportViewDir = $supportPath . DIRECTORY_SEPARATOR . 'Resources' . DIRECTORY_SEPARATOR . 'views';
-            $supportLangDir = $supportPath . DIRECTORY_SEPARATOR . 'Resources' . DIRECTORY_SEPARATOR . 'Lang';
+            $supportViewDir = $supportPath . DIRECTORY_SEPARATOR . 'Frontend' . DIRECTORY_SEPARATOR . 'Views';
+            $supportLangDir = $supportPath . DIRECTORY_SEPARATOR . 'Frontend' . DIRECTORY_SEPARATOR . 'Lang';
 
             if (is_dir($supportViewDir)) {
                 $results['views']['support'] = $supportViewDir;

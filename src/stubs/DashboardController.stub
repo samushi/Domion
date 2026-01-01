@@ -3,9 +3,9 @@
 namespace {{namespace}};
 
 use Illuminate\Support\Facades\Auth;
-use Samushi\Domion\Support\{{baseController}};
+use Samushi\Domion\Support\{{base_controller}};
 
-class DashboardController extends {{baseController}}
+class DashboardController extends {{base_controller}}
 {
     /**
      * Display the user dashboard.

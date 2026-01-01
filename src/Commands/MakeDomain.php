@@ -60,7 +60,7 @@ class MakeDomain extends GeneratorCommand
                 'Providers',
                 'Repository',
                 'Requests',
-                'Resources/Lang',
+                'Frontend/Lang',
                 'Tests/Unit',
                 'Tests/Feature',
                 'ValueObjects',
@@ -74,16 +74,16 @@ class MakeDomain extends GeneratorCommand
                 $folders[] = 'Frontend/Components';
                 $folders[] = 'Frontend/' . ($mode === 'react' ? 'Hooks' : 'Composables');
                 $folders[] = 'Frontend/Utils';
-                $folders[] = 'Resources/Lang';
+                $folders[] = 'Frontend/Lang';
             } elseif ($mode === 'livewire') {
                 $folders[] = 'Livewire';
-                $folders[] = 'Resources/views/livewire';
-                $folders[] = 'Resources/views/components';
-                $folders[] = 'Resources/Lang';
+                $folders[] = 'Frontend/Views/livewire';
+                $folders[] = 'Frontend/Views/components';
+                $folders[] = 'Frontend/Lang';
             } elseif ($mode === 'blade') {
-                $folders[] = 'Resources/views/pages';
-                $folders[] = 'Resources/views/components';
-                $folders[] = 'Resources/Lang';
+                $folders[] = 'Frontend/Views/pages';
+                $folders[] = 'Frontend/Views/components';
+                $folders[] = 'Frontend/Lang';
             }
 
             foreach ($folders as $folder) {
@@ -258,7 +258,7 @@ class MakeDomain extends GeneratorCommand
 
         $namespace = DomainHelpers::baseNamespace($domain) . "\\Providers";
         
-        $content = "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$namespace};\n\nuse Samushi\Domion\Support\AbstractServiceProvider;\n\nclass {$className} extends AbstractServiceProvider\n{\n    public function setDomain(): string\n    {\n        return '{$domain}';\n    }\n}\n";
+        $content = "<?php\n\ndeclare(strict_types=1);\n\nnamespace {$namespace};\n\nuse Samushi\\Domion\\Support\\AbstractServiceProvider;\n\nclass {$className} extends AbstractServiceProvider\n{\n    public function getDomainName(): string\n    {\n        return '{$domain}';\n    }\n}\n";
 
         File::put($providerPath, $content);
         $this->info("ServiceProvider created: {$providerPath}");

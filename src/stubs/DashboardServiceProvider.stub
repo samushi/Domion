@@ -8,37 +8,18 @@ use Samushi\Domion\Support\AbstractServiceProvider;
 
 class DashboardServiceProvider extends AbstractServiceProvider
 {
-    /**
-     * Set Domain name
-     */
-    public function setDomain(): string
+    public function getDomainName(): string
     {
         return 'Dashboard';
     }
 
-    /**
-     * Route prefix - false means routes at root (/)
-     * Routes define their own paths (e.g., /dashboard)
-     */
-    public function routePrefix(): string|false|null
+    public function getRoutePrefix(): ?string
     {
-        return false;
+        return 'dashboard';
     }
 
-    /**
-     * Route name prefix - false means no prefix
-     * This allows route('dashboard') instead of route('dashboard.dashboard')
-     */
-    public function routeNamePrefix(): string|false|null
+    public function getWebMiddleware(): array
     {
-        return false;
-    }
-
-    /**
-     * Dashboard requires authentication
-     */
-    public function requiresAuth(): bool
-    {
-        return true;
+        return ['web', 'auth'];
     }
 }

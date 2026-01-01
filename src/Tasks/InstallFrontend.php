@@ -141,5 +141,11 @@ class InstallFrontend
                 $this->command->warn("NPM install might have failed. Please run: npm install {$packages} --save-dev");
             }
         }
+
+        if ($mode === 'livewire') {
+            $this->command->info('Setting up Livewire Volt...');
+            exec('composer require livewire/livewire livewire/volt');
+            exec('php artisan volt:install');
+        }
     }
 }

@@ -20,6 +20,7 @@ class ScaffoldStarterKit
 
         $this->scaffoldAuthDomain($mode);
         $this->scaffoldLandingDomain($mode);
+        $this->scaffoldDashboardDomain($mode);
     }
 
     protected function scaffoldAuthDomain(string $mode): void
@@ -29,7 +30,7 @@ class ScaffoldStarterKit
 
         $this->ensureDirectories($base);
 
-        // 1. Service Provider (Standard)
+        // 1. Service Provider
         $this->generateFile('AuthServiceProvider', $base . '/Providers/AuthServiceProvider.php', [
             'namespace' => 'App\Domain\Auth\Providers',
             'domain' => 'Auth'
@@ -44,6 +45,38 @@ class ScaffoldStarterKit
 
         // 3. Routes
         $this->generateFile('AuthRoutes', $base . '/web.php');
+
+        // 4. Frontend
+        if ($mode !== 'api') {
+            $this->scaffoldAuthFrontend($mode, $base);
+        }
+    }
+
+    protected function scaffoldDashboardDomain(string $mode): void
+    {
+        $this->command->info('Scaffolding Dashboard Domain...');
+        $base = base_path('app/Domain/Dashboard');
+
+        $this->ensureDirectories($base);
+
+        // 1. Service Provider
+        $this->generateFile('DashboardServiceProvider', $base . '/Providers/DashboardServiceProvider.php', [
+            'namespace' => 'App\Domain\Dashboard\Providers'
+        ]);
+
+        // 2. Controller
+        $this->generateFile('DashboardController', $base . '/Controllers/DashboardController.php', [
+            'namespace' => 'App\Domain\Dashboard\Controllers',
+            'base_controller' => $this->getBaseController($mode)
+        ]);
+
+        // 3. Routes
+        $this->generateFile('DashboardRoutes', $base . '/web.php');
+
+        // 4. Frontend
+        if ($mode !== 'api') {
+            $this->scaffoldDashboardFrontend($mode, $base);
+        }
     }
 
     protected function scaffoldLandingDomain(string $mode): void
@@ -53,7 +86,7 @@ class ScaffoldStarterKit
 
         $this->ensureDirectories($base);
 
-        // 1. Service Provider (Root Prefix)
+        // 1. Service Provider
         $this->generateFile('LandingServiceProvider', $base . '/Providers/LandingServiceProvider.php', [
             'namespace' => 'App\Domain\Landing\Providers',
             'domain' => 'Landing'
@@ -68,35 +101,75 @@ class ScaffoldStarterKit
         // 3. Routes
         $this->generateFile('LandingRoutes', $base . '/web.php');
 
-        // 4. Frontend View
+        // 4. Frontend
         if ($mode !== 'api') {
             $this->scaffoldLandingView($mode, $base);
         }
     }
 
+    protected function scaffoldAuthFrontend(string $mode, string $basePath): void
+    {
+        $pages = ['Login', 'Register', 'ForgotPassword', 'ResetPassword'];
+        $ext = $this->getExtension($mode);
+
+        foreach ($pages as $page) {
+            $stub = ucfirst($mode) . $page;
+            $target = $this->getFrontendPath($mode, $basePath, $page);
+            
+            $replacements = [];
+            if ($mode === 'livewire') {
+                $replacements = [
+                    'namespace' => 'App\Domain\Auth\Frontend\Livewire',
+                    'domain' => 'auth'
+                ];
+            }
+            
+            $this->generateFile($stub, $target, $replacements);
+        }
+    }
+
+    protected function scaffoldDashboardFrontend(string $mode, string $basePath): void
+    {
+        $stub = ucfirst($mode) . 'Dashboard';
+        $target = $this->getFrontendPath($mode, $basePath, 'Dashboard');
+        $this->generateFile($stub, $target);
+    }
+
     protected function scaffoldLandingView(string $mode, string $basePath): void
     {
-        $stub = match($mode) {
-            'react' => 'ReactLanding',
-            'vue' => 'VueLanding',
-            'livewire' => 'LivewireLanding', // Component class
-            'blade' => 'BladeLanding',
-        };
-
-        $target = match($mode) {
-            'react' => $basePath . '/Frontend/Pages/Landing.tsx',
-            'vue' => $basePath . '/Frontend/Pages/Landing.vue',
-            'livewire' => $basePath . '/Livewire/Landing.php',
-            'blade' => $basePath . '/Resources/views/pages/landing.blade.php',
-        };
+        $stub = ucfirst($mode) . 'Landing';
+        $target = $this->getFrontendPath($mode, $basePath, 'Landing');
 
         if ($mode === 'livewire') {
-            // Livewire needs both Class and View
-            $this->generateFile('LivewireLanding', $basePath . '/Livewire/Landing.php');
-            $this->generateFile('LivewireLandingView', $basePath . '/Resources/views/livewire/landing.blade.php');
+            $this->generateFile('LivewireLanding', $basePath . '/Frontend/Livewire/Landing.php', [
+                'namespace' => 'App\Domain\Landing\Frontend\Livewire',
+                'domain' => 'landing'
+            ]);
+            $this->generateFile('LivewireLandingView', $basePath . '/Frontend/Views/livewire/landing.blade.php');
         } else {
             $this->generateFile($stub, $target);
         }
+    }
+
+    protected function getFrontendPath(string $mode, string $basePath, string $name): string
+    {
+        return match($mode) {
+            'react' => $basePath . "/Frontend/Pages/{$name}.tsx",
+            'vue' => $basePath . "/Frontend/Pages/{$name}.vue",
+            'livewire' => $basePath . "/Frontend/Livewire/{$name}.php",
+            'blade' => $basePath . "/Frontend/Views/pages/" . Str::lower($name) . ".blade.php",
+            default => $basePath . "/Frontend/{$name}.js"
+        };
+    }
+
+    protected function getExtension(string $mode): string
+    {
+        return match($mode) {
+            'react' => 'tsx',
+            'vue' => 'vue',
+            'livewire', 'blade' => 'php',
+            default => 'js'
+        };
     }
 
     protected function generateLogo(string $mode): void
@@ -149,7 +222,10 @@ class ScaffoldStarterKit
     {
         File::ensureDirectoryExists($base . '/Providers');
         File::ensureDirectoryExists($base . '/Controllers');
-        File::ensureDirectoryExists($base . '/Frontend/Pages'); // Optional based on mode
+        File::ensureDirectoryExists($base . '/Frontend/Pages');
+        File::ensureDirectoryExists($base . '/Frontend/Views/pages');
+        File::ensureDirectoryExists($base . '/Frontend/Views/livewire');
+        File::ensureDirectoryExists($base . '/Frontend/Livewire');
     }
 
     protected function getBaseController(string $mode): string

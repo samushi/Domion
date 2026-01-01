@@ -18,7 +18,8 @@ trait InertiaResponseTrait
         // Convert 'domain::Page' to 'Domain/Page' format for Inertia
         if (str_contains($component, '::')) {
             [$domain, $page] = explode('::', $component, 2);
-            $component = ucfirst($domain) . '::' . $page;
+            // Component name will be 'Auth/Login', Vite will map this to the domain folder
+            $component = ucfirst($domain) . '/' . $page;
         }
 
         return Inertia::render($component, $props);

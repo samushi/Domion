@@ -28,8 +28,8 @@ class SetupCommand extends Command
         // 2. Execute Tasks
         \Laravel\Prompts\spin(
             function () use ($config) {
-                // Task: Structure & Cleanup (This also fixes the routes files)
-                (new ConfigureArchitecture($this))->run($config['tenancy']);
+                // Task: Structure & Cleanup
+                (new ConfigureArchitecture($this))->run($config['tenancy'], $config['mode']);
 
                 // Task: Frontend Setup
                 if (in_array($config['mode'], ['react', 'vue', 'livewire'])) {
@@ -48,7 +48,18 @@ class SetupCommand extends Command
         );
 
         \Laravel\Prompts\outro('✅ Setup completed!');
-        $this->info('Run: <fg=green>composer dump-autoload</>');
+        
+        $this->info("\n🚀 Next steps:");
+        $this->line("1. <fg=green>composer dump-autoload</>");
+        $this->line("2. <fg=green>npm install && npm run dev</>");
+        
+        if (in_array($config['mode'], ['react', 'vue'])) {
+            $this->line("3. <fg=green>npx shadcn-ui@latest init</> (to initialize shadcn-ui)");
+        }
+        
+        if ($config['mode'] === 'livewire') {
+            $this->line("3. <fg=green>composer require livewire/flux</> (for the UI components)");
+        }
 
         return self::SUCCESS;
     }

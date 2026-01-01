@@ -71,7 +71,7 @@ class DomionServiceProvider extends ServiceProvider
     protected function configureInertiaRootView(): void
     {
         if (class_exists(\Inertia\Inertia::class)) {
-            $supportPath = base_path('app/Support/Resources/views');
+            $supportPath = base_path('app/Support/Frontend/Views');
             if (is_dir($supportPath)) {
                 view()->addNamespace('support', $supportPath);
             }

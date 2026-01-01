@@ -26,6 +26,16 @@ abstract class AbstractServiceProvider extends ServiceProvider
     }
 
     /**
+     * Define the Route Name Prefix (e.g., 'auth.').
+     * Return null for no name prefix.
+     */
+    public function getRouteNamePrefix(): ?string
+    {
+        $prefix = $this->getRoutePrefix();
+        return $prefix ? $prefix . '.' : null;
+    }
+
+    /**
      * Define middleware for Web routes.
      */
     public function getWebMiddleware(): array
@@ -53,33 +63,42 @@ abstract class AbstractServiceProvider extends ServiceProvider
     {
         $domainPath = $this->getDomainPath();
         $prefix = $this->getRoutePrefix();
+        $namePrefix = $this->getRouteNamePrefix();
 
         // Web Routes Registration
         if (file_exists($domainPath . '/web.php')) {
-            // If prefix is null/empty, we don't apply the 'prefix' option at all
-            $options = $prefix ? ['prefix' => $prefix] : [];
+            $router = Route::middleware($this->getWebMiddleware());
 
-            Route::middleware($this->getWebMiddleware())
-                ->group(function () use ($domainPath, $options) {
-                    Route::group($options, function () use ($domainPath) {
-                        $this->loadRoutesFrom($domainPath . '/web.php');
-                    });
-                });
+            if ($prefix) {
+                $router->prefix($prefix);
+            }
+
+            if ($namePrefix) {
+                $router->name($namePrefix);
+            }
+
+            $router->group(function () use ($domainPath) {
+                $this->loadRoutesFrom($domainPath . '/web.php');
+            });
         }
 
         // API Routes Registration
         if (file_exists($domainPath . '/api.php')) {
-            // API usually always has '/api' prefix, plus the domain prefix if exists
             $apiPrefix = 'api';
             if ($prefix) {
                 $apiPrefix .= '/' . $prefix;
             }
 
-            Route::middleware($this->getApiMiddleware())
-                ->prefix($apiPrefix)
-                ->group(function () use ($domainPath) {
-                    $this->loadRoutesFrom($domainPath . '/api.php');
-                });
+            $router = Route::middleware($this->getApiMiddleware())
+                ->prefix($apiPrefix);
+
+            if ($namePrefix) {
+                $router->name('api.' . $namePrefix);
+            }
+
+            $router->group(function () use ($domainPath) {
+                $this->loadRoutesFrom($domainPath . '/api.php');
+            });
         }
     }
 
@@ -93,7 +112,7 @@ abstract class AbstractServiceProvider extends ServiceProvider
 
     protected function registerViews(): void
     {
-        $path = $this->getDomainPath() . '/Resources/views';
+        $path = $this->getDomainPath() . '/Frontend/Views';
         if (is_dir($path)) {
             // Example usage: view('auth::login')
             $this->loadViewsFrom($path, Str::lower($this->getDomainName()));
@@ -102,7 +121,7 @@ abstract class AbstractServiceProvider extends ServiceProvider
 
     protected function registerTranslations(): void
     {
-        $path = $this->getDomainPath() . '/Resources/Lang';
+        $path = $this->getDomainPath() . '/Frontend/Lang';
         if (is_dir($path)) {
             $this->loadTranslationsFrom($path, Str::lower($this->getDomainName()));
         }
