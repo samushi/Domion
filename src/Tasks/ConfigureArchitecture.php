@@ -178,11 +178,8 @@ class ConfigureArchitecture
                         $content = preg_replace('/(public function boot\(\): void\s*\{)/', "$1" . $bootInjection, $content);
                     }
                     
-                    // 3. Clean up the standard Laravel comments/empty space if they follow our injection badly
-                    // This handles cases where we might have double braces or trailing redundant code
+                    // 3. Clean up any duplicate empty braces created by previous runs without breaking the class
                     $content = preg_replace('/\{\s*\{\s*\/\/\s*\}\s*\}/', "{\n        //\n    }", $content);
-                    $content = str_replace("{\n    {", "{", $content);
-                    $content = str_replace("}\n}", "}", $content);
                 }
 
                 File::put(base_path('app/App/Providers/' . $file->getFilename()), $content);

@@ -13,7 +13,7 @@ trait InertiaResponseTrait
      * Render an Inertia page.
      * Supports 'domain::Page' syntax which converts to 'Domain/Page' for Inertia.
      */
-    protected function render(string $component, array $props = []): Response
+    protected function render(string $component, array $props = []): mixed
     {
         // Convert 'domain::Page' to 'Domain/Page' format for Inertia
         if (str_contains($component, '::')) {
@@ -22,7 +22,11 @@ trait InertiaResponseTrait
             $component = ucfirst($domain) . '/' . $page;
         }
 
-        return Inertia::render($component, $props);
+        if (class_exists(Inertia::class)) {
+            return Inertia::render($component, $props);
+        }
+
+        return view($component, $props);
     }
 
     /**

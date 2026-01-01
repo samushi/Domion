@@ -66,7 +66,15 @@ class SetupCommand extends Command
             );
         }
 
-        // Task 5: Permissions & Cleanup
+        // Task 5: Database Migrations
+        \Laravel\Prompts\spin(
+            function() {
+                exec('php artisan migrate --force', $output, $returnVar);
+            },
+            'Running database migrations...'
+        );
+
+        // Task 6: Permissions & Cleanup
         \Laravel\Prompts\spin(
             fn() => $this->saveConfiguration($config),
             'Finalizing configuration...'
@@ -77,9 +85,11 @@ class SetupCommand extends Command
         $this->info("\n🚀 Your DDD project is ready!");
         $this->line("• Domains created: <fg=green>Auth, Dashboard, Landing (Root)</>");
         $this->line("• Frontend: <fg=green>{$config['mode']}</>");
-        
-        if (in_array($config['mode'], ['react', 'vue'])) {
-            $this->warn("\n⚠️  Action required: Run 'npx shadcn-ui@latest init' to complete the UI setup.");
+        $this->line("• Shadcn UI: <fg=green>Initialized</>");
+
+        if ($this->confirm('Do you want to start the development server now?', true)) {
+            $this->info("\n✨ Starting development server (npm run dev)...");
+            passthru('npm run dev');
         }
 
         return self::SUCCESS;

@@ -23,8 +23,52 @@ class InstallFrontend
         $this->configureTailwind($mode);
         $this->configureTsConfig();
         $this->installNpmDependencies($mode);
+        $this->setupShadcn($mode);
 
         $this->command->info("✓ Frontend configured successfully.");
+    }
+
+    protected function setupShadcn(string $mode): void
+    {
+        if (!in_array($mode, ['react', 'vue'])) {
+            return;
+        }
+
+        $this->command->info('Initializing Shadcn UI...');
+
+        // 1. Create app.css if missing
+        $cssPath = base_path('app/Support/Frontend/app.css');
+        if (!File::exists($cssPath)) {
+            File::ensureDirectoryExists(dirname($cssPath));
+            File::put($cssPath, "@tailwind base;\n@tailwind components;\n@tailwind utilities;");
+        }
+
+        // 2. Pre-create components.json to make it non-interactive
+        $componentsJson = [
+            '$schema' => 'https://ui.shadcn.com/schema.json',
+            'style' => 'new-york',
+            'rsc' => false,
+            'tsx' => true,
+            'tailwind' => [
+                'config' => 'tailwind.config.js',
+                'css' => 'app/Support/Frontend/app.css',
+                'baseColor' => 'slate',
+                'cssVariables' => true,
+                'prefix' => '',
+            ],
+            'aliases' => [
+                'components' => '@/components',
+                'utils' => '@/lib/utils',
+                'ui' => '@/components/ui',
+                'lib' => '@/lib',
+                'hooks' => '@/hooks',
+            ],
+        ];
+
+        File::put(base_path('components.json'), json_encode($componentsJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        // 3. Run shadcn init (pick up components.json)
+        exec('npx shadcn@latest init -y', $output, $returnVar);
     }
 
     protected function configureVite(): void
