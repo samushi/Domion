@@ -105,6 +105,8 @@ class InstallFrontend
             $json['compilerOptions'] = [];
         }
 
+        $json['compilerOptions']['baseUrl'] = '.';
+
         if (!isset($json['compilerOptions']['paths'])) {
             $json['compilerOptions']['paths'] = [];
         }
