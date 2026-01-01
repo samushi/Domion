@@ -157,20 +157,42 @@ class InstallFrontend
         }
 
         // Initialize empty config if missing
-        $json = File::exists($path) ? json_decode(File::get($path), true) : ['compilerOptions' => []];
+        $json = File::exists($path) ? json_decode(File::get($path), true) : [
+            'compilerOptions' => [
+                'target' => 'esnext',
+                'module' => 'esnext',
+                'moduleResolution' => 'bundler',
+                'strict' => true,
+                'jsx' => 'react-jsx',
+                'baseUrl' => '.',
+                'allowJs' => true,
+                'skipLibCheck' => true,
+                'esModuleInterop' => true,
+                'allowSyntheticDefaultImports' => true,
+                'forceConsistentCasingInFileNames' => true,
+                'noEmit' => true,
+                'isolatedModules' => true,
+            ],
+            'include' => [
+                'app/Domain/**/*',
+                'app/Support/**/*',
+                'vite.config.js'
+            ]
+        ];
 
         if (!isset($json['compilerOptions'])) {
             $json['compilerOptions'] = [];
         }
 
         $json['compilerOptions']['baseUrl'] = '.';
-        $json['compilerOptions']['jsx'] = 'react-jsx'; // For React
+        $json['compilerOptions']['jsx'] = 'react-jsx';
+        $json['compilerOptions']['moduleResolution'] = 'bundler';
 
         if (!isset($json['compilerOptions']['paths'])) {
             $json['compilerOptions']['paths'] = [];
         }
 
-        // Add vite/client types if missing
+        // Add vite/client types
         if (!isset($json['compilerOptions']['types'])) {
             $json['compilerOptions']['types'] = [];
         }
@@ -178,12 +200,24 @@ class InstallFrontend
             $json['compilerOptions']['types'][] = 'vite/client';
         }
 
-        // Merge new aliases
+        // Merge DDD aliases
         $json['compilerOptions']['paths'] = array_merge($json['compilerOptions']['paths'], [
+            '@/*' => ['app/Support/Frontend/*'],
             '@domain/*' => ['app/Domain/*'],
             '@support/*' => ['app/Support/*'],
-            '@/*' => ['app/Support/Frontend/*'],
+            '@ui/*' => ['app/Support/Frontend/components/ui/*'],
         ]);
+
+        // Ensure include exists and has our folders
+        if (!isset($json['include'])) {
+            $json['include'] = [];
+        }
+        $requiredInclude = ['app/Domain/**/*', 'app/Support/**/*'];
+        foreach ($requiredInclude as $inc) {
+            if (!in_array($inc, $json['include'])) {
+                $json['include'][] = $inc;
+            }
+        }
 
         File::put($path, json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
