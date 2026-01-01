@@ -107,8 +107,23 @@ class SetupCommand extends Command
         $this->line("• Shadcn UI: <fg=green>Initialized</>");
 
         if ($this->confirm('Do you want to start the development server now?', true)) {
-            $this->info("\n✨ Starting development server (npm run dev)...");
-            passthru('npm run dev');
+            $this->info("\n✨ Starting development server...");
+            
+            $composerFile = base_path('composer.json');
+            $hasDevScript = false;
+            
+            if (File::exists($composerFile)) {
+                $composerJson = json_decode(File::get($composerFile), true);
+                $hasDevScript = isset($composerJson['scripts']['dev']);
+            }
+
+            if ($hasDevScript) {
+                $this->line("Executing: <fg=blue>composer run dev</>\n");
+                passthru('composer run dev');
+            } else {
+                $this->line("Executing: <fg=blue>npm run dev</>\n");
+                passthru('npm run dev');
+            }
         }
 
         return self::SUCCESS;

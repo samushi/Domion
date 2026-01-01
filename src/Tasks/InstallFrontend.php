@@ -191,6 +191,11 @@ class InstallFrontend
             }
         }
 
+        if (in_array($mode, ['react', 'vue'])) {
+            $this->command->info('Setting up Inertia PHP side...');
+            exec('composer require inertiajs/inertia-laravel --quiet');
+        }
+
         if ($mode === 'livewire') {
             $this->command->info('Setting up Livewire Volt...');
             exec('composer require livewire/livewire livewire/volt --quiet');

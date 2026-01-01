@@ -15,15 +15,24 @@ trait InertiaResponseTrait
      */
     protected function render(string $component, array $props = []): mixed
     {
+        $original = $component;
+
         // Convert 'domain::Page' to 'Domain/Page' format for Inertia
         if (str_contains($component, '::')) {
             [$domain, $page] = explode('::', $component, 2);
-            // Component name will be 'Auth/Login', Vite will map this to the domain folder
-            $component = ucfirst($domain) . '/' . $page;
+            // Inertia expects 'Auth/Login'
+            $component = \Illuminate\Support\Str::studly($domain) . '/' . \Illuminate\Support\Str::studly($page);
         }
 
-        if (class_exists(Inertia::class)) {
-            return Inertia::render($component, $props);
+        if (class_exists(\Inertia\Inertia::class)) {
+            return \Inertia\Inertia::render($component, $props);
+        }
+
+        // Fallback to standard Blade View
+        if (str_contains($original, '::')) {
+            [$domain, $page] = explode('::', $original, 2);
+            // registered namespace is lowercase, filenames are usually studly or kebab but we use studly in stubs
+            return view(\Illuminate\Support\Str::lower($domain) . '::' . $page, $props);
         }
 
         return view($component, $props);

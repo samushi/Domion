@@ -144,6 +144,15 @@ class ConfigureArchitecture
 
         $json = json_decode(File::get($path), true);
 
+        if (!isset($json['autoload']['psr-4'])) {
+            $json['autoload']['psr-4'] = [];
+        }
+
+        // Remove old potential keys from previous versions or standard Laravel to avoid conflicts
+        unset($json['autoload']['psr-4']['Domain\\']);
+        unset($json['autoload']['psr-4']['Support\\']);
+        unset($json['autoload']['psr-4']['App\\']);
+
         $json['autoload']['psr-4'] = array_merge($json['autoload']['psr-4'], [
             "App\\App\\" => "app/App/",
             "App\\Domain\\" => "app/Domain/",
@@ -167,19 +176,22 @@ class ConfigureArchitecture
                 if ($file->getFilename() === 'AppServiceProvider.php') {
                     // 1. Inject registerDomainProviders in register()
                     if (!str_contains($content, 'DomainLoader::registerDomainProviders')) {
-                        $registration = "\n        \\Samushi\\Domion\\Support\\DomainLoader::registerDomainProviders(\$this->app);";
-                        // Find register function and its opening brace. Inject right after it.
-                        $content = preg_replace('/(public function register\(\): void\s*\{)/', "$1" . $registration, $content);
+                        $regCall = "\n        \\Samushi\\Domion\\Support\\DomainLoader::registerDomainProviders(\$this->app);";
+                        // Find the register method and inject after the opening brace
+                        $content = preg_replace('/(public function register\(\): void\s*\{)/', "$1" . $regCall, $content);
                     }
 
                     // 2. Inject Volt::mount in boot() if needed
                     if ($mode === 'livewire' && !str_contains($content, 'Volt::mount')) {
-                        $bootInjection = "\n        \\Livewire\\Volt\\Volt::mount([realpath(__DIR__.'/../../../app/Domain')]);";
-                        $content = preg_replace('/(public function boot\(\): void\s*\{)/', "$1" . $bootInjection, $content);
+                        $bootCall = "\n        \\Livewire\\Volt\\Volt::mount([realpath(__DIR__.'/../../../app/Domain')]);";
+                        // Find the boot method and inject after the opening brace
+                        $content = preg_replace('/(public function boot\(\): void\s*\{)/', "$1" . $bootCall, $content);
                     }
                     
-                    // 3. Clean up any duplicate empty braces created by previous runs without breaking the class
-                    $content = preg_replace('/\{\s*\{\s*\/\/\s*\}\s*\}/', "{\n        //\n    }", $content);
+                    // 3. Ensure the class is properly closed if it got messed up (fallback)
+                    if (substr(trim($content), -1) !== '}') {
+                        $content = rtrim($content) . "\n}\n";
+                    }
                 }
 
                 File::put(base_path('app/App/Providers/' . $file->getFilename()), $content);
@@ -207,6 +219,27 @@ class ConfigureArchitecture
                 );
                 File::put($path, $content);
             }
+        }
+        
+        $this->updateProvidersConfig();
+    }
+
+    protected function updateProvidersConfig(): void
+    {
+        // For Laravel 11/12
+        $path = base_path('bootstrap/providers.php');
+        if (File::exists($path)) {
+            $content = File::get($path);
+            $content = str_replace('App\\Providers\\AppServiceProvider::class', 'App\\App\\Providers\\AppServiceProvider::class', $content);
+            File::put($path, $content);
+        }
+
+        // For Laravel 10 or published config
+        $configPath = base_path('config/app.php');
+        if (File::exists($configPath)) {
+            $content = File::get($configPath);
+            $content = str_replace('App\\Providers\\AppServiceProvider::class', 'App\\App\\Providers\\AppServiceProvider::class', $content);
+            File::put($configPath, $content);
         }
     }
 
