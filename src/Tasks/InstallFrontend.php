@@ -28,7 +28,7 @@ class InstallFrontend
         $this->command->info("✓ Frontend configured successfully.");
     }
 
-    protected function setupShadcn(string $mode): void
+    public function setupShadcn(string $mode): void
     {
         if (!in_array($mode, ['react', 'vue'])) {
             return;
@@ -68,10 +68,10 @@ class InstallFrontend
         File::put(base_path('components.json'), json_encode($componentsJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
         // 3. Run shadcn init (pick up components.json)
-        exec('npx shadcn@latest init -y', $output, $returnVar);
+        exec('npx -y shadcn@latest init -y', $output, $returnVar);
     }
 
-    protected function configureVite(): void
+    public function configureVite(): void
     {
         $path = base_path('vite.config.js');
         if (!File::exists($path)) {
@@ -96,6 +96,7 @@ class InstallFrontend
                 "            '@': '/app/Support/Frontend',\n" .
                 "            '@domain': '/app/Domain',\n" .
                 "            '@support': '/app/Support',\n" .
+                "            '@ui': '/app/Support/Frontend/components/ui',\n" .
                 "        },\n" .
                 "    },";
 
@@ -108,7 +109,7 @@ class InstallFrontend
         File::put($path, $content);
     }
 
-    protected function configureTailwind(string $mode): void
+    public function configureTailwind(string $mode): void
     {
         $path = base_path('tailwind.config.js');
         if (!File::exists($path)) {
@@ -130,7 +131,7 @@ class InstallFrontend
         }
     }
 
-    protected function configureTsConfig(): void
+    public function configureTsConfig(): void
     {
         $path = base_path('tsconfig.json');
         if (!File::exists($path)) {
@@ -169,7 +170,7 @@ class InstallFrontend
         File::put($path, json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
 
-    protected function installNpmDependencies(string $mode): void
+    public function installNpmDependencies(string $mode): void
     {
         $this->command->info('Installing NPM dependencies...');
 
@@ -182,8 +183,8 @@ class InstallFrontend
         };
 
         if ($packages) {
-            // Using shell_exec/exec. Ensure you are in the project root.
-            exec("npm install {$packages} --save-dev", $output, $returnVar);
+            // Optimized npm install
+            exec("npm install {$packages} --save-dev --no-audit --no-fund --quiet", $output, $returnVar);
 
             if ($returnVar !== 0) {
                 $this->command->warn("NPM install might have failed. Please run: npm install {$packages} --save-dev");
@@ -192,7 +193,7 @@ class InstallFrontend
 
         if ($mode === 'livewire') {
             $this->command->info('Setting up Livewire Volt...');
-            exec('composer require livewire/livewire livewire/volt');
+            exec('composer require livewire/livewire livewire/volt --quiet');
             exec('php artisan volt:install');
         }
     }

@@ -49,10 +49,29 @@ class SetupCommand extends Command
 
         // Task 3: Frontend Setup
         if (in_array($config['mode'], ['react', 'vue', 'livewire'])) {
+            $frontend = new InstallFrontend($this);
+            
             \Laravel\Prompts\spin(
-                fn() => (new InstallFrontend($this))->run($config['mode']),
-                'Installing frontend dependencies and configuring Vite...'
+                fn() => $frontend->configureVite(),
+                'Configuring Vite and Aliases...'
             );
+            
+            \Laravel\Prompts\spin(
+                fn() => $frontend->configureTailwind($config['mode']),
+                'Configuring Tailwind CSS...'
+            );
+
+            \Laravel\Prompts\spin(
+                fn() => $frontend->installNpmDependencies($config['mode']),
+                'Installing NPM dependencies (this may take a minute)...'
+            );
+
+            if (in_array($config['mode'], ['react', 'vue'])) {
+                \Laravel\Prompts\spin(
+                    fn() => $frontend->setupShadcn($config['mode']),
+                    'Initializing Shadcn UI and Components...'
+                );
+            }
         }
 
         // Task 4: Starter Kit
