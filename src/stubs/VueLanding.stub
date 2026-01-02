@@ -3,7 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Zap, Shield, Layers, Code2, Boxes, Sparkles } from 'lucide-vue-next';
+import { ArrowRight, Zap, Shield, Layers, Code2, Boxes, Sparkles, CheckCircle2 } from 'lucide-vue-next';
 
 const features = [
     {
@@ -34,73 +34,107 @@ const features = [
     {
         icon: Sparkles,
         title: 'Modern UI Ready',
-        description: 'Pre-configured with shadcn-vue components for beautiful, accessible interfaces from day one.',
+        description: 'Pre-configured with shadcn/ui components for beautiful, accessible interfaces from day one.',
     },
+];
+
+const benefits = [
+    'Zero configuration required',
+    'Laravel 11+ compatible',
+    'TypeScript ready',
+    'Production tested',
 ];
 </script>
 
 <template>
-    <div class="min-h-screen bg-background">
-        <Head title="Welcome" />
+    <div class="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+        <Head title="Welcome to Domion" />
 
         <!-- Header -->
-        <header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div class="container flex h-16 items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <div class="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                        <Layers class="h-4 w-4 text-primary-foreground" />
-                    </div>
-                    <span class="font-bold text-xl">Domion</span>
+        <header class="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <img src="/images/logo.png" alt="Domion" class="h-10 w-10" />
+                    <span class="font-bold text-xl bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                        Domion
+                    </span>
                 </div>
 
                 <nav class="flex items-center gap-4">
                     <Link :href="route('login')">
-                        <Button variant="ghost">Sign in</Button>
+                        <Button variant="ghost" class="text-slate-600 hover:text-blue-600">
+                            Sign in
+                        </Button>
                     </Link>
                     <Link :href="route('register')">
-                        <Button>Get Started</Button>
+                        <Button class="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/25">
+                            Get Started
+                        </Button>
                     </Link>
                 </nav>
             </div>
         </header>
 
         <!-- Hero Section -->
-        <section class="container py-24 md:py-32">
-            <div class="flex flex-col items-center text-center gap-8">
-                <Badge variant="secondary" class="px-4 py-1.5">
-                    <Sparkles class="mr-2 h-3.5 w-3.5" />
-                    Built for Laravel 11+
-                </Badge>
+        <section class="relative overflow-hidden">
+            <!-- Background decoration -->
+            <div class="absolute inset-0 -z-10">
+                <div class="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl" />
+                <div class="absolute top-20 right-1/4 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl" />
+            </div>
 
-                <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tighter max-w-4xl">
-                    Domain-Driven Design for
-                    <span class="text-primary">Modern Laravel</span>
-                </h1>
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+                <div class="flex flex-col items-center text-center gap-8">
+                    <Badge class="bg-blue-100 text-blue-700 hover:bg-blue-100 px-4 py-1.5 text-sm font-medium">
+                        <Sparkles class="mr-2 h-3.5 w-3.5" />
+                        Built for Laravel 11+
+                    </Badge>
 
-                <p class="text-xl text-muted-foreground max-w-2xl">
-                    The enterprise framework that transforms your Laravel application into a clean,
-                    scalable architecture. Build faster, maintain easier, ship confidently.
-                </p>
+                    <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight max-w-4xl">
+                        Domain-Driven Design for
+                        <span class="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 bg-clip-text text-transparent">
+                            Modern Laravel
+                        </span>
+                    </h1>
 
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <Link :href="route('register')">
-                        <Button size="lg" class="gap-2">
-                            Start Building
-                            <ArrowRight class="h-4 w-4" />
-                        </Button>
-                    </Link>
-                    <a href="https://github.com/samushi/domion" target="_blank" rel="noopener noreferrer">
-                        <Button size="lg" variant="outline">
-                            View on GitHub
-                        </Button>
-                    </a>
-                </div>
+                    <p class="text-xl text-slate-600 max-w-2xl leading-relaxed">
+                        The enterprise framework that transforms your Laravel application into a clean,
+                        scalable architecture. Build faster, maintain easier, ship confidently.
+                    </p>
 
-                <!-- Code Preview -->
-                <div class="mt-12 w-full max-w-3xl">
-                    <Card class="bg-zinc-950 border-zinc-800">
-                        <CardContent class="p-6">
-                            <pre class="text-sm text-zinc-300 overflow-x-auto"><code># Install Domion in your Laravel project
+                    <!-- Benefits list -->
+                    <div class="flex flex-wrap justify-center gap-4 mt-2">
+                        <div v-for="(benefit, i) in benefits" :key="i" class="flex items-center gap-2 text-slate-600">
+                            <CheckCircle2 class="h-5 w-5 text-green-500" />
+                            <span>{{ benefit }}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-4 mt-4">
+                        <Link :href="route('register')">
+                            <Button size="lg" class="gap-2 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/25 px-8">
+                                Start Building
+                                <ArrowRight class="h-4 w-4" />
+                            </Button>
+                        </Link>
+                        <a href="https://github.com/samushi/domion" target="_blank" rel="noopener noreferrer">
+                            <Button size="lg" variant="outline" class="border-slate-300 hover:border-blue-400 hover:text-blue-600 px-8">
+                                View on GitHub
+                            </Button>
+                        </a>
+                    </div>
+
+                    <!-- Code Preview -->
+                    <div class="mt-16 w-full max-w-3xl">
+                        <Card class="bg-slate-900 border-slate-800 shadow-2xl shadow-blue-500/10 overflow-hidden">
+                            <div class="flex items-center gap-2 px-4 py-3 border-b border-slate-800">
+                                <div class="w-3 h-3 rounded-full bg-red-500" />
+                                <div class="w-3 h-3 rounded-full bg-yellow-500" />
+                                <div class="w-3 h-3 rounded-full bg-green-500" />
+                                <span class="ml-2 text-slate-400 text-sm">Terminal</span>
+                            </div>
+                            <CardContent class="p-6">
+                                <pre class="text-sm text-slate-300 overflow-x-auto"><code># Install Domion in your Laravel project
 composer require samushi/domion
 
 # Run the setup wizard
@@ -108,67 +142,84 @@ php artisan domion:setup
 
 # Create your first domain
 php artisan domion:domain Product</code></pre>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- Features Section -->
-        <section class="container py-24 border-t">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-                    Everything you need to build at scale
-                </h2>
-                <p class="text-lg text-muted-foreground max-w-2xl mx-auto">
-                    Domion provides the architectural foundation that growing teams need,
-                    without the complexity of traditional DDD frameworks.
-                </p>
-            </div>
+        <section class="bg-white py-24 border-t border-slate-100">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <Badge class="bg-cyan-100 text-cyan-700 hover:bg-cyan-100 mb-4">Features</Badge>
+                    <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+                        Everything you need to
+                        <span class="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                            build at scale
+                        </span>
+                    </h2>
+                    <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+                        Domion provides the architectural foundation that growing teams need,
+                        without the complexity of traditional DDD frameworks.
+                    </p>
+                </div>
 
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card v-for="(feature, index) in features" :key="index" class="group hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                        <div class="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                            <component :is="feature.icon" class="h-6 w-6 text-primary" />
-                        </div>
-                        <CardTitle>{{ feature.title }}</CardTitle>
-                        <CardDescription class="text-base">{{ feature.description }}</CardDescription>
-                    </CardHeader>
-                </Card>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <Card v-for="(feature, index) in features" :key="index" class="group border-slate-200 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300">
+                        <CardHeader>
+                            <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-blue-500/20">
+                                <component :is="feature.icon" class="h-6 w-6 text-white" />
+                            </div>
+                            <CardTitle class="text-lg">{{ feature.title }}</CardTitle>
+                            <CardDescription class="text-base text-slate-500">
+                                {{ feature.description }}
+                            </CardDescription>
+                        </CardHeader>
+                    </Card>
+                </div>
             </div>
         </section>
 
         <!-- CTA Section -->
-        <section class="container py-24 border-t">
-            <Card class="bg-primary text-primary-foreground">
-                <CardContent class="flex flex-col md:flex-row items-center justify-between gap-8 p-8 md:p-12">
-                    <div>
-                        <h3 class="text-2xl md:text-3xl font-bold mb-2">Ready to transform your architecture?</h3>
-                        <p class="text-primary-foreground/80">
-                            Join thousands of developers building better Laravel applications with Domion.
-                        </p>
-                    </div>
-                    <Link :href="route('register')">
-                        <Button size="lg" variant="secondary" class="gap-2 whitespace-nowrap">
-                            Get Started Free
-                            <ArrowRight class="h-4 w-4" />
-                        </Button>
-                    </Link>
-                </CardContent>
-            </Card>
+        <section class="py-24">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <Card class="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 border-0 shadow-2xl shadow-blue-500/25 overflow-hidden relative">
+                    <!-- Decorative elements -->
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                    <div class="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+                    
+                    <CardContent class="flex flex-col md:flex-row items-center justify-between gap-8 p-8 md:p-12 relative z-10">
+                        <div class="text-white text-center md:text-left">
+                            <h3 class="text-2xl md:text-3xl font-bold mb-2">
+                                Ready to transform your architecture?
+                            </h3>
+                            <p class="text-blue-100 text-lg">
+                                Join thousands of developers building better Laravel applications with Domion.
+                            </p>
+                        </div>
+                        <Link :href="route('register')">
+                            <Button size="lg" class="bg-white text-blue-600 hover:bg-blue-50 gap-2 whitespace-nowrap shadow-lg px-8">
+                                Get Started Free
+                                <ArrowRight class="h-4 w-4" />
+                            </Button>
+                        </Link>
+                    </CardContent>
+                </Card>
+            </div>
         </section>
 
         <!-- Footer -->
-        <footer class="border-t py-12">
-            <div class="container flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-2">
-                    <div class="h-6 w-6 rounded bg-primary flex items-center justify-center">
-                        <Layers class="h-3 w-3 text-primary-foreground" />
-                    </div>
-                    <span class="font-semibold">Domion</span>
+        <footer class="border-t border-slate-200 bg-slate-50 py-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <img src="/images/logo.png" alt="Domion" class="h-8 w-8" />
+                    <span class="font-semibold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                        Domion
+                    </span>
                 </div>
-                <p class="text-sm text-muted-foreground">
+                <p class="text-sm text-slate-500">
                     Built with Laravel & Vue. Open source under MIT License.
                 </p>
             </div>

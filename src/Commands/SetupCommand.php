@@ -52,6 +52,11 @@ class SetupCommand extends Command
             $frontend = new InstallFrontend($this);
             
             \Laravel\Prompts\spin(
+                fn() => $frontend->configureTsConfig(),
+                'Creating TypeScript configuration...'
+            );
+
+            \Laravel\Prompts\spin(
                 fn() => $frontend->configureVite($config['mode']),
                 'Configuring Vite and Aliases...'
             );
@@ -133,7 +138,7 @@ class SetupCommand extends Command
     {
         return [
             'tenancy' => \Laravel\Prompts\select('Architecture:', ['standard' => 'Standard', 'tenancy' => 'Multi-tenancy'], 'standard') === 'tenancy',
-            'mode' => \Laravel\Prompts\select('Frontend Stack:', ['api', 'react', 'vue', 'livewire'], 'react'),
+            'mode' => \Laravel\Prompts\select('Frontend Stack:', ['api' => 'API Only', 'react' => 'React + Inertia', 'vue' => 'Vue + Inertia'], 'react'),
             'auth' => \Laravel\Prompts\select('Auth Driver:', ['sanctum', 'passport', 'none'], 'sanctum'),
             'starterKit' => \Laravel\Prompts\confirm('Install Starter Kit (Auth/Dashboard)?', true),
         ];

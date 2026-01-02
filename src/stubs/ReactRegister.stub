@@ -1,139 +1,195 @@
-import React, { FormEventHandler } from 'react';
+import React from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { ArrowRight, User, Mail, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 
 export default function Register() {
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const [showPassword, setShowPassword] = React.useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+    
+    const { data, setData, post, processing, errors } = useForm({
         name: '',
         email: '',
         password: '',
         password_confirmation: '',
     });
 
-    const submit: FormEventHandler = (e) => {
+    const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('register'), {
-            onFinish: () => reset('password', 'password_confirmation'),
-        });
+        post(route('register'));
     };
 
+    const benefits = [
+        'Free forever for personal use',
+        'Full access to all features',
+        'Community support included',
+    ];
+
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background p-4">
-            <Head title="Register" />
+        <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-cyan-50 flex flex-col">
+            <Head title="Create Account" />
 
-            <div className="w-full max-w-md">
-                <Card className="border-border/40 shadow-lg">
-                    <CardHeader className="space-y-1 text-center">
-                        <div className="flex justify-center mb-4">
-                            <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
-                                <svg className="h-6 w-6 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                                </svg>
+            {/* Header */}
+            <header className="py-6">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <Link href={route('home')} className="flex items-center gap-3 w-fit">
+                        <img src="/images/logo.png" alt="Domion" className="h-10 w-10" />
+                        <span className="font-bold text-xl bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                            Domion
+                        </span>
+                    </Link>
+                </div>
+            </header>
+
+            {/* Main Content */}
+            <main className="flex-1 flex items-center justify-center px-4 py-12">
+                <div className="w-full max-w-md">
+                    {/* Decorative background */}
+                    <div className="absolute inset-0 -z-10 overflow-hidden">
+                        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl" />
+                        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl" />
+                    </div>
+
+                    <Card className="border-0 shadow-2xl shadow-blue-500/10 bg-white/80 backdrop-blur-sm">
+                        <CardHeader className="text-center pb-0">
+                            <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                                <User className="h-8 w-8 text-white" />
                             </div>
-                        </div>
-                        <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-                        <CardDescription>Enter your information to get started</CardDescription>
-                    </CardHeader>
+                            <CardTitle className="text-2xl font-bold">Create your account</CardTitle>
+                            <CardDescription className="text-slate-500">
+                                Start building with Domion today
+                            </CardDescription>
+                        </CardHeader>
 
-                    <CardContent>
-                        <form onSubmit={submit} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Full Name</Label>
-                                <Input
-                                    id="name"
-                                    type="text"
-                                    placeholder="John Doe"
-                                    value={data.name}
-                                    onChange={(e) => setData('name', e.target.value)}
-                                    autoComplete="name"
-                                    autoFocus
-                                    className={errors.name ? 'border-destructive' : ''}
-                                />
-                                {errors.name && (
-                                    <p className="text-sm text-destructive">{errors.name}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    placeholder="name@example.com"
-                                    value={data.email}
-                                    onChange={(e) => setData('email', e.target.value)}
-                                    autoComplete="username"
-                                    className={errors.email ? 'border-destructive' : ''}
-                                />
-                                {errors.email && (
-                                    <p className="text-sm text-destructive">{errors.email}</p>
-                                )}
+                        <CardContent className="pt-6">
+                            {/* Benefits */}
+                            <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100">
+                                <div className="space-y-2">
+                                    {benefits.map((benefit, i) => (
+                                        <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
+                                            <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                            <span>{benefit}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="password">Password</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    placeholder="••••••••"
-                                    value={data.password}
-                                    onChange={(e) => setData('password', e.target.value)}
-                                    autoComplete="new-password"
-                                    className={errors.password ? 'border-destructive' : ''}
-                                />
-                                {errors.password && (
-                                    <p className="text-sm text-destructive">{errors.password}</p>
-                                )}
+                            <form onSubmit={submit} className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name" className="text-slate-700">Full Name</Label>
+                                    <div className="relative">
+                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                        <Input
+                                            id="name"
+                                            type="text"
+                                            placeholder="John Doe"
+                                            value={data.name}
+                                            onChange={e => setData('name', e.target.value)}
+                                            className="pl-10 border-slate-200 focus:border-blue-400 focus:ring-blue-400"
+                                        />
+                                    </div>
+                                    {errors.name && (
+                                        <p className="text-sm text-red-500">{errors.name}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="email" className="text-slate-700">Email</Label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            placeholder="you@example.com"
+                                            value={data.email}
+                                            onChange={e => setData('email', e.target.value)}
+                                            className="pl-10 border-slate-200 focus:border-blue-400 focus:ring-blue-400"
+                                        />
+                                    </div>
+                                    {errors.email && (
+                                        <p className="text-sm text-red-500">{errors.email}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="password" className="text-slate-700">Password</Label>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                        <Input
+                                            id="password"
+                                            type={showPassword ? 'text' : 'password'}
+                                            placeholder="••••••••"
+                                            value={data.password}
+                                            onChange={e => setData('password', e.target.value)}
+                                            className="pl-10 pr-10 border-slate-200 focus:border-blue-400 focus:ring-blue-400"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                        >
+                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </button>
+                                    </div>
+                                    {errors.password && (
+                                        <p className="text-sm text-red-500">{errors.password}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="password_confirmation" className="text-slate-700">Confirm Password</Label>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                        <Input
+                                            id="password_confirmation"
+                                            type={showConfirmPassword ? 'text' : 'password'}
+                                            placeholder="••••••••"
+                                            value={data.password_confirmation}
+                                            onChange={e => setData('password_confirmation', e.target.value)}
+                                            className="pl-10 pr-10 border-slate-200 focus:border-blue-400 focus:ring-blue-400"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                        >
+                                            {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/25"
+                                >
+                                    {processing ? 'Creating account...' : 'Create account'}
+                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                            </form>
+
+                            <div className="mt-6 text-center">
+                                <p className="text-slate-600">
+                                    Already have an account?{' '}
+                                    <Link href={route('login')} className="text-blue-600 hover:text-blue-700 font-medium hover:underline">
+                                        Sign in
+                                    </Link>
+                                </p>
                             </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </main>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="password_confirmation">Confirm Password</Label>
-                                <Input
-                                    id="password_confirmation"
-                                    type="password"
-                                    placeholder="••••••••"
-                                    value={data.password_confirmation}
-                                    onChange={(e) => setData('password_confirmation', e.target.value)}
-                                    autoComplete="new-password"
-                                    className={errors.password_confirmation ? 'border-destructive' : ''}
-                                />
-                                {errors.password_confirmation && (
-                                    <p className="text-sm text-destructive">{errors.password_confirmation}</p>
-                                )}
-                            </div>
-
-                            <Button type="submit" className="w-full" disabled={processing}>
-                                {processing ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Creating account...
-                                    </>
-                                ) : (
-                                    'Create account'
-                                )}
-                            </Button>
-                        </form>
-
-                        <div className="mt-6 text-center text-sm">
-                            <span className="text-muted-foreground">Already have an account? </span>
-                            <Link href={route('login')} className="text-primary hover:underline font-medium">
-                                Sign in
-                            </Link>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <p className="mt-6 text-center text-xs text-muted-foreground">
-                    By creating an account, you agree to our{' '}
-                    <Link href="#" className="hover:text-primary underline">Terms of Service</Link>
-                    {' '}and{' '}
-                    <Link href="#" className="hover:text-primary underline">Privacy Policy</Link>
-                </p>
-            </div>
+            {/* Footer */}
+            <footer className="py-6">
+                <div className="text-center text-sm text-slate-500">
+                    © {new Date().getFullYear()} Domion. All rights reserved.
+                </div>
+            </footer>
         </div>
     );
 }

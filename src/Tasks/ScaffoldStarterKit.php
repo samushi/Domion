@@ -138,61 +138,39 @@ class ScaffoldStarterKit
 
     protected function scaffoldAuthFrontend(string $mode, string $basePath): void
     {
+        if (!in_array($mode, ['react', 'vue'])) {
+            return;
+        }
+
         $pages = ['Login', 'Register', 'ForgotPassword', 'ResetPassword'];
 
         foreach ($pages as $page) {
             $stub = ucfirst($mode) . $page;
             $target = $this->getFrontendPath($mode, $basePath, $page);
-            
-            $replacements = [];
-            if ($mode === 'livewire') {
-                $replacements = [
-                    'namespace' => 'App\Domain\Auth\Frontend\Livewire',
-                    'domain' => 'auth'
-                ];
-                
-                // Also generate the view for Livewire
-                $viewStub = $stub . 'View';
-                $viewTarget = $basePath . "/Frontend/Views/livewire/" . Str::lower($page) . ".blade.php";
-                $this->generateFile($viewStub, $viewTarget);
-            }
-            
-            $this->generateFile($stub, $target, $replacements);
+            $this->generateFile($stub, $target);
         }
     }
 
     protected function scaffoldDashboardFrontend(string $mode, string $basePath): void
     {
-        $stub = ucfirst($mode) . 'Dashboard';
-        $target = $this->getFrontendPath($mode, $basePath, 'Dashboard');
-        
-        $replacements = [];
-        if ($mode === 'livewire') {
-            $replacements = [
-                'namespace' => 'App\Domain\Dashboard\Frontend\Livewire',
-                'domain' => 'dashboard'
-            ];
-            
-            $this->generateFile('LivewireDashboardView', $basePath . '/Frontend/Views/livewire/dashboard.blade.php');
+        if (!in_array($mode, ['react', 'vue'])) {
+            return;
         }
 
-        $this->generateFile($stub, $target, $replacements);
+        $stub = ucfirst($mode) . 'Dashboard';
+        $target = $this->getFrontendPath($mode, $basePath, 'Dashboard');
+        $this->generateFile($stub, $target);
     }
 
     protected function scaffoldLandingView(string $mode, string $basePath): void
     {
+        if (!in_array($mode, ['react', 'vue'])) {
+            return;
+        }
+
         $stub = ucfirst($mode) . 'Landing';
         $target = $this->getFrontendPath($mode, $basePath, 'Landing');
-
-        if ($mode === 'livewire') {
-            $this->generateFile('LivewireLanding', $basePath . '/Frontend/Livewire/Landing.php', [
-                'namespace' => 'App\Domain\Landing\Frontend\Livewire',
-                'domain' => 'landing'
-            ]);
-            $this->generateFile('LivewireLandingView', $basePath . '/Frontend/Views/livewire/landing.blade.php');
-        } else {
-            $this->generateFile($stub, $target);
-        }
+        $this->generateFile($stub, $target);
     }
 
     protected function getFrontendPath(string $mode, string $basePath, string $name): string
@@ -200,8 +178,6 @@ class ScaffoldStarterKit
         return match($mode) {
             'react' => $basePath . "/Frontend/Pages/{$name}.tsx",
             'vue' => $basePath . "/Frontend/Pages/{$name}.vue",
-            'livewire' => $basePath . "/Frontend/Livewire/{$name}.php",
-            'blade' => $basePath . "/Frontend/Views/pages/" . Str::lower($name) . ".blade.php",
             default => $basePath . "/Frontend/{$name}.js"
         };
     }
@@ -211,7 +187,6 @@ class ScaffoldStarterKit
         return match($mode) {
             'react' => 'tsx',
             'vue' => 'vue',
-            'livewire', 'blade' => 'php',
             default => 'js'
         };
     }

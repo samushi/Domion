@@ -36,14 +36,38 @@ class InstallFrontend
 
         $this->command->info('Initializing Shadcn UI...');
 
+        // Ensure tsconfig.json exists first (required by Shadcn)
+        $this->configureTsConfig();
+
         $cssPath = base_path('app/Support/Frontend/app.css');
         File::ensureDirectoryExists(dirname($cssPath));
         
-        $directives = "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n@layer base {\n  :root {\n    --background: 0 0% 100%;\n    --foreground: 222.2 84% 4.9%;\n    --card: 0 0% 100%;\n    --card-foreground: 222.2 84% 4.9%;\n    --popover: 0 0% 100%;\n    --popover-foreground: 222.2 84% 4.9%;\n    --primary: 222.2 47.4% 11.2%;\n    --primary-foreground: 210 40% 98%;\n    --secondary: 210 40% 96.1%;\n    --secondary-foreground: 222.2 47.4% 11.2%;\n    --muted: 210 40% 96.1%;\n    --muted-foreground: 215.4 16.3% 46.9%;\n    --accent: 210 40% 96.1%;\n    --accent-foreground: 222.2 47.4% 11.2%;\n    --destructive: 0 84.2% 60.2%;\n    --destructive-foreground: 210 40% 98%;\n    --border: 214.3 31.8% 91.4%;\n    --input: 214.3 31.8% 91.4%;\n    --ring: 222.2 84% 4.9%;\n    --radius: 0.5rem;\n  }\n\n  .dark {\n    --background: 222.2 84% 4.9%;\n    --foreground: 210 40% 98%;\n    /* ... other dark vars if needed ... */\n  }\n}\n\n@layer base {\n  * {\n    @apply border-border;\n  }\n  body {\n    @apply bg-background text-foreground;\n  }\n}";
+        // Tailwind v4 uses @import instead of @tailwind directives
+        $directives = "@import \"tailwindcss\";\n\n" .
+            "@theme {\n" .
+            "  --color-background: hsl(0 0% 100%);\n" .
+            "  --color-foreground: hsl(222.2 84% 4.9%);\n" .
+            "  --color-card: hsl(0 0% 100%);\n" .
+            "  --color-card-foreground: hsl(222.2 84% 4.9%);\n" .
+            "  --color-popover: hsl(0 0% 100%);\n" .
+            "  --color-popover-foreground: hsl(222.2 84% 4.9%);\n" .
+            "  --color-primary: hsl(222.2 47.4% 11.2%);\n" .
+            "  --color-primary-foreground: hsl(210 40% 98%);\n" .
+            "  --color-secondary: hsl(210 40% 96.1%);\n" .
+            "  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);\n" .
+            "  --color-muted: hsl(210 40% 96.1%);\n" .
+            "  --color-muted-foreground: hsl(215.4 16.3% 46.9%);\n" .
+            "  --color-accent: hsl(210 40% 96.1%);\n" .
+            "  --color-accent-foreground: hsl(222.2 47.4% 11.2%);\n" .
+            "  --color-destructive: hsl(0 84.2% 60.2%);\n" .
+            "  --color-destructive-foreground: hsl(210 40% 98%);\n" .
+            "  --color-border: hsl(214.3 31.8% 91.4%);\n" .
+            "  --color-input: hsl(214.3 31.8% 91.4%);\n" .
+            "  --color-ring: hsl(222.2 84% 4.9%);\n" .
+            "  --radius: 0.5rem;\n" .
+            "}\n";
         
-        if (!File::exists($cssPath) || !str_contains(File::get($cssPath), '@tailwind base')) {
-            File::put($cssPath, $directives . "\n" . (File::exists($cssPath) ? File::get($cssPath) : ''));
-        }
+        File::put($cssPath, $directives);
 
         // 1.1 Create lib/utils.ts if missing (critical for shadcn)
         $utilsPath = base_path('app/Support/Frontend/lib/utils.ts');
@@ -59,7 +83,7 @@ class InstallFrontend
             'rsc' => false,
             'tsx' => true,
             'tailwind' => [
-                'config' => 'tailwind.config.js',
+                'config' => '',
                 'css' => 'app/Support/Frontend/app.css',
                 'baseColor' => 'slate',
                 'cssVariables' => true,
@@ -146,87 +170,11 @@ class InstallFrontend
 
     public function configureTailwind(string $mode): void
     {
-        $path = base_path('tailwind.config.js');
+        // Tailwind v4 uses CSS-first configuration via @theme in app.css
+        // No tailwind.config.js needed - all configuration is in the CSS file
+        // The setupShadcn method already creates the app.css with @theme block
         
-        if (!File::exists($path)) {
-            $this->command->info('Creating Tailwind CSS configuration...');
-            $ext = $mode === 'vue' ? 'vue' : 'js,ts,jsx,tsx';
-            
-            $content = "import tailwindAnimate from 'tailwindcss-animate';\n\n" .
-                "/** @type {import('tailwindcss').Config} */\n" .
-                "export default {\n" .
-                "    darkMode: ['class'],\n" .
-                "    content: [\n" .
-                "        './app/Domain/**/*.{" . $ext . "}',\n" .
-                "        './app/Support/**/*.{" . $ext . "}',\n" .
-                "        './resources/views/**/*.blade.php',\n" .
-                "    ],\n" .
-                "    theme: {\n" .
-                "        container: {\n" .
-                "            center: true,\n" .
-                "            padding: '2rem',\n" .
-                "            screens: {\n" .
-                "                '2xl': '1400px',\n" .
-                "            },\n" .
-                "        },\n" .
-                "        extend: {\n" .
-                "            colors: {\n" .
-                "                border: 'hsl(var(--border))',\n" .
-                "                input: 'hsl(var(--input))',\n" .
-                "                ring: 'hsl(var(--ring))',\n" .
-                "                background: 'hsl(var(--background))',\n" .
-                "                foreground: 'hsl(var(--foreground))',\n" .
-                "                primary: {\n" .
-                "                    DEFAULT: 'hsl(var(--primary))',\n" .
-                "                    foreground: 'hsl(var(--primary-foreground))',\n" .
-                "                },\n" .
-                "                secondary: {\n" .
-                "                    DEFAULT: 'hsl(var(--secondary))',\n" .
-                "                    foreground: 'hsl(var(--secondary-foreground))',\n" .
-                "                },\n" .
-                "                destructive: {\n" .
-                "                    DEFAULT: 'hsl(var(--destructive))',\n" .
-                "                    foreground: 'hsl(var(--destructive-foreground))',\n" .
-                "                },\n" .
-                "                muted: {\n" .
-                "                    DEFAULT: 'hsl(var(--muted))',\n" .
-                "                    foreground: 'hsl(var(--muted-foreground))',\n" .
-                "                },\n" .
-                "                accent: {\n" .
-                "                    DEFAULT: 'hsl(var(--accent))',\n" .
-                "                    foreground: 'hsl(var(--accent-foreground))',\n" .
-                "                },\n" .
-                "                popover: {\n" .
-                "                    DEFAULT: 'hsl(var(--popover))',\n" .
-                "                    foreground: 'hsl(var(--popover-foreground))',\n" .
-                "                },\n" .
-                "                card: {\n" .
-                "                    DEFAULT: 'hsl(var(--card))',\n" .
-                "                    foreground: 'hsl(var(--card-foreground))',\n" .
-                "                },\n" .
-                "            },\n" .
-                "            borderRadius: {\n" .
-                "                lg: 'var(--radius)',\n" .
-                "                md: 'calc(var(--radius) - 2px)',\n" .
-                "                sm: 'calc(var(--radius) - 4px)',\n" .
-                "            },\n" .
-                "        },\n" .
-                "    },\n" .
-                "    plugins: [tailwindAnimate],\n" .
-                "};\n";
-            
-            File::put($path, $content);
-        } else {
-            // Ensure DDD paths are present in existing config
-            $content = File::get($path);
-            if (!str_contains($content, 'app/Domain')) {
-                $ext = $mode === 'vue' ? 'vue' : 'js,ts,jsx,tsx';
-                $newPaths = "'./app/Domain/**/*.{" . $ext . "}', './app/Support/**/*.{" . $ext . "}',";
-                $content = preg_replace('/(content:\s*\[)/', "$1\n        $newPaths", $content);
-                File::put($path, $content);
-            }
-        }
-
+        // Just ensure PostCSS is configured
         $this->setupPostCss();
     }
 
@@ -234,15 +182,11 @@ class InstallFrontend
     {
         $path = base_path('postcss.config.js');
         
-        $content = "import tailwindcssNesting from 'tailwindcss/nesting/index.js';\n" .
-            "import tailwindcss from 'tailwindcss';\n" .
-            "import autoprefixer from 'autoprefixer';\n\n" .
-            "export default {\n" .
-            "    plugins: [\n" .
-            "        tailwindcssNesting,\n" .
-            "        tailwindcss,\n" .
-            "        autoprefixer,\n" .
-            "    ],\n" .
+        // Tailwind v4 uses @tailwindcss/postcss package
+        $content = "export default {\n" .
+            "    plugins: {\n" .
+            "        '@tailwindcss/postcss': {},\n" .
+            "    },\n" .
             "};\n";
 
         File::put($path, $content);
@@ -252,10 +196,7 @@ class InstallFrontend
     {
         $path = base_path('tsconfig.json');
         
-        // If it's a JS project but we want TS support for Shadcn, we prefer tsconfig.json
-        if (!File::exists($path) && File::exists(base_path('jsconfig.json'))) {
-             $path = base_path('jsconfig.json');
-        }
+        // Always create tsconfig.json (Shadcn requires it)
 
         // Initialize empty config if missing
         $json = File::exists($path) ? json_decode(File::get($path), true) : [
@@ -327,7 +268,7 @@ class InstallFrontend
     {
         $this->command->info('Installing NPM dependencies...');
 
-        $commonUtils = 'class-variance-authority clsx tailwind-merge lucide-react ziggy-js concurrently tailwindcss-animate';
+        $commonUtils = 'class-variance-authority clsx tailwind-merge lucide-react ziggy-js concurrently tailwindcss-animate autoprefixer @tailwindcss/postcss';
 
         $packages = match ($mode) {
             'react' => "@inertiajs/react react react-dom @vitejs/plugin-react @types/react @types/react-dom {$commonUtils}",
@@ -355,12 +296,6 @@ class InstallFrontend
         if (in_array($mode, ['react', 'vue'])) {
             $this->command->info('Setting up Inertia & Ziggy PHP side...');
             exec('composer require inertiajs/inertia-laravel tightenco/ziggy --quiet');
-        }
-
-        if ($mode === 'livewire') {
-            $this->command->info('Setting up Livewire Volt...');
-            exec('composer require livewire/livewire livewire/volt --quiet');
-            exec('php artisan volt:install');
         }
     }
 }

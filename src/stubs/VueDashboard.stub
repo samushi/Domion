@@ -1,164 +1,151 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { LayoutDashboard, Users, Settings, LogOut, TrendingUp, Activity, CreditCard, ChevronDown } from 'lucide-vue-next';
+import { Badge } from '@/components/ui/badge';
+import { 
+    Layers, Zap, Code2, Users, Plus, FileText, LogOut,
+    CheckCircle2, Activity
+} from 'lucide-vue-next';
 
 interface User {
-    id: number;
     name: string;
     email: string;
 }
 
-interface Props {
+defineProps<{
     auth: {
         user: User;
     };
-}
-
-const props = defineProps<Props>();
-
-const handleLogout = () => {
-    router.post(route('logout'));
-};
+}>();
 
 const stats = [
-    { title: 'Total Revenue', value: '$45,231.89', description: '+20.1% from last month', icon: CreditCard },
-    { title: 'Active Users', value: '+2,350', description: '+180.1% from last month', icon: Users },
-    { title: 'Sales', value: '+12,234', description: '+19% from last month', icon: TrendingUp },
-    { title: 'Active Now', value: '+573', description: '+201 since last hour', icon: Activity },
+    { label: 'Total Domains', value: '12', icon: Layers, trend: '+2 this week' },
+    { label: 'Active Actions', value: '48', icon: Zap, trend: '+8 this week' },
+    { label: 'API Endpoints', value: '156', icon: Code2, trend: '+12 this week' },
+    { label: 'Team Members', value: '8', icon: Users, trend: '+1 this week' },
+];
+
+const quickActions = [
+    { title: 'Create Domain', description: 'Add a new domain', icon: Plus, href: '#' },
+    { title: 'Generate Action', description: 'Create new action class', icon: Zap, href: '#' },
+    { title: 'View Documentation', description: 'Learn more about Domion', icon: FileText, href: '#' },
+];
+
+const activities = [
+    { action: 'Created new domain', target: 'Product', time: '2 hours ago' },
+    { action: 'Generated action', target: 'CreateOrderAction', time: '4 hours ago' },
+    { action: 'Updated repository', target: 'UserRepository', time: '1 day ago' },
 ];
 </script>
 
 <template>
-    <div class="min-h-screen bg-background">
+    <div class="min-h-screen bg-slate-50">
         <Head title="Dashboard" />
 
         <!-- Header -->
-        <header class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div class="container flex h-16 items-center justify-between">
-                <div class="flex items-center gap-6">
-                    <Link :href="route('dashboard')" class="flex items-center gap-2">
-                        <div class="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                            <LayoutDashboard class="h-4 w-4 text-primary-foreground" />
-                        </div>
-                        <span class="font-bold text-xl">Domion</span>
-                    </Link>
+        <header class="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
+                <Link :href="route('home')" class="flex items-center gap-3">
+                    <img src="/images/logo.png" alt="Domion" class="h-10 w-10" />
+                    <span class="font-bold text-xl bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                        Domion
+                    </span>
+                </Link>
 
-                    <nav class="hidden md:flex items-center gap-6">
-                        <Link :href="route('dashboard')" class="text-sm font-medium text-foreground">
-                            Dashboard
-                        </Link>
-                        <Link href="#" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                            Analytics
-                        </Link>
-                        <Link href="#" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                            Reports
-                        </Link>
-                        <Link href="#" class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                            Settings
-                        </Link>
-                    </nav>
-                </div>
-
-                <DropdownMenu>
-                    <DropdownMenuTrigger as-child>
-                        <Button variant="ghost" class="flex items-center gap-2">
-                            <Avatar class="h-8 w-8">
-                                <AvatarImage :src="`https://avatar.vercel.sh/${props.auth.user.email}`" />
-                                <AvatarFallback>{{ props.auth.user.name.charAt(0).toUpperCase() }}</AvatarFallback>
-                            </Avatar>
-                            <span class="hidden md:inline-block text-sm font-medium">{{ props.auth.user.name }}</span>
-                            <ChevronDown class="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" class="w-56">
-                        <DropdownMenuLabel>
-                            <div class="flex flex-col space-y-1">
-                                <p class="text-sm font-medium">{{ props.auth.user.name }}</p>
-                                <p class="text-xs text-muted-foreground">{{ props.auth.user.email }}</p>
-                            </div>
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>
-                            <Settings class="mr-2 h-4 w-4" />
-                            Settings
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem @click="handleLogout" class="text-destructive focus:text-destructive">
-                            <LogOut class="mr-2 h-4 w-4" />
+                <div class="flex items-center gap-4">
+                    <span class="text-slate-600">Welcome, {{ auth.user.name }}</span>
+                    <Link :href="route('logout')" method="post" as="button">
+                        <Button variant="ghost" class="text-slate-600 hover:text-red-600">
+                            <LogOut class="h-4 w-4 mr-2" />
                             Logout
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                        </Button>
+                    </Link>
+                </div>
             </div>
         </header>
 
         <!-- Main Content -->
-        <main class="container py-8">
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Welcome Section -->
             <div class="mb-8">
-                <h1 class="text-3xl font-bold tracking-tight">Dashboard</h1>
-                <p class="text-muted-foreground">Welcome back, {{ props.auth.user.name }}!</p>
+                <h1 class="text-3xl font-bold text-slate-900">Dashboard</h1>
+                <p class="text-slate-600 mt-1">Welcome back! Here's what's happening with your projects.</p>
             </div>
 
             <!-- Stats Grid -->
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-                <Card v-for="(stat, index) in stats" :key="index">
-                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">{{ stat.title }}</CardTitle>
-                        <component :is="stat.icon" class="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div class="text-2xl font-bold">{{ stat.value }}</div>
-                        <p class="text-xs text-muted-foreground">{{ stat.description }}</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <Card v-for="(stat, index) in stats" :key="index" class="hover:shadow-lg hover:border-blue-200 transition-all duration-300">
+                    <CardContent class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                <component :is="stat.icon" class="h-6 w-6 text-white" />
+                            </div>
+                            <Badge variant="secondary" class="text-xs font-normal">
+                                {{ stat.trend }}
+                            </Badge>
+                        </div>
+                        <h3 class="text-3xl font-bold text-slate-900">{{ stat.value }}</h3>
+                        <p class="text-slate-500 text-sm mt-1">{{ stat.label }}</p>
                     </CardContent>
                 </Card>
             </div>
 
-            <!-- Content Cards -->
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <Card class="lg:col-span-4">
-                    <CardHeader>
-                        <CardTitle>Overview</CardTitle>
-                        <CardDescription>Your performance this month</CardDescription>
-                    </CardHeader>
-                    <CardContent class="h-[300px] flex items-center justify-center text-muted-foreground">
-                        <div class="text-center">
-                            <TrendingUp class="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>Chart visualization goes here</p>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card class="lg:col-span-3">
-                    <CardHeader>
-                        <CardTitle>Recent Activity</CardTitle>
-                        <CardDescription>Your latest actions</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div class="space-y-4">
-                            <div v-for="i in 5" :key="i" class="flex items-center gap-4">
-                                <div class="h-9 w-9 rounded-full bg-muted flex items-center justify-center">
-                                    <Activity class="h-4 w-4" />
+            <!-- Quick Actions -->
+            <Card class="mb-8">
+                <CardHeader>
+                    <CardTitle>Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Link v-for="(action, index) in quickActions" :key="index" :href="action.href" class="group">
+                            <div class="flex items-center gap-3 p-4 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-300">
+                                <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                    <component :is="action.icon" class="h-5 w-5 text-white" />
                                 </div>
-                                <div class="flex-1 space-y-1">
-                                    <p class="text-sm font-medium">Action {{ i }}</p>
-                                    <p class="text-xs text-muted-foreground">2 hours ago</p>
+                                <div>
+                                    <p class="font-medium text-slate-900">{{ action.title }}</p>
+                                    <p class="text-sm text-slate-500">{{ action.description }}</p>
                                 </div>
                             </div>
+                        </Link>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <!-- Recent Activity -->
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <Activity class="h-5 w-5" />
+                        Recent Activity
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div class="space-y-4">
+                        <div v-for="(activity, index) in activities" :key="index" class="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
+                            <div class="flex items-center gap-3">
+                                <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <CheckCircle2 class="h-4 w-4 text-blue-600" />
+                                </div>
+                                <div>
+                                    <p class="text-sm text-slate-900">
+                                        {{ activity.action }} <span class="font-medium">{{ activity.target }}</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <span class="text-sm text-slate-500">{{ activity.time }}</span>
                         </div>
-                    </CardContent>
-                </Card>
-            </div>
+                    </div>
+                </CardContent>
+            </Card>
         </main>
+
+        <!-- Footer -->
+        <footer class="border-t border-slate-200 mt-12 py-6">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
+                © {{ new Date().getFullYear() }} Domion. Built with Laravel & Vue.
+            </div>
+        </footer>
     </div>
 </template>

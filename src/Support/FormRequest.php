@@ -25,17 +25,24 @@ abstract class FormRequest extends OFormRequest
     }
 
     /**
-     * Custom validation error
+     * Custom validation error handling.
+     * For Inertia/Web requests: redirect back with errors (Laravel default)
+     * For API requests: return JSON response
      */
     protected function failedValidation(Validator $validator): void
     {
-        // If it's an Inertia request, we want Laravel's default behavior 
-        // (redirect back with errors)
-        if (!$this->expectsJson() && !($this->header('X-Inertia') || $this->header('X-Inertia-Partial-Data'))) {
-            parent::failedValidation($validator);
-            return;
+        // Check if this is an Inertia request
+        $isInertia = $this->header('X-Inertia') || $this->header('X-Inertia-Partial-Data');
+        
+        // For Inertia and standard web requests, use Laravel's default behavior
+        // which throws ValidationException and redirects back with errors
+        if ($isInertia || !$this->expectsJson()) {
+            throw (new ValidationException($validator))
+                ->errorBag($this->errorBag)
+                ->redirectTo($this->getRedirectUrl());
         }
 
+        // For API requests, return structured JSON
         $validators = (new ValidationException($validator));
         $message = $validators->getMessage();
         $errors = $validators->errors();
