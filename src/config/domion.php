@@ -16,7 +16,7 @@ return [
     | Application Mode
     |--------------------------------------------------------------------------
     |
-    | Choices: 'api', 'react', 'vue', 'livewire', 'blade'
+    | Choices: 'api', 'react', 'vue',
     |
     */
     'mode' => 'api',
