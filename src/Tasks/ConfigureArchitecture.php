@@ -289,6 +289,48 @@ class ConfigureArchitecture
             $content = str_replace('App\\Providers\\AppServiceProvider::class', 'App\\App\\Providers\\AppServiceProvider::class', $content);
             File::put($configPath, $content);
         }
+
+        $this->registerFrontendViews();
+    }
+
+    protected function registerFrontendViews(): void
+    {
+        $providerPath = base_path('app/App/Providers/AppServiceProvider.php');
+        if (File::exists($providerPath)) {
+            $content = File::get($providerPath);
+            
+            // Add View facade import if missing
+            if (!str_contains($content, 'use Illuminate\Support\Facades\View;')) {
+                $content = str_replace(
+                    'namespace App\App\Providers;',
+                    "namespace App\App\Providers;\n\nuse Illuminate\Support\Facades\View;",
+                    $content
+                );
+            }
+
+            // Add view location to boot method
+            if (!str_contains($content, 'View::addLocation')) {
+                $viewPathCode = "View::addLocation(base_path('app/Support/Frontend/Views'));";
+                
+                if (str_contains($content, 'public function boot(): void')) {
+                    // Laravel 11 style
+                    $content = preg_replace(
+                        '/(public function boot\(\): void\s*\{)/',
+                        "$1\n        {$viewPathCode}",
+                        $content
+                    );
+                } elseif (str_contains($content, 'public function boot()')) {
+                    // Older style
+                    $content = preg_replace(
+                        '/(public function boot\(\)\s*\{)/',
+                        "$1\n        {$viewPathCode}",
+                        $content
+                    );
+                }
+            }
+            
+            File::put($providerPath, $content);
+        }
     }
 
     /**

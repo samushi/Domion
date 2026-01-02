@@ -8,7 +8,7 @@ use Tighten\Ziggy\Ziggy;
 
 class HandleInertiaRequests extends Middleware
 {
-    protected $rootView = 'app/Support/Frontend/Views/app';
+    protected $rootView = 'app';
 
     public function version(Request $request): ?string
     {
