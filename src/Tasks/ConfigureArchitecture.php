@@ -243,11 +243,17 @@ class ConfigureArchitecture
                     }
                     // Otherwise, simply append inside the validation callback
                     else {
-                        $content = preg_replace(
-                            '/(->withMiddleware\(function\s*\(Middleware\s*\$middleware\)\s*\{)/',
-                            "$1\n        \$middleware->web(append: [{$middlewareClass}]);",
-                            $content
-                        );
+                        // Regex to match withMiddleware(function (Middleware $middleware) { ...
+                        // Handles optional ": void" return type and whitespace
+                        $pattern = '/(->withMiddleware\(function\s*\(Middleware\s*\$middleware\)(?:\s*:\s*void)?\s*\{)/';
+                        
+                        if (preg_match($pattern, $content)) {
+                            $content = preg_replace(
+                                $pattern,
+                                "$1\n        \$middleware->web(append: [{$middlewareClass}]);",
+                                $content
+                            );
+                        }
                     }
                 } else {
                     // Create the whole block if withMiddleware doesn't exist
@@ -299,11 +305,17 @@ class ConfigureArchitecture
         if (File::exists($providerPath)) {
             $content = File::get($providerPath);
             
-            // Add View facade import if missing
+            // 1. Fix Namespace if it's still the old one
+            if (str_contains($content, 'namespace App\Providers;')) {
+                $content = str_replace('namespace App\Providers;', 'namespace App\App\Providers;', $content);
+            }
+
+            // 2. Add View facade import if missing
             if (!str_contains($content, 'use Illuminate\Support\Facades\View;')) {
-                $content = str_replace(
-                    'namespace App\App\Providers;',
-                    "namespace App\App\Providers;\n\nuse Illuminate\Support\Facades\View;",
+                // Insert after namespace
+                $content = preg_replace(
+                    '/(namespace App\\\\App\\\\Providers;)/',
+                    "$1\n\nuse Illuminate\Support\Facades\View;",
                     $content
                 );
             }
