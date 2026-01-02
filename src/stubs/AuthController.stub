@@ -19,60 +19,51 @@ use {{requestsNamespace}}\ResetPasswordRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends {{base_controller}}
 {
-    /**
-     * Display the login page.
-     */
     public function showLogin()
     {
         return $this->render('{{domain}}::Login');
     }
 
-    /**
-     * Handle an incoming login request.
-     */
     public function login(LoginRequest $request): RedirectResponse
     {
-        LoginAction::run(
-            LoginDto::fromRequest($request)
-        );
+        try {
+            LoginAction::run(
+                LoginDto::fromRequest($request)
+            );
 
-        return redirect()->intended(route('dashboard'));
+            return redirect()->intended(route('dashboard'));
+        } catch (ValidationException $e) {
+            throw $e;
+        }
     }
 
-    /**
-     * Display the registration page.
-     */
     public function showRegister()
     {
         return $this->render('{{domain}}::Register');
     }
 
-    /**
-     * Handle an incoming registration request.
-     */
     public function register(RegisterRequest $request): RedirectResponse
     {
-        RegisterAction::run(
-            RegisterDto::fromRequest($request)
-        );
+        try {
+            RegisterAction::run(
+                RegisterDto::fromRequest($request)
+            );
 
-        return redirect()->route('dashboard');
+            return redirect()->route('dashboard');
+        } catch (ValidationException $e) {
+            throw $e;
+        }
     }
 
-    /**
-     * Display the forgot password page.
-     */
     public function showForgotPassword()
     {
         return $this->render('{{domain}}::ForgotPassword');
     }
 
-    /**
-     * Handle sending password reset link.
-     */
     public function sendResetLink(ForgotPasswordRequest $request): RedirectResponse
     {
         $status = ForgotPasswordAction::run($request->email);
@@ -82,9 +73,6 @@ class AuthController extends {{base_controller}}
             : back()->withErrors(['email' => __($status)]);
     }
 
-    /**
-     * Display the reset password page.
-     */
     public function showResetPassword(Request $request, string $token)
     {
         return $this->render('{{domain}}::ResetPassword', [
@@ -93,9 +81,6 @@ class AuthController extends {{base_controller}}
         ]);
     }
 
-    /**
-     * Handle the password reset.
-     */
     public function resetPassword(ResetPasswordRequest $request): RedirectResponse
     {
         $status = ResetPasswordAction::run(
@@ -107,9 +92,6 @@ class AuthController extends {{base_controller}}
             : back()->withErrors(['email' => [__($status)]]);
     }
 
-    /**
-     * Handle logout.
-     */
     public function logout(Request $request): RedirectResponse
     {
         LogoutAction::run($request);

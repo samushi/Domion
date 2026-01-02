@@ -222,19 +222,41 @@ class ConfigureArchitecture
             }
 
             if (!str_contains($content, 'HandleInertiaRequests::class')) {
-                $replacement = "->withMiddleware(function (Middleware \$middleware) {\n" .
-                    "        \$middleware->web(append: [\n" .
-                    "            \\App\\App\\Middleware\\HandleInertiaRequests::class,\n" .
-                    "        ]);\n" .
-                    "    })";
-
+                $middlewareClass = "\\App\\Support\\Middleware\\HandleInertiaRequests::class";
+                
                 if (str_contains($content, '->withMiddleware')) {
-                    $content = preg_replace(
-                        '/\$middleware->web\(append: \[\s*/',
-                        "\$middleware->web(append: [\n            \\App\\App\\Middleware\\HandleInertiaRequests::class,\n",
-                        $content
-                    );
+                    // If web(append: [...]) exists, add to it
+                    if (preg_match('/\$middleware->web\(\s*append:\s*\[/', $content)) {
+                        $content = preg_replace(
+                            '/(\$middleware->web\(\s*append:\s*\[)/',
+                            "$1\n            {$middlewareClass},",
+                            $content
+                        );
+                    } 
+                    // If $middleware->web(...) exists but without append or different syntax, try to insert new web call
+                    elseif (str_contains($content, '$middleware->web(')) {
+                         $content = preg_replace(
+                            '/(\$middleware->web\(.*?\);)/s',
+                            "$1\n        \$middleware->web(append: [{$middlewareClass}]);",
+                            $content
+                        );
+                    }
+                    // Otherwise, simply append inside the validation callback
+                    else {
+                        $content = preg_replace(
+                            '/(->withMiddleware\(function\s*\(Middleware\s*\$middleware\)\s*\{)/',
+                            "$1\n        \$middleware->web(append: [{$middlewareClass}]);",
+                            $content
+                        );
+                    }
                 } else {
+                    // Create the whole block if withMiddleware doesn't exist
+                    $replacement = "->withMiddleware(function (Middleware \$middleware) {\n" .
+                        "        \$middleware->web(append: [\n" .
+                        "            {$middlewareClass},\n" .
+                        "        ]);\n" .
+                        "    })";
+                        
                     $content = str_replace(
                         '->create()',
                         $replacement . "\n    ->create()",
@@ -292,7 +314,7 @@ class ConfigureArchitecture
             return;
         }
 
-        $target = base_path('app/App/Middleware/HandleInertiaRequests.php');
+        $target = base_path('app/Support/Middleware/HandleInertiaRequests.php');
         File::ensureDirectoryExists(dirname($target));
 
         if (!File::exists($target)) {

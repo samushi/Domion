@@ -25,20 +25,23 @@ function Logo({ className = "h-10 w-10" }: { className?: string }) {
     );
 }
 
-interface PageProps {
-    errors: Record<string, string>;
-    [key: string]: any;
+function getError(errors: Record<string, string | string[]> | undefined, field: string): string | undefined {
+    if (!errors || !errors[field]) return undefined;
+    const error = errors[field];
+    return Array.isArray(error) ? error[0] : error;
 }
 
 export default function Login() {
     const [showPassword, setShowPassword] = React.useState(false);
-    const { errors } = usePage<PageProps>().props;
+    const pageProps = usePage().props as any;
     
-    const { data, setData, post, processing } = useForm({
+    const { data, setData, post, processing, errors: formErrors } = useForm({
         email: '',
         password: '',
         remember: false,
     });
+
+    const errors = { ...pageProps.errors, ...formErrors };
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -91,7 +94,9 @@ export default function Login() {
                                             className="pl-10 border-slate-200 focus:border-blue-400 focus:ring-blue-400"
                                         />
                                     </div>
-                                    {errors?.email && <p className="text-sm text-red-500">{errors.email}</p>}
+                                    {getError(errors, 'email') && (
+                                        <p className="text-sm text-red-500">{getError(errors, 'email')}</p>
+                                    )}
                                 </div>
 
                                 <div className="space-y-2">
@@ -114,7 +119,9 @@ export default function Login() {
                                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </button>
                                     </div>
-                                    {errors?.password && <p className="text-sm text-red-500">{errors.password}</p>}
+                                    {getError(errors, 'password') && (
+                                        <p className="text-sm text-red-500">{getError(errors, 'password')}</p>
+                                    )}
                                 </div>
 
                                 <div className="flex items-center justify-between">
