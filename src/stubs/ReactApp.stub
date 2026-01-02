@@ -4,6 +4,15 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { route } from 'ziggy-js';
+
+declare global {
+    interface Window {
+        route: typeof route;
+    }
+}
+
+window.route = route;
 
 const appName = window.document.getElementsByTagName('title')[0]?.innerText || 'Laravel';
 

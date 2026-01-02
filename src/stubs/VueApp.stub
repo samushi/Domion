@@ -5,10 +5,6 @@ import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { ZiggyVue } from 'ziggy-js';
 
-declare global {
-    function route(name: string, params?: Record<string, any>, absolute?: boolean): string;
-}
-
 const appName = window.document.getElementsByTagName('title')[0]?.innerText || 'Laravel';
 
 const domainPages = import.meta.glob<DefineComponent>('../../Domain/*/Frontend/Pages/**/*.vue');
@@ -35,10 +31,10 @@ createInertiaApp({
     title: (title) => `${title} - ${appName}`,
     resolve: resolveDomainPage,
     setup({ el, App, props, plugin }) {
-        createApp({ render: () => h(App, props) })
-            .use(plugin)
-            .use(ZiggyVue)
-            .mount(el);
+        const app = createApp({ render: () => h(App, props) });
+        app.use(plugin);
+        app.use(ZiggyVue);
+        app.mount(el);
     },
     progress: {
         color: '#3b82f6',

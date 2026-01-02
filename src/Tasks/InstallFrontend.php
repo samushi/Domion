@@ -76,10 +76,25 @@ class InstallFrontend
             File::put($utilsPath, "import { type ClassValue, clsx } from \"clsx\"\nimport { twMerge } from \"tailwind-merge\"\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs))\n}\n");
         }
 
-        // 1.2 Create bootstrap.ts for axios setup
+        // 1.2 Create bootstrap.ts for axios setup with CSRF
         $bootstrapPath = base_path('app/Support/Frontend/bootstrap.ts');
         if (!File::exists($bootstrapPath)) {
-            File::put($bootstrapPath, "import axios from 'axios';\n\nwindow.axios = axios;\nwindow.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';\n");
+            $bootstrapContent = <<<'TS'
+import axios from 'axios';
+
+declare global {
+    interface Window {
+        axios: typeof axios;
+    }
+}
+
+window.axios = axios;
+window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+window.axios.defaults.withCredentials = true;
+window.axios.defaults.withXSRFToken = true;
+
+TS;
+            File::put($bootstrapPath, $bootstrapContent);
         }
 
         // 2. Pre-create components.json to make it non-interactive
