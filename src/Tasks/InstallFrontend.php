@@ -76,6 +76,12 @@ class InstallFrontend
             File::put($utilsPath, "import { type ClassValue, clsx } from \"clsx\"\nimport { twMerge } from \"tailwind-merge\"\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs))\n}\n");
         }
 
+        // 1.2 Create bootstrap.ts for axios setup
+        $bootstrapPath = base_path('app/Support/Frontend/bootstrap.ts');
+        if (!File::exists($bootstrapPath)) {
+            File::put($bootstrapPath, "import axios from 'axios';\n\nwindow.axios = axios;\nwindow.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';\n");
+        }
+
         // 2. Pre-create components.json to make it non-interactive
         $componentsJson = [
             '$schema' => 'https://ui.shadcn.com/schema.json',
@@ -268,7 +274,7 @@ class InstallFrontend
     {
         $this->command->info('Installing NPM dependencies...');
 
-        $commonUtils = 'class-variance-authority clsx tailwind-merge lucide-react ziggy-js concurrently tailwindcss-animate autoprefixer @tailwindcss/postcss';
+        $commonUtils = 'axios class-variance-authority clsx tailwind-merge lucide-react ziggy-js concurrently tailwindcss-animate autoprefixer @tailwindcss/postcss';
 
         $packages = match ($mode) {
             'react' => "@inertiajs/react react react-dom @vitejs/plugin-react @types/react @types/react-dom {$commonUtils}",

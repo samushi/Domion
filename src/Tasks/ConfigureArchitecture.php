@@ -46,7 +46,7 @@ class ConfigureArchitecture
             // Set dynamic extension for Vite
             $ext = match($mode) {
                 'react' => 'tsx',
-                'vue' => 'vue',
+                'vue' => 'ts',
                 default => 'js'
             };
             
@@ -84,14 +84,12 @@ class ConfigureArchitecture
 
         $ext = match($mode) {
             'react' => 'tsx',
-            'vue' => 'vue',
-            'livewire' => 'js',
+            'vue' => 'ts',
             default => 'js'
         };
 
         $target = base_path("app/Support/Frontend/app.{$ext}");
         
-        // Match stub names to modes
         $stubName = match($mode) {
             'react' => 'ReactApp',
             'vue' => 'VueApp',
@@ -102,15 +100,6 @@ class ConfigureArchitecture
             $stubPath = __DIR__ . "/../stubs/{$stubName}.stub";
             if (File::exists($stubPath)) {
                 $content = File::get($stubPath);
-                
-                // If we moved bootstrap.js, we should update the import or copy it
-                // For now, let's keep it simple and assume bootstrap.js is in resources/js
-                // or we can copy it to Support/Frontend
-                if (File::exists(base_path('resources/js/bootstrap.js'))) {
-                    File::ensureDirectoryExists(base_path('app/Support/Frontend'));
-                    File::copy(base_path('resources/js/bootstrap.js'), base_path('app/Support/Frontend/bootstrap.js'));
-                }
-
                 File::put($target, $content);
             }
         }

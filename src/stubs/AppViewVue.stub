@@ -12,8 +12,7 @@
 
         <!-- Scripts -->
         @routes
-        {{viteReactRefresh}}
-        @vite(['app/Support/Frontend/app.{{ext}}', 'app/Support/Frontend/app.css'])
+        @vite(['app/Support/Frontend/app.ts', 'app/Support/Frontend/app.css'])
         @inertiaHead
     </head>
     <body class="font-sans antialiased">

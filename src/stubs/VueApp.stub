@@ -1,18 +1,21 @@
 import './bootstrap';
 import './app.css';
-import { createApp, h } from 'vue';
+import { createApp, h, DefineComponent } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { ZiggyVue } from 'ziggy-js';
 
+declare global {
+    function route(name: string, params?: Record<string, any>, absolute?: boolean): string;
+}
+
 const appName = window.document.getElementsByTagName('title')[0]?.innerText || 'Laravel';
 
-// Domion DDD Resolver
-const domainPages = import.meta.glob('../../Domain/*/Frontend/Pages/**/*.{js,jsx,ts,tsx,vue}');
+const domainPages = import.meta.glob<DefineComponent>('../../Domain/*/Frontend/Pages/**/*.vue');
 
-const resolveDomainPage = async (name, domainPages, defaultResolver) => {
-    // 1. Try to resolve from Domains folder
+const resolveDomainPage = async (name: string) => {
     const normalizedName = name.replace('::', '/');
+    
     if (normalizedName.includes('/')) {
         const [domain, page] = normalizedName.split('/');
         const path = Object.keys(domainPages).find(p => 
@@ -20,17 +23,17 @@ const resolveDomainPage = async (name, domainPages, defaultResolver) => {
         );
         
         if (path) {
-            return typeof domainPages[path] === 'function' ? domainPages[path]() : domainPages[path];
+            const module = await domainPages[path]();
+            return module;
         }
     }
 
-    // 2. Fallback to default resolver
-    return defaultResolver(name);
+    return resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob<DefineComponent>('./Pages/**/*.vue'));
 };
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
-    resolve: (name) => resolveDomainPage(name, domainPages, (name) => resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue'))),
+    resolve: resolveDomainPage,
     setup({ el, App, props, plugin }) {
         createApp({ render: () => h(App, props) })
             .use(plugin)
@@ -38,6 +41,6 @@ createInertiaApp({
             .mount(el);
     },
     progress: {
-        color: '#4B5563',
+        color: '#3b82f6',
     },
 });
