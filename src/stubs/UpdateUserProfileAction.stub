@@ -1,0 +1,30 @@
+<?php
+
+namespace {{namespace}};
+
+use Samushi\Domion\Actions\ActionFactory;
+use App\Domain\User\Repository\UserRepository;
+use App\Domain\Settings\Dto\UpdateProfileDto;
+
+class UpdateUserProfileAction extends ActionFactory
+{
+    public function __construct(
+        protected UserRepository $userRepository
+    ) {}
+
+    public function handle(int|string $userId, UpdateProfileDto $dto): void
+    {
+        $user = $this->userRepository->find($userId);
+
+        $data = [
+            'name' => $dto->name,
+            'email' => $dto->email,
+        ];
+
+        if ($user && $user->email !== $dto->email) {
+             $data['email_verified_at'] = null;
+        }
+
+        $this->userRepository->update($data, $userId);
+    }
+}

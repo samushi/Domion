@@ -6,6 +6,8 @@ namespace Samushi\Domion\Tasks;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
+use Symfony\Component\Process\Process;
+use Samushi\Domion\Tasks\InstallFortify;
 
 class ConfigureArchitecture
 {
@@ -22,6 +24,7 @@ class ConfigureArchitecture
         $this->setupRootView($mode);
         $this->cleanDefaultRoutes();
         $this->setupInertiaResolver($mode);
+        (new InstallFortify($this->command))->run();
     }
 
     protected function setupRootView(string $mode): void
@@ -59,21 +62,8 @@ class ConfigureArchitecture
 
     protected function setupProviders(): void
     {
-        // 1. Laravel 11+ bootstrap/providers.php
-        $providersPath = base_path('bootstrap/providers.php');
-        if (File::exists($providersPath)) {
-            $content = File::get($providersPath);
-            $content = str_replace('App\Providers', 'App\App\Providers', $content);
-            File::put($providersPath, $content);
-        }
-
-        // 2. config/app.php (for older versions or if still used)
-        $configPath = base_path('config/app.php');
-        if (File::exists($configPath)) {
-            $content = File::get($configPath);
-            $content = str_replace('App\Providers', 'App\App\Providers', $content);
-            File::put($configPath, $content);
-        }
+        // Namespace adjustments are handled via composer.json default mapping.
+        // We do not modify bootstrap/providers.php or config/app.php namespaces here anymore.
     }
 
     protected function setupInertiaResolver(string $mode): void
@@ -115,6 +105,43 @@ class ConfigureArchitecture
             $stubPath = __DIR__ . "/../stubs/{$layoutStub}.stub";
             if (File::exists($stubPath)) {
                 File::put($layoutTarget, File::get($stubPath));
+            }
+        }
+
+        // Scaffold Sidebar
+        if ($mode === 'react' || $mode === 'vue') {
+            $sidebarStub = $mode === 'react' ? 'ReactSidebar' : 'VueSidebar';
+            $ext = $mode === 'react' ? 'tsx' : 'vue';
+            $sidebarTarget = base_path("app/Support/Frontend/components/app-sidebar.{$ext}");
+            
+            File::ensureDirectoryExists(dirname($sidebarTarget));
+            
+            $stubPath = __DIR__ . "/../stubs/{$sidebarStub}.stub";
+            if (File::exists($stubPath)) {
+                File::put($sidebarTarget, File::get($stubPath));
+            }
+        }
+
+        // Scaffold Settings Layout
+        if ($mode === 'react' || $mode === 'vue') {
+            $settingsLayoutStub = $mode === 'react' ? 'ReactSettingsLayout' : 'VueSettingsLayout';
+            $ext = $mode === 'react' ? 'tsx' : 'vue';
+            $layoutTarget = base_path("app/Support/Frontend/Layouts/SettingsLayout.{$ext}");
+            
+            File::ensureDirectoryExists(dirname($layoutTarget));
+            $stubPath = __DIR__ . "/../stubs/{$settingsLayoutStub}.stub";
+            if (File::exists($stubPath)) {
+                File::put($layoutTarget, File::get($stubPath));
+            }
+        }
+
+        // Scaffold ThemeProvider
+        if ($mode === 'react') {
+            $target = base_path("app/Support/Frontend/components/theme-provider.tsx");
+            File::ensureDirectoryExists(dirname($target));
+            $stubPath = __DIR__ . "/../stubs/ReactThemeProvider.stub";
+             if (File::exists($stubPath)) {
+                File::put($target, File::get($stubPath));
             }
         }
         

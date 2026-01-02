@@ -22,6 +22,7 @@ class ScaffoldStarterKit
         $this->scaffoldAuthDomain($mode);
         $this->scaffoldLandingDomain($mode);
         $this->scaffoldDashboardDomain($mode);
+        $this->scaffoldSettingsDomain($mode);
     }
 
     protected function scaffoldAuthDomain(string $mode): void
@@ -290,6 +291,67 @@ class ScaffoldStarterKit
             $this->generateFile('UserModel', $targetUserPath, [
                 'namespace' => 'App\Domain\User\Models'
             ]);
+        }
+    }
+
+    protected function scaffoldSettingsDomain(string $mode): void
+    {
+        $this->command->info('Scaffolding Settings Domain...');
+        $base = base_path('app/Domain/Settings');
+
+        $this->ensureDirectories($base, $mode);
+
+        // 1. Service Provider
+        $this->generateFile('SettingsServiceProvider', $base . '/Providers/SettingsServiceProvider.php', [
+            'namespace' => 'App\Domain\Settings\Providers'
+        ]);
+
+        // 2. Controller
+        $this->generateFile('SettingsController', $base . '/Controllers/SettingsController.php', [
+            'namespace' => 'App\Domain\Settings\Controllers',
+            'base_controller' => $this->getBaseController($mode)
+        ]);
+        
+        // 3. Actions & DTOs
+        File::ensureDirectoryExists($base . '/Actions');
+        File::ensureDirectoryExists($base . '/Dto');
+        
+        $this->generateFile('UpdateProfileDto', $base . '/Dto/UpdateProfileDto.php', ['namespace' => 'App\Domain\Settings\Dto']);
+        $this->generateFile('UpdatePasswordDto', $base . '/Dto/UpdatePasswordDto.php', ['namespace' => 'App\Domain\Settings\Dto']);
+
+        $this->generateFile('UpdateUserProfileAction', $base . '/Actions/UpdateUserProfileAction.php', ['namespace' => 'App\Domain\Settings\Actions']);
+        $this->generateFile('UpdateUserPasswordAction', $base . '/Actions/UpdateUserPasswordAction.php', ['namespace' => 'App\Domain\Settings\Actions']);
+        $this->generateFile('DeleteUserAction', $base . '/Actions/DeleteUserAction.php', ['namespace' => 'App\Domain\Settings\Actions']);
+
+        // 4. Routes
+        $this->generateFile('SettingsRoutes', $base . '/web.php');
+
+        // 4. Request
+        File::ensureDirectoryExists($base . '/Requests');
+        $this->generateFile('SettingsProfileUpdateRequest', $base . '/Requests/ProfileUpdateRequest.php', ['namespace' => 'App\Domain\Settings\Requests']);
+        $this->generateFile('SettingsPasswordUpdateRequest', $base . '/Requests/PasswordUpdateRequest.php', ['namespace' => 'App\Domain\Settings\Requests']);
+        $this->generateFile('DeleteUserRequest', $base . '/Requests/DeleteUserRequest.php', ['namespace' => 'App\Domain\Settings\Requests']);
+
+        // 5. Frontend
+        if ($mode !== 'api') {
+            $this->scaffoldSettingsFrontend($mode, $base);
+        }
+    }
+
+    protected function scaffoldSettingsFrontend(string $mode, string $basePath): void
+    {
+        if (!in_array($mode, ['react', 'vue'])) {
+            return;
+        }
+
+        $ext = $this->getExtension($mode); 
+
+        $pages = ['Profile', 'Password', 'Appearance', 'TwoFactor'];
+        
+        foreach ($pages as $page) {
+             $stub = ucfirst($mode) . 'Settings' . $page; 
+             $target = $basePath . "/Frontend/Pages/{$page}.{$ext}";
+             $this->generateFile($stub, $target);
         }
     }
 }

@@ -1,0 +1,20 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{namespace}};
+
+use Samushi\Domion\Support\AbstractServiceProvider;
+
+class SettingsServiceProvider extends AbstractServiceProvider
+{
+    public function getDomainName(): string
+    {
+        return 'Settings';
+    }
+
+    public function getWebMiddleware(): array
+    {
+        return ['web', 'auth'];
+    }
+}

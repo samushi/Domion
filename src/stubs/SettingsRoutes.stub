@@ -1,0 +1,17 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Domain\Settings\Controllers\SettingsController;
+
+Route::get('/', function() { return redirect()->route('settings.profile'); })->name('index');
+
+Route::get('profile', [SettingsController::class, 'editProfile'])->name('profile');
+Route::patch('profile', [SettingsController::class, 'updateProfile'])->name('profile.update');
+Route::delete('profile', [SettingsController::class, 'destroy'])->name('profile.destroy');
+
+Route::get('password', [SettingsController::class, 'editPassword'])->name('password');
+Route::put('password', [SettingsController::class, 'updatePassword'])->name('password.update');
+
+Route::get('appearance', [SettingsController::class, 'editAppearance'])->name('appearance');
+
+Route::get('two-factor', [SettingsController::class, 'editTwoFactor'])->name('two-factor');

@@ -1,0 +1,13 @@
+<?php
+
+namespace {{namespace}};
+
+use App\Support\DataObjects;
+
+class UpdateProfileDto extends DataObjects
+{
+    public function __construct(
+        public readonly string $name,
+        public readonly string $email,
+    ) {}
+}

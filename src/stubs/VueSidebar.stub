@@ -1,0 +1,165 @@
+<script setup lang="ts">
+import {
+  AudioWaveform,
+  BookOpen,
+  Bot,
+  Command,
+  Frame,
+  GalleryVerticalEnd,
+  Map,
+  PieChart,
+  Settings2,
+  SquareTerminal,
+  LogOut,
+  User,
+  LayoutDashboard,
+  ChevronsUpDown,
+  Sparkles,
+  BadgeCheck,
+  CreditCard,
+  Bell
+} from "lucide-vue-next"
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarProvider,
+} from "@/components/ui/sidebar"
+import { 
+    DropdownMenu, 
+    DropdownMenuTrigger, 
+    DropdownMenuContent, 
+    DropdownMenuLabel, 
+    DropdownMenuSeparator, 
+    DropdownMenuItem 
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Link, usePage } from "@inertiajs/vue3"
+import { computed } from 'vue'
+import { route } from "ziggy-js"
+
+const page = usePage()
+const user = computed(() => page.props.auth.user)
+</script>
+
+<template>
+    <Sidebar collapsible="icon">
+        <SidebarHeader>
+            <SidebarMenu>
+            <SidebarMenuItem>
+                <SidebarMenuButton size="lg" as-child>
+                <Link :href="route('dashboard')">
+                    <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-white">
+                        <GalleryVerticalEnd class="size-4" />
+                    </div>
+                    <div class="grid flex-1 text-left text-sm leading-tight">
+                        <span class="truncate font-semibold">Domion</span>
+                        <span class="truncate text-xs">Starter Kit</span>
+                    </div>
+                </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+            </SidebarMenu>
+        </SidebarHeader>
+
+        <SidebarContent>
+            <SidebarGroup>
+                <SidebarGroupLabel>Platform</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton as-child :is-active="route().current('dashboard')">
+                                <Link :href="route('dashboard')">
+                                    <LayoutDashboard />
+                                    <span>Dashboard</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+
+             <SidebarGroup>
+                <SidebarGroupLabel>Shortcuts</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton as-child>
+                                <a href="#">
+                                    <BookOpen />
+                                    <span>Documentation</span>
+                                </a>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+        </SidebarContent>
+
+        <SidebarFooter>
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger as-child>
+                            <SidebarMenuButton
+                                size="lg"
+                                class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                            >
+                                <Avatar class="h-8 w-8 rounded-lg">
+                                    <AvatarImage :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`" :alt="user.name" />
+                                    <AvatarFallback class="rounded-lg">CN</AvatarFallback>
+                                </Avatar>
+                                <div class="grid flex-1 text-left text-sm leading-tight">
+                                    <span class="truncate font-semibold">{{ user.name }}</span>
+                                    <span class="truncate text-xs">{{ user.email }}</span>
+                                </div>
+                                <ChevronsUpDown class="ml-auto size-4" />
+                            </SidebarMenuButton>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                            class="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                            side="bottom"
+                            align="end"
+                            :side-offset="4"
+                        >
+                             <DropdownMenuLabel class="p-0 font-normal">
+                                <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                                <Avatar class="h-8 w-8 rounded-lg">
+                                    <AvatarImage :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`" :alt="user.name" />
+                                    <AvatarFallback class="rounded-lg">CN</AvatarFallback>
+                                </Avatar>
+                                <div class="grid flex-1 text-left text-sm leading-tight">
+                                    <span class="truncate font-semibold">{{ user.name }}</span>
+                                    <span class="truncate text-xs">{{ user.email }}</span>
+                                </div>
+                                </div>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem>
+                                <BadgeCheck class="mr-2 h-4 w-4" />
+                                Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem as-child>
+                                <Link :href="route('logout')" method="post" as="button" class="w-full cursor-pointer flex items-center">
+                                    <LogOut class="mr-2 h-4 w-4" />
+                                    Log out
+                                </Link>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </SidebarMenuItem>
+            </SidebarMenu>
+        </SidebarFooter>
+        <SidebarRail />
+    </Sidebar>
+</template>

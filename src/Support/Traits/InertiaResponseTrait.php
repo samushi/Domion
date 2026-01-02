@@ -53,4 +53,28 @@ trait InertiaResponseTrait
     {
         return back()->with($type, $message);
     }
+
+    /**
+     * Redirect to a route.
+     */
+    protected function toRoute(string $route, array $parameters = [], int $status = 302, array $headers = []): \Illuminate\Http\RedirectResponse
+    {
+        return redirect()->route($route, $parameters, $status, $headers);
+    }
+
+    /**
+     * Redirect to a URL.
+     */
+    protected function toUrl(string $path, int $status = 302, array $headers = [], ?bool $secure = null): \Illuminate\Http\RedirectResponse
+    {
+        return redirect()->to($path, $status, $headers, $secure);
+    }
+    
+    /**
+     * Redirect back.
+     */
+    protected function back(int $status = 302, array $headers = [], $fallback = false): \Illuminate\Http\RedirectResponse
+    {
+        return back($status, $headers, $fallback);
+    }
 }

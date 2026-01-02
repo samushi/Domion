@@ -1,0 +1,68 @@
+<?php
+
+namespace {{namespace}};
+
+use App\Support\Controllers\{{base_controller}} as Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domain\Settings\Requests\ProfileUpdateRequest;
+use App\Domain\Settings\Requests\PasswordUpdateRequest;
+use App\Domain\Settings\Requests\DeleteUserRequest;
+use App\Domain\Settings\Actions\UpdateUserProfileAction;
+use App\Domain\Settings\Actions\UpdateUserPasswordAction;
+use App\Domain\Settings\Actions\DeleteUserAction;
+use App\Domain\Settings\Dto\UpdateProfileDto;
+use App\Domain\Settings\Dto\UpdatePasswordDto;
+
+class SettingsController extends Controller
+{
+    public function editProfile(Request $request)
+    {
+        return $this->render('Settings/Profile', [
+            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'status' => session('status'),
+        ]);
+    }
+
+    public function updateProfile(ProfileUpdateRequest $request)
+    {
+        $dto = UpdateProfileDto::fromRequest($request);
+        UpdateUserProfileAction::run($request->user()->id, $dto);
+
+        return $this->toRoute('settings.profile');
+    }
+
+    public function editPassword()
+    {
+        return $this->render('Settings/Password');
+    }
+
+    public function updatePassword(PasswordUpdateRequest $request)
+    {
+        $dto = UpdatePasswordDto::fromRequest($request);
+        UpdateUserPasswordAction::run($request->user()->id, $dto);
+
+        return $this->back();
+    }
+
+    public function editAppearance()
+    {
+        return $this->render('Settings/Appearance');
+    }
+
+    public function editTwoFactor(\Illuminate\Http\Request $request)
+    {
+        return $this->render('Settings/TwoFactor', [
+            'enabled' => ! is_null($request->user()->two_factor_secret),
+        ]);
+    }
+
+    public function destroy(DeleteUserRequest $request)
+    {
+        DeleteUserAction::run($request->user()->id);
+
+        return $this->toUrl('/');
+    }
+}

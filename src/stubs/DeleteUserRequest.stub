@@ -1,0 +1,20 @@
+<?php
+
+namespace {{namespace}};
+
+use App\Support\FormRequest;
+
+class DeleteUserRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'password' => ['required', 'current_password'],
+        ];
+    }
+}

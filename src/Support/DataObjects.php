@@ -125,11 +125,12 @@ abstract class DataObjects
     /**
      * Make instance from array list
      *
-     * @return $this
+     * @param array $data
+     * @return object
      *
      * @throws ReflectionException
      */
-    private static function makeInstanceArgs(array $data): static
+    private static function makeInstanceArgs(array $data): object
     {
         $parameters = static::getClassProperties();
         $args = array_map(function (ReflectionParameter $param) use ($data) {
