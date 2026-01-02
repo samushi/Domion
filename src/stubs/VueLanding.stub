@@ -6,78 +6,50 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Zap, Shield, Layers, Code2, Boxes, Sparkles, CheckCircle2 } from 'lucide-vue-next';
 
 const features = [
-    {
-        icon: Layers,
-        title: 'Domain Isolation',
-        description: 'Keep your business logic perfectly organized with zero-config domain isolation that scales with your team.',
-    },
-    {
-        icon: Zap,
-        title: 'Action Factories',
-        description: 'Reusable, single-responsibility actions that replace bloated controllers and keep your codebase clean.',
-    },
-    {
-        icon: Shield,
-        title: 'Type-Safe DTOs',
-        description: 'Data transfer objects with full TypeScript support, ensuring type safety across your entire stack.',
-    },
-    {
-        icon: Boxes,
-        title: 'Repository Pattern',
-        description: 'Eloquent repositories with built-in caching, query filters, and soft delete support out of the box.',
-    },
-    {
-        icon: Code2,
-        title: 'Full-Stack Harmony',
-        description: 'Inertia.js integration that makes PHP and Vue feel like a single, cohesive language.',
-    },
-    {
-        icon: Sparkles,
-        title: 'Modern UI Ready',
-        description: 'Pre-configured with shadcn/ui components for beautiful, accessible interfaces from day one.',
-    },
+    { icon: Layers, title: 'Domain Isolation', description: 'Keep your business logic perfectly organized with zero-config domain isolation that scales with your team.' },
+    { icon: Zap, title: 'Action Factories', description: 'Reusable, single-responsibility actions that replace bloated controllers and keep your codebase clean.' },
+    { icon: Shield, title: 'Type-Safe DTOs', description: 'Data transfer objects with full TypeScript support, ensuring type safety across your entire stack.' },
+    { icon: Boxes, title: 'Repository Pattern', description: 'Eloquent repositories with built-in caching, query filters, and soft delete support out of the box.' },
+    { icon: Code2, title: 'Full-Stack Harmony', description: 'Inertia.js integration that makes PHP and Vue feel like a single, cohesive language.' },
+    { icon: Sparkles, title: 'Modern UI Ready', description: 'Pre-configured with shadcn/ui components for beautiful, accessible interfaces from day one.' },
 ];
 
-const benefits = [
-    'Zero configuration required',
-    'Laravel 11+ compatible',
-    'TypeScript ready',
-    'Production tested',
-];
+const benefits = ['Zero configuration required', 'Laravel 11+ compatible', 'TypeScript ready', 'Production tested'];
 </script>
 
 <template>
     <div class="min-h-screen bg-gradient-to-b from-slate-50 to-white">
         <Head title="Welcome to Domion" />
 
-        <!-- Header -->
         <header class="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-lg">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <img src="/images/logo.png" alt="Domion" class="h-10 w-10" />
-                    <span class="font-bold text-xl bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-                        Domion
-                    </span>
+                    <svg viewBox="0 0 100 100" class="h-10 w-10" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#2563eb" />
+                                <stop offset="50%" stop-color="#3b82f6" />
+                                <stop offset="100%" stop-color="#06b6d4" />
+                            </linearGradient>
+                        </defs>
+                        <polygon points="50,2 93,25 93,75 50,98 7,75 7,25" fill="url(#logoGradient)" />
+                        <path d="M35 30 L35 70 L55 70 C70 70 75 55 75 50 C75 45 70 30 55 30 Z M45 40 L55 40 C60 40 65 45 65 50 C65 55 60 60 55 60 L45 60 Z" fill="white" opacity="0.95" />
+                    </svg>
+                    <span class="font-bold text-xl bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Domion</span>
                 </div>
 
                 <nav class="flex items-center gap-4">
                     <Link :href="route('login')">
-                        <Button variant="ghost" class="text-slate-600 hover:text-blue-600">
-                            Sign in
-                        </Button>
+                        <Button variant="ghost" class="text-slate-600 hover:text-blue-600">Sign in</Button>
                     </Link>
                     <Link :href="route('register')">
-                        <Button class="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/25">
-                            Get Started
-                        </Button>
+                        <Button class="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/25">Get Started</Button>
                     </Link>
                 </nav>
             </div>
         </header>
 
-        <!-- Hero Section -->
         <section class="relative overflow-hidden">
-            <!-- Background decoration -->
             <div class="absolute inset-0 -z-10">
                 <div class="absolute top-0 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl" />
                 <div class="absolute top-20 right-1/4 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl" />
@@ -92,17 +64,13 @@ const benefits = [
 
                     <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight max-w-4xl">
                         Domain-Driven Design for
-                        <span class="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 bg-clip-text text-transparent">
-                            Modern Laravel
-                        </span>
+                        <span class="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 bg-clip-text text-transparent"> Modern Laravel</span>
                     </h1>
 
                     <p class="text-xl text-slate-600 max-w-2xl leading-relaxed">
-                        The enterprise framework that transforms your Laravel application into a clean,
-                        scalable architecture. Build faster, maintain easier, ship confidently.
+                        The enterprise framework that transforms your Laravel application into a clean, scalable architecture. Build faster, maintain easier, ship confidently.
                     </p>
 
-                    <!-- Benefits list -->
                     <div class="flex flex-wrap justify-center gap-4 mt-2">
                         <div v-for="(benefit, i) in benefits" :key="i" class="flex items-center gap-2 text-slate-600">
                             <CheckCircle2 class="h-5 w-5 text-green-500" />
@@ -118,13 +86,10 @@ const benefits = [
                             </Button>
                         </Link>
                         <a href="https://github.com/samushi/domion" target="_blank" rel="noopener noreferrer">
-                            <Button size="lg" variant="outline" class="border-slate-300 hover:border-blue-400 hover:text-blue-600 px-8">
-                                View on GitHub
-                            </Button>
+                            <Button size="lg" variant="outline" class="border-slate-300 hover:border-blue-400 hover:text-blue-600 px-8">View on GitHub</Button>
                         </a>
                     </div>
 
-                    <!-- Code Preview -->
                     <div class="mt-16 w-full max-w-3xl">
                         <Card class="bg-slate-900 border-slate-800 shadow-2xl shadow-blue-500/10 overflow-hidden">
                             <div class="flex items-center gap-2 px-4 py-3 border-b border-slate-800">
@@ -149,20 +114,16 @@ php artisan domion:domain Product</code></pre>
             </div>
         </section>
 
-        <!-- Features Section -->
         <section class="bg-white py-24 border-t border-slate-100">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="text-center mb-16">
                     <Badge class="bg-cyan-100 text-cyan-700 hover:bg-cyan-100 mb-4">Features</Badge>
                     <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">
                         Everything you need to
-                        <span class="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-                            build at scale
-                        </span>
+                        <span class="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent"> build at scale</span>
                     </h2>
                     <p class="text-lg text-slate-600 max-w-2xl mx-auto">
-                        Domion provides the architectural foundation that growing teams need,
-                        without the complexity of traditional DDD frameworks.
+                        Domion provides the architectural foundation that growing teams need, without the complexity of traditional DDD frameworks.
                     </p>
                 </div>
 
@@ -173,31 +134,23 @@ php artisan domion:domain Product</code></pre>
                                 <component :is="feature.icon" class="h-6 w-6 text-white" />
                             </div>
                             <CardTitle class="text-lg">{{ feature.title }}</CardTitle>
-                            <CardDescription class="text-base text-slate-500">
-                                {{ feature.description }}
-                            </CardDescription>
+                            <CardDescription class="text-base text-slate-500">{{ feature.description }}</CardDescription>
                         </CardHeader>
                     </Card>
                 </div>
             </div>
         </section>
 
-        <!-- CTA Section -->
         <section class="py-24">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <Card class="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 border-0 shadow-2xl shadow-blue-500/25 overflow-hidden relative">
-                    <!-- Decorative elements -->
                     <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
                     <div class="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
                     
                     <CardContent class="flex flex-col md:flex-row items-center justify-between gap-8 p-8 md:p-12 relative z-10">
                         <div class="text-white text-center md:text-left">
-                            <h3 class="text-2xl md:text-3xl font-bold mb-2">
-                                Ready to transform your architecture?
-                            </h3>
-                            <p class="text-blue-100 text-lg">
-                                Join thousands of developers building better Laravel applications with Domion.
-                            </p>
+                            <h3 class="text-2xl md:text-3xl font-bold mb-2">Ready to transform your architecture?</h3>
+                            <p class="text-blue-100 text-lg">Join thousands of developers building better Laravel applications with Domion.</p>
                         </div>
                         <Link :href="route('register')">
                             <Button size="lg" class="bg-white text-blue-600 hover:bg-blue-50 gap-2 whitespace-nowrap shadow-lg px-8">
@@ -210,18 +163,23 @@ php artisan domion:domain Product</code></pre>
             </div>
         </section>
 
-        <!-- Footer -->
         <footer class="border-t border-slate-200 bg-slate-50 py-12">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
-                    <img src="/images/logo.png" alt="Domion" class="h-8 w-8" />
-                    <span class="font-semibold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-                        Domion
-                    </span>
+                    <svg viewBox="0 0 100 100" class="h-8 w-8" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="logoGradientFooter" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#2563eb" />
+                                <stop offset="50%" stop-color="#3b82f6" />
+                                <stop offset="100%" stop-color="#06b6d4" />
+                            </linearGradient>
+                        </defs>
+                        <polygon points="50,2 93,25 93,75 50,98 7,75 7,25" fill="url(#logoGradientFooter)" />
+                        <path d="M35 30 L35 70 L55 70 C70 70 75 55 75 50 C75 45 70 30 55 30 Z M45 40 L55 40 C60 40 65 45 65 50 C65 55 60 60 55 60 L45 60 Z" fill="white" opacity="0.95" />
+                    </svg>
+                    <span class="font-semibold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Domion</span>
                 </div>
-                <p class="text-sm text-slate-500">
-                    Built with Laravel & Vue. Open source under MIT License.
-                </p>
+                <p class="text-sm text-slate-500">Built with Laravel & Vue. Open source under MIT License.</p>
             </div>
         </footer>
     </div>

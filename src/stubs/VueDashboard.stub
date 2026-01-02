@@ -1,21 +1,16 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-    Layers, Zap, Code2, Users, Plus, FileText, LogOut,
-    CheckCircle2, Activity
-} from 'lucide-vue-next';
-
-interface User {
-    name: string;
-    email: string;
-}
+import { Layers, Zap, Code2, Users, Plus, FileText, LogOut, CheckCircle2, Activity } from 'lucide-vue-next';
 
 defineProps<{
     auth: {
-        user: User;
+        user: {
+            name: string;
+            email: string;
+        };
     };
 }>();
 
@@ -43,18 +38,25 @@ const activities = [
     <div class="min-h-screen bg-slate-50">
         <Head title="Dashboard" />
 
-        <!-- Header -->
         <header class="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-lg">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-                <Link :href="route('home')" class="flex items-center gap-3">
-                    <img src="/images/logo.png" alt="Domion" class="h-10 w-10" />
-                    <span class="font-bold text-xl bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
-                        Domion
-                    </span>
+                <Link :href="route('landing')" class="flex items-center gap-3">
+                    <svg viewBox="0 0 100 100" class="h-10 w-10" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#2563eb" />
+                                <stop offset="50%" stop-color="#3b82f6" />
+                                <stop offset="100%" stop-color="#06b6d4" />
+                            </linearGradient>
+                        </defs>
+                        <polygon points="50,2 93,25 93,75 50,98 7,75 7,25" fill="url(#logoGradient)" />
+                        <path d="M35 30 L35 70 L55 70 C70 70 75 55 75 50 C75 45 70 30 55 30 Z M45 40 L55 40 C60 40 65 45 65 50 C65 55 60 60 55 60 L45 60 Z" fill="white" opacity="0.95" />
+                    </svg>
+                    <span class="font-bold text-xl bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Domion</span>
                 </Link>
 
                 <div class="flex items-center gap-4">
-                    <span class="text-slate-600">Welcome, {{ auth.user.name }}</span>
+                    <span class="text-slate-600">Welcome, {{ auth?.user?.name || 'User' }}</span>
                     <Link :href="route('logout')" method="post" as="button">
                         <Button variant="ghost" class="text-slate-600 hover:text-red-600">
                             <LogOut class="h-4 w-4 mr-2" />
@@ -65,15 +67,12 @@ const activities = [
             </div>
         </header>
 
-        <!-- Main Content -->
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Welcome Section -->
             <div class="mb-8">
                 <h1 class="text-3xl font-bold text-slate-900">Dashboard</h1>
                 <p class="text-slate-600 mt-1">Welcome back! Here's what's happening with your projects.</p>
             </div>
 
-            <!-- Stats Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <Card v-for="(stat, index) in stats" :key="index" class="hover:shadow-lg hover:border-blue-200 transition-all duration-300">
                     <CardContent class="p-6">
@@ -81,9 +80,7 @@ const activities = [
                             <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
                                 <component :is="stat.icon" class="h-6 w-6 text-white" />
                             </div>
-                            <Badge variant="secondary" class="text-xs font-normal">
-                                {{ stat.trend }}
-                            </Badge>
+                            <Badge variant="secondary" class="text-xs font-normal">{{ stat.trend }}</Badge>
                         </div>
                         <h3 class="text-3xl font-bold text-slate-900">{{ stat.value }}</h3>
                         <p class="text-slate-500 text-sm mt-1">{{ stat.label }}</p>
@@ -91,7 +88,6 @@ const activities = [
                 </Card>
             </div>
 
-            <!-- Quick Actions -->
             <Card class="mb-8">
                 <CardHeader>
                     <CardTitle>Quick Actions</CardTitle>
@@ -113,7 +109,6 @@ const activities = [
                 </CardContent>
             </Card>
 
-            <!-- Recent Activity -->
             <Card>
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
@@ -128,11 +123,9 @@ const activities = [
                                 <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
                                     <CheckCircle2 class="h-4 w-4 text-blue-600" />
                                 </div>
-                                <div>
-                                    <p class="text-sm text-slate-900">
-                                        {{ activity.action }} <span class="font-medium">{{ activity.target }}</span>
-                                    </p>
-                                </div>
+                                <p class="text-sm text-slate-900">
+                                    {{ activity.action }} <span class="font-medium">{{ activity.target }}</span>
+                                </p>
                             </div>
                             <span class="text-sm text-slate-500">{{ activity.time }}</span>
                         </div>
@@ -141,7 +134,6 @@ const activities = [
             </Card>
         </main>
 
-        <!-- Footer -->
         <footer class="border-t border-slate-200 mt-12 py-6">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
                 © {{ new Date().getFullYear() }} Domion. Built with Laravel & Vue.

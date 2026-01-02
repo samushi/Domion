@@ -3,4 +3,4 @@
 use Illuminate\Support\Facades\Route;
 use App\Domain\Landing\Controllers\LandingController;
 
-Route::get('/', [LandingController::class, 'index'])->name('home');
+Route::get('/', [LandingController::class, 'index'])->name('landing');

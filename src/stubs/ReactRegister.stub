@@ -1,16 +1,33 @@
 import React from 'react';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowRight, User, Mail, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 
+function Logo({ className = "h-10 w-10" }: { className?: string }) {
+    return (
+        <svg viewBox="0 0 100 100" className={className} xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#2563eb" />
+                    <stop offset="50%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#06b6d4" />
+                </linearGradient>
+            </defs>
+            <polygon points="50,2 93,25 93,75 50,98 7,75 7,25" fill="url(#logoGradient)" />
+            <path d="M35 30 L35 70 L55 70 C70 70 75 55 75 50 C75 45 70 30 55 30 Z M45 40 L55 40 C60 40 65 45 65 50 C65 55 60 60 55 60 L45 60 Z" fill="white" opacity="0.95" />
+        </svg>
+    );
+}
+
 export default function Register() {
     const [showPassword, setShowPassword] = React.useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+    const { errors } = usePage().props as any;
     
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing } = useForm({
         name: '',
         email: '',
         password: '',
@@ -32,11 +49,10 @@ export default function Register() {
         <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-cyan-50 flex flex-col">
             <Head title="Create Account" />
 
-            {/* Header */}
             <header className="py-6">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <Link href={route('home')} className="flex items-center gap-3 w-fit">
-                        <img src="/images/logo.png" alt="Domion" className="h-10 w-10" />
+                    <Link href={route('landing')} className="flex items-center gap-3 w-fit">
+                        <Logo className="h-10 w-10" />
                         <span className="font-bold text-xl bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
                             Domion
                         </span>
@@ -44,10 +60,8 @@ export default function Register() {
                 </div>
             </header>
 
-            {/* Main Content */}
             <main className="flex-1 flex items-center justify-center px-4 py-12">
-                <div className="w-full max-w-md">
-                    {/* Decorative background */}
+                <div className="w-full max-w-md relative">
                     <div className="absolute inset-0 -z-10 overflow-hidden">
                         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl" />
                         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl" />
@@ -59,13 +73,10 @@ export default function Register() {
                                 <User className="h-8 w-8 text-white" />
                             </div>
                             <CardTitle className="text-2xl font-bold">Create your account</CardTitle>
-                            <CardDescription className="text-slate-500">
-                                Start building with Domion today
-                            </CardDescription>
+                            <CardDescription className="text-slate-500">Start building with Domion today</CardDescription>
                         </CardHeader>
 
                         <CardContent className="pt-6">
-                            {/* Benefits */}
                             <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100">
                                 <div className="space-y-2">
                                     {benefits.map((benefit, i) => (
@@ -91,9 +102,7 @@ export default function Register() {
                                             className="pl-10 border-slate-200 focus:border-blue-400 focus:ring-blue-400"
                                         />
                                     </div>
-                                    {errors.name && (
-                                        <p className="text-sm text-red-500">{errors.name}</p>
-                                    )}
+                                    {errors?.name && <p className="text-sm text-red-500">{errors.name}</p>}
                                 </div>
 
                                 <div className="space-y-2">
@@ -109,9 +118,7 @@ export default function Register() {
                                             className="pl-10 border-slate-200 focus:border-blue-400 focus:ring-blue-400"
                                         />
                                     </div>
-                                    {errors.email && (
-                                        <p className="text-sm text-red-500">{errors.email}</p>
-                                    )}
+                                    {errors?.email && <p className="text-sm text-red-500">{errors.email}</p>}
                                 </div>
 
                                 <div className="space-y-2">
@@ -134,9 +141,7 @@ export default function Register() {
                                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </button>
                                     </div>
-                                    {errors.password && (
-                                        <p className="text-sm text-red-500">{errors.password}</p>
-                                    )}
+                                    {errors?.password && <p className="text-sm text-red-500">{errors.password}</p>}
                                 </div>
 
                                 <div className="space-y-2">
@@ -184,11 +189,8 @@ export default function Register() {
                 </div>
             </main>
 
-            {/* Footer */}
             <footer className="py-6">
-                <div className="text-center text-sm text-slate-500">
-                    © {new Date().getFullYear()} Domion. All rights reserved.
-                </div>
+                <div className="text-center text-sm text-slate-500">© {new Date().getFullYear()} Domion. All rights reserved.</div>
             </footer>
         </div>
     );
