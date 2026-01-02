@@ -22,4 +22,9 @@ class DashboardServiceProvider extends AbstractServiceProvider
     {
         return ['web', 'auth'];
     }
+
+    public function getRouteNamePrefix(): ?string
+    {
+        return null;
+    }
 }

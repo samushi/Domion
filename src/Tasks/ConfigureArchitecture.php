@@ -291,6 +291,22 @@ class ConfigureArchitecture
 
     protected function updateProvidersConfig(): void
     {
+        // 1. Clean up wrong App\App namespace in providers configs if present (from previous runs)
+        $files = [base_path('bootstrap/providers.php'), base_path('config/app.php')];
+        foreach ($files as $path) {
+            if (File::exists($path)) {
+                $content = File::get($path);
+                if (str_contains($content, 'App\\App\\Providers\\AppServiceProvider::class')) {
+                    $content = str_replace(
+                        'App\\App\\Providers\\AppServiceProvider::class',
+                        'App\\Providers\\AppServiceProvider::class',
+                        $content
+                    );
+                    File::put($path, $content);
+                }
+            }
+        }
+
         // Namespaces remain App\Providers, so no need to update bootstrap/providers.php
         $this->registerFrontendViews();
     }
