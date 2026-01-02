@@ -103,13 +103,30 @@ class ConfigureArchitecture
                 File::put($target, $content);
             }
         }
+
+        // Scaffold Layouts
+        if ($mode === 'react' || $mode === 'vue') {
+            $layoutStub = $mode === 'react' ? 'ReactLayout' : 'VueLayout';
+            $ext = $mode === 'react' ? 'tsx' : 'vue';
+            $layoutTarget = base_path("app/Support/Frontend/Layouts/AuthenticatedLayout.{$ext}");
+            
+            File::ensureDirectoryExists(dirname($layoutTarget));
+            
+            $stubPath = __DIR__ . "/../stubs/{$layoutStub}.stub";
+            if (File::exists($stubPath)) {
+                File::put($layoutTarget, File::get($stubPath));
+            }
+        }
         
         // Clean up the old resources/js if it exists to avoid confusion
         // But maybe the user wants to keep it? The user said "pjese e Support... jo ne resource"
         // So we can safely delete or at least warn.
+        // Clean up the old resources/js and css if they exist to avoid confusion
         if (File::isDirectory(base_path('resources/js'))) {
-            // File::deleteDirectory(base_path('resources/js')); 
-            // Better to keep it for now but the entry point is moved in vite.config.js
+            File::deleteDirectory(base_path('resources/js'));
+        }
+        if (File::isDirectory(base_path('resources/css'))) {
+            File::deleteDirectory(base_path('resources/css'));
         }
     }
 
@@ -145,7 +162,7 @@ class ConfigureArchitecture
         unset($json['autoload']['psr-4']['App\\']);
 
         $json['autoload']['psr-4'] = array_merge($json['autoload']['psr-4'], [
-            "App\\App\\" => "app/App/",
+            "App\\" => "app/App/",
             "App\\Domain\\" => "app/Domain/",
             "App\\Support\\" => "app/Support/"
         ]);
@@ -160,8 +177,8 @@ class ConfigureArchitecture
             foreach (File::files(base_path('app/Providers')) as $file) {
                 $content = File::get($file);
                 
-                // Update Namespace
-                $content = str_replace('namespace App\Providers;', 'namespace App\App\Providers;', $content);
+                // Update Namespace (KEPT AS App\Providers)
+                // $content = str_replace('namespace App\Providers;', 'namespace App\App\Providers;', $content);
                 
                 // Robust injection for AppServiceProvider
                 if ($file->getFilename() === 'AppServiceProvider.php') {
@@ -172,12 +189,6 @@ class ConfigureArchitecture
                         $content = preg_replace('/(public function register\(\): void\s*\{)/', "$1" . $regCall, $content);
                     }
 
-                    // 2. Inject Volt::mount in boot() if needed
-                    if ($mode === 'livewire' && !str_contains($content, 'Volt::mount')) {
-                        $bootCall = "\n        \\Livewire\\Volt\\Volt::mount([realpath(__DIR__.'/../../../app/Domain')]);";
-                        // Find the boot method and inject after the opening brace
-                        $content = preg_replace('/(public function boot\(\): void\s*\{)/', "$1" . $bootCall, $content);
-                    }
                     
                     // 3. Ensure the class is properly closed if it got messed up (fallback)
                     if (substr(trim($content), -1) !== '}') {
@@ -280,22 +291,7 @@ class ConfigureArchitecture
 
     protected function updateProvidersConfig(): void
     {
-        // For Laravel 11/12
-        $path = base_path('bootstrap/providers.php');
-        if (File::exists($path)) {
-            $content = File::get($path);
-            $content = str_replace('App\\Providers\\AppServiceProvider::class', 'App\\App\\Providers\\AppServiceProvider::class', $content);
-            File::put($path, $content);
-        }
-
-        // For Laravel 10 or published config
-        $configPath = base_path('config/app.php');
-        if (File::exists($configPath)) {
-            $content = File::get($configPath);
-            $content = str_replace('App\\Providers\\AppServiceProvider::class', 'App\\App\\Providers\\AppServiceProvider::class', $content);
-            File::put($configPath, $content);
-        }
-
+        // Namespaces remain App\Providers, so no need to update bootstrap/providers.php
         $this->registerFrontendViews();
     }
 
@@ -305,16 +301,11 @@ class ConfigureArchitecture
         if (File::exists($providerPath)) {
             $content = File::get($providerPath);
             
-            // 1. Fix Namespace if it's still the old one
-            if (str_contains($content, 'namespace App\Providers;')) {
-                $content = str_replace('namespace App\Providers;', 'namespace App\App\Providers;', $content);
-            }
-
-            // 2. Add View facade import if missing
+            // Add View facade import if missing
             if (!str_contains($content, 'use Illuminate\Support\Facades\View;')) {
-                // Insert after namespace
+                // Insert after namespace App\Providers;
                 $content = preg_replace(
-                    '/(namespace App\\\\App\\\\Providers;)/',
+                    '/(namespace App\\\\Providers;)/',
                     "$1\n\nuse Illuminate\Support\Facades\View;",
                     $content
                 );

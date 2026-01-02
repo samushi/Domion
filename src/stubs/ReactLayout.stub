@@ -1,0 +1,161 @@
+import React, { useState, PropsWithChildren, ReactNode } from 'react';
+import { Link, usePage } from '@inertiajs/react';
+import { route } from 'ziggy-js';
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Menu, X } from "lucide-react";
+
+function Logo({ className }: { className?: string }) {
+    return (
+        <svg viewBox="0 0 100 100" className={className} xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#2563eb" />
+                    <stop offset="50%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#06b6d4" />
+                </linearGradient>
+            </defs>
+            <polygon points="50,2 93,25 93,75 50,98 7,75 7,25" fill="url(#logoGradient)" />
+            <path d="M35 30 L35 70 L55 70 C70 70 75 55 75 50 C75 45 70 30 55 30 Z M45 40 L55 40 C60 40 65 45 65 50 C65 55 60 60 55 60 L45 60 Z" fill="white" opacity="0.95" />
+        </svg>
+    );
+}
+
+export default function Authenticated({ header, children }: PropsWithChildren<{ header?: ReactNode }>) {
+    const user = usePage().props.auth.user as { name: string; email: string };
+    const [showingNavigationDropdown, setShowingNavigationDropdown] = useState(false);
+
+    // Profile route check - fallback to # if not defined to prevent errors
+    const profileRoute = route().has('profile.edit') ? route('profile.edit') : '#';
+
+    return (
+        <div className="min-h-screen bg-gray-100">
+            <nav className="bg-white border-b border-gray-100">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between h-16">
+                        <div className="flex">
+                            <div className="shrink-0 flex items-center">
+                                <Link href={route('dashboard')}>
+                                    <Logo className="block h-9 w-auto" />
+                                </Link>
+                            </div>
+
+                            <div className="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                                <Link
+                                    href={route('dashboard')}
+                                    className={'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-blue-500 text-gray-900 focus:outline-none focus:border-blue-700'}
+                                >
+                                    Dashboard
+                                </Link>
+                            </div>
+                        </div>
+
+                        <div className="hidden sm:flex sm:items-center sm:ml-6">
+                            <div className="ml-3 relative">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} alt={user.name} />
+                                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                                        <DropdownMenuLabel className="font-normal">
+                                            <div className="flex flex-col space-y-1">
+                                                <p className="text-sm font-medium leading-none">{user.name}</p>
+                                                <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                                            </div>
+                                        </DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem asChild>
+                                            <Link href={profileRoute} className="w-full cursor-pointer">Profile</Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem asChild>
+                                            <Link href={route('logout')} method="post" as="button" className="w-full cursor-pointer">
+                                                Log out
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </div>
+
+                        <div className="-mr-2 flex items-center sm:hidden">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setShowingNavigationDropdown((previousState) => !previousState)}
+                                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out"
+                            >
+                                {showingNavigationDropdown ? (
+                                    <X className="h-6 w-6" />
+                                ) : (
+                                    <Menu className="h-6 w-6" />
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                {showingNavigationDropdown && (
+                    <div className="sm:hidden">
+                        <div className="pt-2 pb-3 space-y-1">
+                             <Link
+                                href={route('dashboard')}
+                                className="block w-full pl-3 pr-4 py-2 border-l-4 border-blue-500 text-left text-base font-medium text-blue-700 bg-blue-50 focus:outline-none focus:text-blue-800 focus:bg-blue-100 focus:border-blue-700 transition duration-150 ease-in-out"
+                            >
+                                Dashboard
+                            </Link>
+                        </div>
+
+                        <div className="pt-4 pb-1 border-t border-gray-200">
+                            <div className="px-4">
+                                <div className="font-medium text-base text-gray-800">{user.name}</div>
+                                <div className="font-medium text-sm text-gray-500">{user.email}</div>
+                            </div>
+
+                            <div className="mt-3 space-y-1">
+                                <Link
+                                    href={profileRoute}
+                                    className="block w-full pl-3 pr-4 py-2 border-l-4 border-transparent text-left text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:text-gray-800 focus:bg-gray-50 focus:border-gray-300 transition duration-150 ease-in-out"
+                                >
+                                    Profile
+                                </Link>
+                                <Link
+                                    href={route('logout')}
+                                    method="post"
+                                    as="button"
+                                    className="block w-full pl-3 pr-4 py-2 border-l-4 border-transparent text-left text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:text-gray-800 focus:bg-gray-50 focus:border-gray-300 transition duration-150 ease-in-out"
+                                >
+                                    Log Out
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </nav>
+
+            {header && (
+                <header className="bg-white shadow">
+                    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                        {header}
+                    </div>
+                </header>
+            )}
+
+            <main>
+                {children}
+            </main>
+        </div>
+    );
+}

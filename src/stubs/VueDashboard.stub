@@ -1,143 +1,22 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Layers, Zap, Code2, Users, Plus, FileText, LogOut, CheckCircle2, Activity } from 'lucide-vue-next';
-
-defineProps<{
-    auth: {
-        user: {
-            name: string;
-            email: string;
-        };
-    };
-}>();
-
-const stats = [
-    { label: 'Total Domains', value: '12', icon: Layers, trend: '+2 this week' },
-    { label: 'Active Actions', value: '48', icon: Zap, trend: '+8 this week' },
-    { label: 'API Endpoints', value: '156', icon: Code2, trend: '+12 this week' },
-    { label: 'Team Members', value: '8', icon: Users, trend: '+1 this week' },
-];
-
-const quickActions = [
-    { title: 'Create Domain', description: 'Add a new domain', icon: Plus, href: '#' },
-    { title: 'Generate Action', description: 'Create new action class', icon: Zap, href: '#' },
-    { title: 'View Documentation', description: 'Learn more about Domion', icon: FileText, href: '#' },
-];
-
-const activities = [
-    { action: 'Created new domain', target: 'Product', time: '2 hours ago' },
-    { action: 'Generated action', target: 'CreateOrderAction', time: '4 hours ago' },
-    { action: 'Updated repository', target: 'UserRepository', time: '1 day ago' },
-];
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import { Head } from '@inertiajs/vue3';
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50">
-        <Head title="Dashboard" />
+    <Head title="Dashboard" />
 
-        <header class="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-lg">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
-                <Link :href="route('landing')" class="flex items-center gap-3">
-                    <svg viewBox="0 0 100 100" class="h-10 w-10" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#2563eb" />
-                                <stop offset="50%" stop-color="#3b82f6" />
-                                <stop offset="100%" stop-color="#06b6d4" />
-                            </linearGradient>
-                        </defs>
-                        <polygon points="50,2 93,25 93,75 50,98 7,75 7,25" fill="url(#logoGradient)" />
-                        <path d="M35 30 L35 70 L55 70 C70 70 75 55 75 50 C75 45 70 30 55 30 Z M45 40 L55 40 C60 40 65 45 65 50 C65 55 60 60 55 60 L45 60 Z" fill="white" opacity="0.95" />
-                    </svg>
-                    <span class="font-bold text-xl bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Domion</span>
-                </Link>
+    <AuthenticatedLayout>
+        <template #header>
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">Dashboard</h2>
+        </template>
 
-                <div class="flex items-center gap-4">
-                    <span class="text-slate-600">Welcome, {{ auth?.user?.name || 'User' }}</span>
-                    <Link :href="route('logout')" method="post" as="button">
-                        <Button variant="ghost" class="text-slate-600 hover:text-red-600">
-                            <LogOut class="h-4 w-4 mr-2" />
-                            Logout
-                        </Button>
-                    </Link>
+        <div class="py-12">
+            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 text-gray-900">You're logged in!</div>
                 </div>
             </div>
-        </header>
-
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div class="mb-8">
-                <h1 class="text-3xl font-bold text-slate-900">Dashboard</h1>
-                <p class="text-slate-600 mt-1">Welcome back! Here's what's happening with your projects.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <Card v-for="(stat, index) in stats" :key="index" class="hover:shadow-lg hover:border-blue-200 transition-all duration-300">
-                    <CardContent class="p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                                <component :is="stat.icon" class="h-6 w-6 text-white" />
-                            </div>
-                            <Badge variant="secondary" class="text-xs font-normal">{{ stat.trend }}</Badge>
-                        </div>
-                        <h3 class="text-3xl font-bold text-slate-900">{{ stat.value }}</h3>
-                        <p class="text-slate-500 text-sm mt-1">{{ stat.label }}</p>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <Card class="mb-8">
-                <CardHeader>
-                    <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Link v-for="(action, index) in quickActions" :key="index" :href="action.href" class="group">
-                            <div class="flex items-center gap-3 p-4 rounded-lg border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-300">
-                                <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                                    <component :is="action.icon" class="h-5 w-5 text-white" />
-                                </div>
-                                <div>
-                                    <p class="font-medium text-slate-900">{{ action.title }}</p>
-                                    <p class="text-sm text-slate-500">{{ action.description }}</p>
-                                </div>
-                            </div>
-                        </Link>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle class="flex items-center gap-2">
-                        <Activity class="h-5 w-5" />
-                        Recent Activity
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div class="space-y-4">
-                        <div v-for="(activity, index) in activities" :key="index" class="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
-                            <div class="flex items-center gap-3">
-                                <div class="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                    <CheckCircle2 class="h-4 w-4 text-blue-600" />
-                                </div>
-                                <p class="text-sm text-slate-900">
-                                    {{ activity.action }} <span class="font-medium">{{ activity.target }}</span>
-                                </p>
-                            </div>
-                            <span class="text-sm text-slate-500">{{ activity.time }}</span>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </main>
-
-        <footer class="border-t border-slate-200 mt-12 py-6">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
-                © {{ new Date().getFullYear() }} Domion. Built with Laravel & Vue.
-            </div>
-        </footer>
-    </div>
+        </div>
+    </AuthenticatedLayout>
 </template>

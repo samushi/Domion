@@ -1,0 +1,148 @@
+<script setup lang="ts">
+import { ref, computed } from 'vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Menu, X } from 'lucide-vue-next';
+
+const showingNavigationDropdown = ref(false);
+const page = usePage();
+const user = computed(() => page.props.auth.user);
+
+const profileRoute = route().has('profile.edit') ? route('profile.edit') : '#';
+</script>
+
+<template>
+    <div class="min-h-screen bg-gray-100">
+        <nav class="bg-white border-b border-gray-100">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex">
+                        <div class="shrink-0 flex items-center">
+                            <Link :href="route('dashboard')">
+                                <svg viewBox="0 0 100 100" class="block h-9 w-auto" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stopColor="#2563eb" />
+                                            <stop offset="50%" stopColor="#3b82f6" />
+                                            <stop offset="100%" stopColor="#06b6d4" />
+                                        </linearGradient>
+                                    </defs>
+                                    <polygon points="50,2 93,25 93,75 50,98 7,75 7,25" fill="url(#logoGradient)" />
+                                    <path d="M35 30 L35 70 L55 70 C70 70 75 55 75 50 C75 45 70 30 55 30 Z M45 40 L55 40 C60 40 65 45 65 50 C65 55 60 60 55 60 L45 60 Z" fill="white" opacity="0.95" />
+                                </svg>
+                            </Link>
+                        </div>
+
+                        <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
+                            <Link
+                                :href="route('dashboard')"
+                                class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out border-blue-500 text-gray-900 focus:outline-none focus:border-blue-700"
+                            >
+                                Dashboard
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div class="hidden sm:flex sm:items-center sm:ml-6">
+                        <div class="ml-3 relative">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger as-child>
+                                    <Button variant="ghost" class="relative h-8 w-8 rounded-full">
+                                        <Avatar class="h-8 w-8">
+                                            <AvatarImage :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`" :alt="user.name" />
+                                            <AvatarFallback>{{ user.name.charAt(0) }}</AvatarFallback>
+                                        </Avatar>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent class="w-56" align="end" :force-mount="true">
+                                    <DropdownMenuLabel class="font-normal">
+                                        <div class="flex flex-col space-y-1">
+                                            <p class="text-sm font-medium leading-none">{{ user.name }}</p>
+                                            <p class="text-xs leading-none text-muted-foreground">{{ user.email }}</p>
+                                        </div>
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem as-child>
+                                        <Link :href="profileRoute" class="w-full cursor-pointer">Profile</Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem as-child>
+                                        <Link :href="route('logout')" method="post" as="button" class="w-full cursor-pointer">
+                                            Log out
+                                        </Link>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </div>
+
+                    <div class="-mr-2 flex items-center sm:hidden">
+                        <Button
+                            variant="ghost"
+                            @click="showingNavigationDropdown = !showingNavigationDropdown"
+                            class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out"
+                        >
+                            <Menu v-if="!showingNavigationDropdown" class="h-6 w-6" />
+                            <X v-else class="h-6 w-6" />
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-show="showingNavigationDropdown" class="sm:hidden">
+                <div class="pt-2 pb-3 space-y-1">
+                    <Link
+                        :href="route('dashboard')"
+                        class="block w-full pl-3 pr-4 py-2 border-l-4 border-blue-500 text-left text-base font-medium text-blue-700 bg-blue-50 focus:outline-none focus:text-blue-800 focus:bg-blue-100 focus:border-blue-700 transition duration-150 ease-in-out"
+                    >
+                        Dashboard
+                    </Link>
+                </div>
+
+                <div class="pt-4 pb-1 border-t border-gray-200">
+                    <div class="px-4">
+                        <div class="font-medium text-base text-gray-800">{{ user.name }}</div>
+                        <div class="font-medium text-sm text-gray-500">{{ user.email }}</div>
+                    </div>
+
+                    <div class="mt-3 space-y-1">
+                        <Link
+                            :href="profileRoute"
+                            class="block w-full pl-3 pr-4 py-2 border-l-4 border-transparent text-left text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:text-gray-800 focus:bg-gray-50 focus:border-gray-300 transition duration-150 ease-in-out"
+                        >
+                            Profile
+                        </Link>
+                        <Link
+                            :href="route('logout')"
+                            method="post"
+                            as="button"
+                            class="block w-full pl-3 pr-4 py-2 border-l-4 border-transparent text-left text-base font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:text-gray-800 focus:bg-gray-50 focus:border-gray-300 transition duration-150 ease-in-out"
+                        >
+                            Log Out
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <header class="bg-white shadow" v-if="$slots.header">
+            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <slot name="header" />
+            </div>
+        </header>
+
+        <main>
+            <slot />
+        </main>
+    </div>
+</template>

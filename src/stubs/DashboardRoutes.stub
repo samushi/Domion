@@ -3,4 +3,4 @@
 use Illuminate\Support\Facades\Route;
 use App\Domain\Dashboard\Controllers\DashboardController;
 
-Route::get('/', [DashboardController::class, 'index'])->name('index');
+Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
