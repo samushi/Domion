@@ -104,30 +104,38 @@ class InstallFortify
         
         $paths = [
             base_path($appPath . '/Domain/User/Models/User.php'),
-            base_path($appPath . '/Models/User.php'),
-            base_path('app/Domain/User/Models/User.php'), // Old fallback
+            base_path('app/Domain/User/Models/User.php'),
+            base_path('app/Models/User.php'),
         ];
 
         foreach ($paths as $userModel) {
             if (File::exists($userModel)) {
                 $content = File::get($userModel);
-                if (!str_contains($content, 'TwoFactorAuthenticatable')) {
-                    // Inject Trait using more reliable regex
+                
+                // 1. Check if use statement already exists
+                if (!str_contains($content, 'use Laravel\\Fortify\\TwoFactorAuthenticatable;')) {
                     $content = preg_replace(
-                        '/use\s+Illuminate\\\\Notifications\\\\Notifiable;/',
-                        "$0\nuse Laravel\\Fortify\\TwoFactorAuthenticatable;",
+                        '/(namespace\s+[^;]+;)/',
+                        "$1\n\nuse Laravel\\Fortify\\TwoFactorAuthenticatable;",
                         $content
                     );
-
-                    $content = preg_replace(
-                        '/use\s+([^;]+)Notifiable;/',
-                        "use $1Notifiable, TwoFactorAuthenticatable;",
-                        $content
-                    );
-
-                    File::put($userModel, $content);
-                    $this->command->info("✓ TwoFactorAuthenticatable added to User model at {$userModel}");
                 }
+
+                // 2. Check if trait is already used in the class
+                // We search for 'use ' followed by traits ending with ';'
+                if (!preg_match('/use\s+[^;]*TwoFactorAuthenticatable[^;]*;/', $content)) {
+                    // Try to append to existing use inside class
+                    if (preg_match('/use\s+([^;]+)Notifiable;/', $content)) {
+                        $content = preg_replace(
+                            '/use\s+([^;]+)Notifiable;/',
+                            "use $1Notifiable, TwoFactorAuthenticatable;",
+                            $content
+                        );
+                    }
+                }
+
+                File::put($userModel, $content);
+                $this->command->info("✓ User model updated at {$userModel}");
             }
         }
     }

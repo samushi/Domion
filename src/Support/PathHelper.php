@@ -10,7 +10,7 @@ class PathHelper
 {
     /**
      * Get the relative physical path for the 'App\' namespace.
-     * Example: 'app' or 'app/App'
+     * Always returns a clean relative path (e.g. 'app' or 'app/App').
      */
     public static function getAppPath(): string
     {
@@ -22,8 +22,13 @@ class PathHelper
             
             foreach ($psr4 as $namespace => $path) {
                 if ($namespace === 'App\\') {
-                    // Ensure we return a relative path, stripping the base path if it was absolute
                     $relativePath = is_array($path) ? $path[0] : $path;
+                    
+                    // CRITICAL: Strip any absolute path prefix if it exists
+                    // We only want the part relative to the project root
+                    $relativePath = str_replace(base_path() . '/', '', $relativePath);
+                    $relativePath = ltrim($relativePath, '/');
+                    
                     return rtrim($relativePath, '/');
                 }
             }
@@ -42,7 +47,7 @@ class PathHelper
     }
 
     /**
-     * Detect if the main app folder is 'app' or something else (for frontend/domains).
+     * Get the root folder of the app (usually 'app')
      */
     public static function getAppRoot(): string
     {

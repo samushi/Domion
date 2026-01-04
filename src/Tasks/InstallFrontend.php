@@ -7,6 +7,8 @@ namespace Samushi\Domion\Tasks;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 
+use Samushi\Domion\Support\PathHelper;
+
 class InstallFrontend
 {
     public function __construct(protected Command $command) {}
@@ -122,6 +124,9 @@ TS;
         }
 
         // 2. Pre-create components.json to make it non-interactive
+        $appPath = PathHelper::getAppPath();
+        $frontendPath = "{$appPath}/Support/Frontend";
+
         $componentsJson = [
             '$schema' => 'https://ui.shadcn.com/schema.json',
             'style' => 'new-york',
@@ -129,17 +134,17 @@ TS;
             'tsx' => true,
             'tailwind' => [
                 'config' => '',
-                'css' => 'app/Support/Frontend/app.css',
+                'css' => "{$frontendPath}/app.css",
                 'baseColor' => 'slate',
                 'cssVariables' => true,
                 'prefix' => '',
             ],
             'aliases' => [
-                'components' => '@/components',
-                'utils' => '@/lib/utils',
-                'ui' => '@/components/ui',
-                'lib' => '@/lib',
-                'hooks' => '@/hooks',
+                'components' => "App/Support/Frontend/components",
+                'utils' => "App/Support/Frontend/lib/utils",
+                'ui' => "App/Support/Frontend/components/ui",
+                'lib' => "App/Support/Frontend/lib",
+                'hooks' => "App/Support/Frontend/hooks",
             ],
         ];
 
