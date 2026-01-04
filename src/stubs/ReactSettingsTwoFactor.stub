@@ -117,9 +117,16 @@ export default function SettingsTwoFactor({ enabled, confirmed }: Props) {
     };
 
     const handleCodeChange = (index: number, value: string) => {
-        // Only allow digits
+        // Extract only digits
         const digits = value.replace(/\D/g, '');
-        if (!digits) return;
+        
+        // If value is empty (user deleted), clear the current input
+        if (value === '' || digits === '') {
+            const newCode = [...code];
+            newCode[index] = '';
+            setCode(newCode);
+            return;
+        }
         
         // If pasting multiple digits, distribute them across inputs
         if (digits.length > 1) {
@@ -149,32 +156,42 @@ export default function SettingsTwoFactor({ enabled, confirmed }: Props) {
         e.preventDefault();
         const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
         if (pastedData) {
-            const newCode = [...code];
+            const newCode = ['', '', '', '', '', ''];
             for (let i = 0; i < pastedData.length; i++) {
                 newCode[i] = pastedData[i];
             }
             setCode(newCode);
-            // Focus on the appropriate input
-            const focusIndex = Math.min(pastedData.length, 5);
+            // Focus on the last filled input or next empty
+            const focusIndex = Math.min(pastedData.length - 1, 5);
             inputRefs.current[focusIndex]?.focus();
         }
     };
 
     const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
         if (e.key === 'Backspace') {
-            if (!code[index] && index > 0) {
-                // If current is empty and backspace, go to previous
-                inputRefs.current[index - 1]?.focus();
-            } else {
-                // Clear current and stay
-                const newCode = [...code];
+            e.preventDefault();
+            const newCode = [...code];
+            if (code[index]) {
+                // If current has value, clear it
                 newCode[index] = '';
                 setCode(newCode);
+            } else if (index > 0) {
+                // If current is empty, go to previous and clear it
+                newCode[index - 1] = '';
+                setCode(newCode);
+                inputRefs.current[index - 1]?.focus();
             }
         } else if (e.key === 'ArrowLeft' && index > 0) {
+            e.preventDefault();
             inputRefs.current[index - 1]?.focus();
         } else if (e.key === 'ArrowRight' && index < 5) {
+            e.preventDefault();
             inputRefs.current[index + 1]?.focus();
+        } else if (e.key === 'Delete') {
+            e.preventDefault();
+            const newCode = [...code];
+            newCode[index] = '';
+            setCode(newCode);
         }
     };
 

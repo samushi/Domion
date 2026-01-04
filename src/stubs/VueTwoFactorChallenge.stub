@@ -2,92 +2,168 @@
 import { Head, useForm } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { route } from 'ziggy-js';
-import { ref, nextTick } from 'vue';
+import { ref, watch } from 'vue';
 
 const recovery = ref(false);
-const recoveryCodeInput = ref<HTMLInputElement | null>(null);
-const codeInput = ref<HTMLInputElement | null>(null);
+const code = ref(['', '', '', '', '', '']);
+const inputRefs = ref<(HTMLInputElement | null)[]>([]);
 
 const form = useForm({
     code: '',
     recovery_code: '',
 });
 
-const toggleRecovery = async () => {
-    recovery.value = !recovery.value;
-    form.code = '';
-    form.recovery_code = '';
-
-    await nextTick();
-
-    if (recovery.value) {
-        recoveryCodeInput.value?.focus();
-    } else {
-        codeInput.value?.focus();
+watch(code, (newCode) => {
+    if (!recovery.value) {
+        form.code = newCode.join('');
     }
+}, { deep: true });
+
+const toggleRecovery = () => {
+    recovery.value = !recovery.value;
+    code.value = ['', '', '', '', '', ''];
+    form.reset();
 };
 
 const submit = () => {
     form.post(route('two-factor.login'));
 };
+
+const handleCodeChange = (index: number, event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const value = target.value;
+    const digits = value.replace(/\D/g, '');
+    
+    if (!digits && value !== '') {
+        target.value = code.value[index];
+        return;
+    }
+    
+    if (digits.length > 1) {
+        for (let i = 0; i < digits.length && index + i < 6; i++) {
+            code.value[index + i] = digits[i];
+        }
+        const nextIndex = Math.min(index + digits.length, 5);
+        inputRefs.value[nextIndex]?.focus();
+        return;
+    }
+    
+    code.value[index] = digits;
+    
+    if (digits && index < 5) {
+        inputRefs.value[index + 1]?.focus();
+    }
+};
+
+const handlePaste = (event: ClipboardEvent) => {
+    event.preventDefault();
+    const pastedData = event.clipboardData?.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pastedData) {
+        for (let i = 0; i < pastedData.length; i++) {
+            code.value[i] = pastedData[i];
+        }
+        const focusIndex = Math.min(pastedData.length, 5);
+        inputRefs.value[focusIndex]?.focus();
+    }
+};
+
+const handleKeyDown = (index: number, event: KeyboardEvent) => {
+    if (event.key === 'Backspace') {
+        if (!code.value[index] && index > 0) {
+            inputRefs.value[index - 1]?.focus();
+        } else {
+            code.value[index] = '';
+        }
+    } else if (event.key === 'ArrowLeft' && index > 0) {
+        inputRefs.value[index - 1]?.focus();
+    } else if (event.key === 'ArrowRight' && index < 5) {
+        inputRefs.value[index + 1]?.focus();
+    }
+};
+
+const setInputRef = (el: any, index: number) => {
+    if (el) inputRefs.value[index] = el.$el || el;
+};
+
+const isCodeComplete = () => !code.value.some(d => !d);
 </script>
 
 <template>
-    <div class="flex min-h-screen items-center justify-center bg-background">
-        <Head title="Two-factor Confirmation" />
+    <div class="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+        <Head title="Two-Factor Authentication" />
 
-        <div class="mx-auto w-full max-w-md space-y-6 p-6">
-            <div class="space-y-2 text-center">
-                <h1 class="text-2xl font-semibold tracking-tight">Two-factor Confirmation</h1>
-                <p class="text-sm text-muted-foreground">
-                    {{ recovery
-                        ? 'Please confirm access to your account by entering one of your emergency recovery codes.'
-                        : 'Please confirm access to your account by entering the authentication code provided by your authenticator application.' }}
-                </p>
+        <div class="w-full max-w-sm space-y-8">
+            <div class="flex flex-col items-center space-y-4">
+                <svg viewBox="0 0 50 52" fill="none" class="h-12 w-12 text-foreground">
+                    <path d="M25 0L50 14.5V37.5L25 52L0 37.5V14.5L25 0Z" fill="currentColor"/>
+                    <path d="M25 8L42 18V34L25 44L8 34V18L25 8Z" fill="white" opacity="0.3"/>
+                    <path d="M25 16L34 21.5V32.5L25 38L16 32.5V21.5L25 16Z" fill="white" opacity="0.5"/>
+                </svg>
+                <div class="text-center">
+                    <h1 class="text-xl font-semibold tracking-tight">
+                        {{ recovery ? 'Recovery Code' : 'Authentication Code' }}
+                    </h1>
+                    <p class="mt-2 text-sm text-muted-foreground">
+                        {{ recovery
+                            ? 'Please confirm access to your account by entering one of your emergency recovery codes.'
+                            : 'Enter the authentication code provided by your authenticator application.' }}
+                    </p>
+                </div>
             </div>
 
-            <form @submit.prevent="submit" class="space-y-4">
-                <div v-if="!recovery" class="space-y-2">
-                    <Label for="code">Code</Label>
+            <form @submit.prevent="submit" class="space-y-6">
+                <div v-if="!recovery" class="flex justify-center gap-2">
                     <Input
-                        id="code"
-                        ref="codeInput"
+                        v-for="(digit, index) in code"
+                        :key="index"
+                        :ref="(el) => setInputRef(el, index)"
                         type="text"
                         inputmode="numeric"
-                        v-model="form.code"
-                        auto-focus
+                        maxlength="6"
+                        :value="digit"
+                        @input="handleCodeChange(index, $event)"
+                        @keydown="handleKeyDown(index, $event)"
+                        @paste="handlePaste"
+                        class="h-12 w-10 text-center text-lg font-medium rounded-lg border-input"
+                        :autofocus="index === 0"
                         autocomplete="one-time-code"
                     />
-                    <p v-if="form.errors.code" class="text-sm text-red-600">{{ form.errors.code }}</p>
                 </div>
-
+                
                 <div v-else class="space-y-2">
-                    <Label for="recovery_code">Recovery Code</Label>
                     <Input
-                        id="recovery_code"
-                        ref="recoveryCodeInput"
                         type="text"
                         v-model="form.recovery_code"
+                        placeholder="Enter recovery code"
+                        class="h-12"
+                        autofocus
                         autocomplete="one-time-code"
                     />
-                    <p v-if="form.errors.recovery_code" class="text-sm text-red-600">{{ form.errors.recovery_code }}</p>
                 </div>
 
-                <div class="flex flex-col gap-3">
-                    <Button type="submit" class="w-full" :disabled="form.processing">
-                        Log in
-                    </Button>
-                    
+                <p v-if="form.errors.code || form.errors.recovery_code" class="text-sm text-center text-destructive">
+                    {{ form.errors.code || form.errors.recovery_code }}
+                </p>
+
+                <Button 
+                    type="submit" 
+                    class="w-full h-12 text-base font-medium" 
+                    :disabled="form.processing || (!recovery && !isCodeComplete())"
+                >
+                    Continue
+                </Button>
+
+                <p class="text-center text-sm text-muted-foreground">
+                    or you can
                     <button
                         type="button"
-                        class="text-sm text-muted-foreground hover:underline"
+                        class="font-medium underline underline-offset-4 hover:text-foreground transition-colors"
                         @click="toggleRecovery"
                     >
-                        {{ recovery ? 'Use an authentication code' : 'Use a recovery code' }}
+                        {{ recovery ? 'login using an authentication code' : 'login using a recovery code' }}
                     </button>
-                </div>
+                </p>
             </form>
         </div>
     </div>

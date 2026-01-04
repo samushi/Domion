@@ -1,23 +1,40 @@
 import { Head, useForm } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { route } from 'ziggy-js';
 import { useState, useRef, useEffect } from 'react';
 
+function Logo({ className = "h-10 w-10" }: { className?: string }) {
+    return (
+        <svg viewBox="0 0 50 52" fill="none" className={className}>
+            <path d="M25 0L50 14.5V37.5L25 52L0 37.5V14.5L25 0Z" fill="currentColor"/>
+            <path d="M25 8L42 18V34L25 44L8 34V18L25 8Z" fill="white" opacity="0.3"/>
+            <path d="M25 16L34 21.5V32.5L25 38L16 32.5V21.5L25 16Z" fill="white" opacity="0.5"/>
+        </svg>
+    );
+}
+
 export default function TwoFactorChallenge() {
     const [recovery, setRecovery] = useState(false);
-    const recoveryCodeInput = useRef<HTMLInputElement>(null);
-    const codeInput = useRef<HTMLInputElement>(null);
+    const [code, setCode] = useState(['', '', '', '', '', '']);
+    const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, reset } = useForm({
         code: '',
         recovery_code: '',
     });
 
+    useEffect(() => {
+        // Update form data when code changes
+        if (!recovery) {
+            setData('code', code.join(''));
+        }
+    }, [code, recovery]);
+
     const toggleRecovery = () => {
         setRecovery(!recovery);
-        setData({ code: '', recovery_code: '' });
+        setCode(['', '', '', '', '', '']);
+        reset();
     };
 
     const submit = (e: React.FormEvent) => {
@@ -25,64 +42,137 @@ export default function TwoFactorChallenge() {
         post(route('two-factor.login'));
     };
 
-    return (
-        <div className="flex min-h-screen items-center justify-center bg-background">
-            <Head title="Two-factor Confirmation" />
+    const handleCodeChange = (index: number, value: string) => {
+        const digits = value.replace(/\D/g, '');
+        if (!digits && value !== '') return;
+        
+        if (digits.length > 1) {
+            const newCode = [...code];
+            for (let i = 0; i < digits.length && index + i < 6; i++) {
+                newCode[index + i] = digits[i];
+            }
+            setCode(newCode);
+            const nextIndex = Math.min(index + digits.length, 5);
+            inputRefs.current[nextIndex]?.focus();
+            return;
+        }
+        
+        const newCode = [...code];
+        newCode[index] = digits;
+        setCode(newCode);
+        
+        if (digits && index < 5) {
+            inputRefs.current[index + 1]?.focus();
+        }
+    };
 
-            <div className="mx-auto w-full max-w-md space-y-6 p-6">
-                <div className="space-y-2 text-center">
-                    <h1 className="text-2xl font-semibold tracking-tight">Two-factor Confirmation</h1>
-                    <p className="text-sm text-muted-foreground">
-                        {recovery
-                            ? 'Please confirm access to your account by entering one of your emergency recovery codes.'
-                            : 'Please confirm access to your account by entering the authentication code provided by your authenticator application.'}
-                    </p>
+    const handlePaste = (e: React.ClipboardEvent) => {
+        e.preventDefault();
+        const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+        if (pastedData) {
+            const newCode = [...code];
+            for (let i = 0; i < pastedData.length; i++) {
+                newCode[i] = pastedData[i];
+            }
+            setCode(newCode);
+            const focusIndex = Math.min(pastedData.length, 5);
+            inputRefs.current[focusIndex]?.focus();
+        }
+    };
+
+    const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+        if (e.key === 'Backspace') {
+            if (!code[index] && index > 0) {
+                inputRefs.current[index - 1]?.focus();
+            } else {
+                const newCode = [...code];
+                newCode[index] = '';
+                setCode(newCode);
+            }
+        } else if (e.key === 'ArrowLeft' && index > 0) {
+            inputRefs.current[index - 1]?.focus();
+        } else if (e.key === 'ArrowRight' && index < 5) {
+            inputRefs.current[index + 1]?.focus();
+        }
+    };
+
+    return (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+            <Head title="Two-Factor Authentication" />
+
+            <div className="w-full max-w-sm space-y-8">
+                <div className="flex flex-col items-center space-y-4">
+                    <Logo className="h-12 w-12 text-foreground" />
+                    <div className="text-center">
+                        <h1 className="text-xl font-semibold tracking-tight">
+                            {recovery ? 'Recovery Code' : 'Authentication Code'}
+                        </h1>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            {recovery
+                                ? 'Please confirm access to your account by entering one of your emergency recovery codes.'
+                                : 'Enter the authentication code provided by your authenticator application.'}
+                        </p>
+                    </div>
                 </div>
 
-                <form onSubmit={submit} className="space-y-4">
+                <form onSubmit={submit} className="space-y-6">
                     {!recovery ? (
-                        <div className="space-y-2">
-                            <Label htmlFor="code">Code</Label>
-                            <Input
-                                id="code"
-                                ref={codeInput}
-                                type="text"
-                                inputMode="numeric"
-                                value={data.code}
-                                onChange={(e) => setData('code', e.target.value)}
-                                autoFocus
-                                autoComplete="one-time-code"
-                            />
-                            {errors.code && <p className="text-sm text-red-600">{errors.code}</p>}
+                        <div className="flex justify-center gap-2">
+                            {code.map((digit, index) => (
+                                <Input
+                                    key={index}
+                                    ref={el => inputRefs.current[index] = el}
+                                    type="text"
+                                    inputMode="numeric"
+                                    maxLength={6}
+                                    value={digit}
+                                    onChange={e => handleCodeChange(index, e.target.value)}
+                                    onKeyDown={e => handleKeyDown(index, e)}
+                                    onPaste={handlePaste}
+                                    className="h-12 w-10 text-center text-lg font-medium rounded-lg border-input"
+                                    autoFocus={index === 0}
+                                    autoComplete="one-time-code"
+                                />
+                            ))}
                         </div>
                     ) : (
                         <div className="space-y-2">
-                            <Label htmlFor="recovery_code">Recovery Code</Label>
                             <Input
-                                id="recovery_code"
-                                ref={recoveryCodeInput}
                                 type="text"
                                 value={data.recovery_code}
                                 onChange={(e) => setData('recovery_code', e.target.value)}
+                                placeholder="Enter recovery code"
+                                className="h-12"
+                                autoFocus
                                 autoComplete="one-time-code"
                             />
-                            {errors.recovery_code && <p className="text-sm text-red-600">{errors.recovery_code}</p>}
                         </div>
                     )}
 
-                    <div className="flex flex-col gap-3">
-                        <Button type="submit" className="w-full" disabled={processing}>
-                            Log in
-                        </Button>
-                        
+                    {(errors.code || errors.recovery_code) && (
+                        <p className="text-sm text-center text-destructive">
+                            {errors.code || errors.recovery_code}
+                        </p>
+                    )}
+
+                    <Button 
+                        type="submit" 
+                        className="w-full h-12 text-base font-medium" 
+                        disabled={processing || (!recovery && code.some(d => !d))}
+                    >
+                        Continue
+                    </Button>
+
+                    <p className="text-center text-sm text-muted-foreground">
+                        or you can{' '}
                         <button
                             type="button"
-                            className="text-sm text-muted-foreground hover:underline"
+                            className="font-medium underline underline-offset-4 hover:text-foreground transition-colors"
                             onClick={toggleRecovery}
                         >
-                            {recovery ? 'Use an authentication code' : 'Use a recovery code'}
+                            {recovery ? 'login using an authentication code' : 'login using a recovery code'}
                         </button>
-                    </div>
+                    </p>
                 </form>
             </div>
         </div>

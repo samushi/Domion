@@ -22,7 +22,12 @@ class InstallFortify
             ->setTimeout(300)
             ->run();
 
-        // Copy our custom service provider
+        // Publish Fortify config and migrations
+        (new Process(['php', 'artisan', 'vendor:publish', '--provider=Laravel\Fortify\FortifyServiceProvider'], base_path()))
+            ->setTimeout(60)
+            ->run();
+
+        // Copy our custom service provider (overwrites the default one)
         $this->copyServiceProvider();
         
         // Register the provider in bootstrap/providers.php

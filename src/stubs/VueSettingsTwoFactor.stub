@@ -118,10 +118,12 @@ const handleCodeChange = (index: number, event: Event) => {
     const target = event.target as HTMLInputElement;
     const value = target.value;
     
-    // Only allow digits
+    // Extract only digits
     const digits = value.replace(/\D/g, '');
-    if (!digits) {
-        target.value = code.value[index];
+    
+    // If value is empty (user deleted), clear the current input
+    if (value === '' || digits === '') {
+        code.value[index] = '';
         return;
     }
     
@@ -149,28 +151,40 @@ const handlePaste = (event: ClipboardEvent) => {
     event.preventDefault();
     const pastedData = event.clipboardData?.getData('text').replace(/\D/g, '').slice(0, 6);
     if (pastedData) {
+        // Clear all first
+        for (let i = 0; i < 6; i++) {
+            code.value[i] = '';
+        }
+        // Fill with pasted data
         for (let i = 0; i < pastedData.length; i++) {
             code.value[i] = pastedData[i];
         }
-        // Focus on the appropriate input
-        const focusIndex = Math.min(pastedData.length, 5);
+        // Focus on the last filled input
+        const focusIndex = Math.min(pastedData.length - 1, 5);
         inputRefs.value[focusIndex]?.focus();
     }
 };
 
 const handleKeyDown = (index: number, event: KeyboardEvent) => {
     if (event.key === 'Backspace') {
-        if (!code.value[index] && index > 0) {
-            // If current is empty and backspace, go to previous
-            inputRefs.value[index - 1]?.focus();
-        } else {
-            // Clear current and stay
+        event.preventDefault();
+        if (code.value[index]) {
+            // If current has value, clear it
             code.value[index] = '';
+        } else if (index > 0) {
+            // If current is empty, go to previous and clear it
+            code.value[index - 1] = '';
+            inputRefs.value[index - 1]?.focus();
         }
     } else if (event.key === 'ArrowLeft' && index > 0) {
+        event.preventDefault();
         inputRefs.value[index - 1]?.focus();
     } else if (event.key === 'ArrowRight' && index < 5) {
+        event.preventDefault();
         inputRefs.value[index + 1]?.focus();
+    } else if (event.key === 'Delete') {
+        event.preventDefault();
+        code.value[index] = '';
     }
 };
 
