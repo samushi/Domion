@@ -90,12 +90,23 @@ class SetupCommand extends Command
             );
         }
 
-        // Task 5: Database Migrations
+        // Task 5: Database Migrations & Seeding
         \Laravel\Prompts\spin(
             function() {
-                exec('php artisan migrate --force', $output, $returnVar);
+                // 1. Force publish any pending migrations (like Fortify)
+                exec('php artisan vendor:publish --provider="Laravel\Fortify\FortifyServiceProvider" --tag="fortify-migrations" --force 2>&1', $output, $returnVar);
+                
+                // 2. Clear cache to ensure all new migrations are discovered
+                File::delete(base_path('bootstrap/cache/services.php'));
+                File::delete(base_path('bootstrap/cache/packages.php'));
+                
+                // 3. Run migrations
+                exec('php artisan migrate --force 2>&1', $output, $returnVar);
+                
+                // 4. Run seeds if any
+                exec('php artisan db:seed --force 2>&1', $output, $returnVar);
             },
-            'Running database migrations...'
+            'Finalizing database (migrations & seeding)...'
         );
 
         // Task 6: Permissions & Cleanup

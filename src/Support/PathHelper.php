@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\File;
 class PathHelper
 {
     /**
-     * Get the physical path for the 'App\' namespace from composer.json.
+     * Get the relative physical path for the 'App\' namespace.
+     * Example: 'app' or 'app/App'
      */
     public static function getAppPath(): string
     {
@@ -21,21 +22,32 @@ class PathHelper
             
             foreach ($psr4 as $namespace => $path) {
                 if ($namespace === 'App\\') {
-                    return rtrim($path, '/');
+                    // Ensure we return a relative path, stripping the base path if it was absolute
+                    $relativePath = is_array($path) ? $path[0] : $path;
+                    return rtrim($relativePath, '/');
                 }
             }
         }
 
-        // Fallback for standard Laravel
         return 'app';
     }
 
     /**
-     * Get the full path to a class within the App namespace.
+     * Resolve a path inside the App namespace storage.
      */
     public static function resolveAppPath(string $subPath = ''): string
     {
         $appPath = self::getAppPath();
         return base_path($appPath . ($subPath ? '/' . ltrim($subPath, '/') : ''));
+    }
+
+    /**
+     * Detect if the main app folder is 'app' or something else (for frontend/domains).
+     */
+    public static function getAppRoot(): string
+    {
+        $appPath = self::getAppPath();
+        $parts = explode('/', $appPath);
+        return $parts[0] ?: 'app';
     }
 }

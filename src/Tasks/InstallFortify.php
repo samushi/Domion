@@ -22,25 +22,15 @@ class InstallFortify
             ->setTimeout(300)
             ->run();
 
-        // 2. Force publish migrations (to ensure they appear in database/migrations)
-        $this->command->info('Publishing Fortify migrations...');
-        $this->command->call('vendor:publish', [
-            '--provider' => 'Laravel\Fortify\FortifyServiceProvider',
-            '--tag' => 'fortify-migrations',
-            '--force' => true
-        ]);
-
-        // 3. Run migrations
-        $this->command->info('Updating database schema...');
-        $this->command->call('migrate');
-
-        // 4. Force refresh to ensure SQLite/MySQL sees the new columns
-        $this->command->call('optimize:clear');
-
-        $this->configureConfig();
+        // 2. Register the provider
         $this->copyServiceProvider();
         $this->registerProvider();
+
+        // 3. Setup configuration
+        $this->configureConfig();
         $this->updateUserModel();
+        
+        $this->command->info('✓ Fortify files prepared (migrations will run at the end).');
     }
 
     protected function copyServiceProvider(): void
@@ -110,35 +100,28 @@ class InstallFortify
 
     protected function updateUserModel(): void
     {
+        $appPath = PathHelper::getAppPath();
+        
         $paths = [
-            base_path('app/Domain/User/Models/User.php'),
-            base_path('app/Models/User.php'),
-            base_path('App/Domain/User/Models/User.php'),
+            base_path($appPath . '/Domain/User/Models/User.php'),
+            base_path($appPath . '/Models/User.php'),
+            base_path('app/Domain/User/Models/User.php'), // Old fallback
         ];
 
         foreach ($paths as $userModel) {
             if (File::exists($userModel)) {
                 $content = File::get($userModel);
                 if (!str_contains($content, 'TwoFactorAuthenticatable')) {
-                    // Add use statement
-                    if (!str_contains($content, 'use Laravel\Fortify\TwoFactorAuthenticatable;')) {
-                        $content = preg_replace(
-                            '/namespace\s+[^;]+;/',
-                            "$0\n\nuse Laravel\\Fortify\\TwoFactorAuthenticatable;",
-                            $content
-                        );
-                    }
-                    
-                    // Add trait to class
+                    // Inject Trait using more reliable regex
                     $content = preg_replace(
-                        '/use HasFactory, Notifiable;/',
-                        'use HasFactory, Notifiable, TwoFactorAuthenticatable;',
+                        '/use\s+Illuminate\\\\Notifications\\\\Notifiable;/',
+                        "$0\nuse Laravel\\Fortify\\TwoFactorAuthenticatable;",
                         $content
                     );
 
                     $content = preg_replace(
-                        '/use HasApiTokens, HasFactory, Notifiable;/',
-                        'use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable;',
+                        '/use\s+([^;]+)Notifiable;/',
+                        "use $1Notifiable, TwoFactorAuthenticatable;",
                         $content
                     );
 
