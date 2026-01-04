@@ -15,35 +15,38 @@ class InstallFortify
 
     public function run(): void
     {
-        $this->command->info('Installing and configuring Laravel Fortify (2FA)...');
+        $this->command->info('Installing Laravel Fortify (2FA)...');
 
-        (new Process(['composer', 'require', 'laravel/fortify', 'pragmarx/google2fa-laravel'], base_path()))
+        // Install Fortify package
+        (new Process(['composer', 'require', 'laravel/fortify'], base_path()))
             ->setTimeout(300)
             ->run();
 
-        // Register the provider and copy stubs
+        // Copy our custom service provider
         $this->copyServiceProvider();
+        
+        // Register the provider in bootstrap/providers.php
         $this->registerProvider();
+        
+        // Configure Fortify features
         $this->configureConfig();
+        
+        // Add TwoFactorAuthenticatable trait to User model
         $this->updateUserModel();
 
-        $this->command->info('✓ Fortify prepared.');
-    }
-
-    protected function getAppPath(): string
-    {
-        return PathHelper::getAppPath();
+        $this->command->info('✓ Fortify configured.');
     }
 
     protected function copyServiceProvider(): void
     {
+        // FortifyServiceProvider goes to the PHP namespace path (app/App/Providers or app/Providers)
         $targetPath = PathHelper::resolveAppPath('Providers/FortifyServiceProvider.php');
         $stubPath = __DIR__ . '/../stubs/FortifyServiceProvider.stub';
         
         if (File::exists($stubPath)) {
             File::ensureDirectoryExists(dirname($targetPath));
             File::put($targetPath, File::get($stubPath));
-            $this->command->info("✓ FortifyServiceProvider copied to " . PathHelper::getAppPath() . "/Providers");
+            $this->command->info("✓ FortifyServiceProvider created");
         }
     }
 
@@ -64,28 +67,58 @@ class InstallFortify
         $configPath = base_path('config/fortify.php');
         if (File::exists($configPath)) {
             $content = File::get($configPath);
-            $content = str_replace("'features' => [", "'features' => [\n        Features::twoFactorAuthentication([\n            'confirmPassword' => true,\n        ]),", $content);
-            File::put($configPath, $content);
+            // Enable 2FA feature
+            if (!str_contains($content, 'twoFactorAuthentication')) {
+                $content = str_replace(
+                    "'features' => [",
+                    "'features' => [\n        Features::twoFactorAuthentication(['confirmPassword' => true]),",
+                    $content
+                );
+                File::put($configPath, $content);
+            }
         }
     }
 
     protected function updateUserModel(): void
     {
-        $appPath = PathHelper::getAppPath();
+        // User model is in app/Domain, NOT in app/App/Domain
+        $projectRoot = PathHelper::getProjectAppRoot();
+        
         $paths = [
-            base_path($appPath . '/Domain/User/Models/User.php'),
-            base_path('app/Domain/User/Models/User.php'),
+            base_path($projectRoot . '/Domain/User/Models/User.php'),
             base_path('app/Models/User.php'),
         ];
 
         foreach ($paths as $userModel) {
             if (File::exists($userModel)) {
                 $content = File::get($userModel);
-                if (!str_contains($content, 'TwoFactorAuthenticatable')) {
-                    $content = preg_replace('/(namespace\s+[^;]+;)/', "$1\n\nuse Laravel\\Fortify\\TwoFactorAuthenticatable;", $content);
-                    $content = preg_replace('/use\s+([^;]+)Notifiable;/', "use $1Notifiable, TwoFactorAuthenticatable;", $content);
-                    File::put($userModel, $content);
+                
+                // Skip if already has the trait
+                if (str_contains($content, 'TwoFactorAuthenticatable')) {
+                    continue;
                 }
+                
+                // Add use statement after namespace
+                if (!str_contains($content, 'use Laravel\Fortify\TwoFactorAuthenticatable;')) {
+                    $content = preg_replace(
+                        '/(namespace\s+[^;]+;)/',
+                        "$1\n\nuse Laravel\\Fortify\\TwoFactorAuthenticatable;",
+                        $content
+                    );
+                }
+                
+                // Add trait to use statement in class
+                if (preg_match('/use\s+HasFactory,\s*Notifiable;/', $content)) {
+                    $content = preg_replace(
+                        '/use\s+HasFactory,\s*Notifiable;/',
+                        'use HasFactory, Notifiable, TwoFactorAuthenticatable;',
+                        $content
+                    );
+                }
+                
+                File::put($userModel, $content);
+                $this->command->info("✓ User model updated with TwoFactorAuthenticatable");
+                break; // Only update first found
             }
         }
     }

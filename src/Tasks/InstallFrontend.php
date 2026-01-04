@@ -41,7 +41,11 @@ class InstallFrontend
         // Ensure tsconfig.json exists first (required by Shadcn)
         $this->configureTsConfig();
 
-        $cssPath = base_path('app/Support/Frontend/app.css');
+        // Frontend assets always go to app/Support/Frontend, not app/App/Support/Frontend
+        $projectRoot = PathHelper::getProjectAppRoot();
+        $frontendPath = "{$projectRoot}/Support/Frontend";
+
+        $cssPath = base_path("{$frontendPath}/app.css");
         File::ensureDirectoryExists(dirname($cssPath));
         
         // Tailwind v4 uses @import instead of @tailwind directives
@@ -96,14 +100,14 @@ class InstallFrontend
         File::put($cssPath, $directives);
 
         // 1.1 Create lib/utils.ts if missing (critical for shadcn)
-        $utilsPath = base_path('app/Support/Frontend/lib/utils.ts');
+        $utilsPath = base_path("{$frontendPath}/lib/utils.ts");
         if (!File::exists($utilsPath)) {
             File::ensureDirectoryExists(dirname($utilsPath));
             File::put($utilsPath, "import { type ClassValue, clsx } from \"clsx\"\nimport { twMerge } from \"tailwind-merge\"\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs))\n}\n");
         }
 
         // 1.2 Create bootstrap.ts for axios setup with CSRF
-        $bootstrapPath = base_path('app/Support/Frontend/bootstrap.ts');
+        $bootstrapPath = base_path("{$frontendPath}/bootstrap.ts");
         if (!File::exists($bootstrapPath)) {
             $bootstrapContent = <<<'TS'
 import axios from 'axios';
@@ -124,8 +128,7 @@ TS;
         }
 
         // 2. Pre-create components.json to make it non-interactive
-        $appPath = PathHelper::getAppPath();
-        $frontendPath = "{$appPath}/Support/Frontend";
+        // $appPath and $frontendPath already defined above
 
         $componentsJson = [
             '$schema' => 'https://ui.shadcn.com/schema.json',
@@ -183,7 +186,8 @@ TS;
         }
 
         $appPath = PathHelper::getAppPath();
-        $frontendPath = "{$appPath}/Support/Frontend";
+        $projectRoot = PathHelper::getProjectAppRoot();
+        $frontendPath = "{$projectRoot}/Support/Frontend";
 
         // 2. Update entry points
         $content = preg_replace("/'resources\/js\/app\.(js|jsx|ts|tsx|vue)'/", "'{$frontendPath}/app.$1'", $content);
@@ -193,7 +197,7 @@ TS;
         if (!str_contains($content, 'resolve: {')) {
              $content = str_replace(
                  'plugins: [',
-                 "resolve: {\n        alias: {\n            'App': path.resolve(__dirname, '{$appPath}'),\n            'Domain': path.resolve(__dirname, '{$appPath}/Domain'),\n            '@': path.resolve(__dirname, '{$frontendPath}'),\n        },\n    },\n    plugins: [",
+                 "resolve: {\n        alias: {\n            'App': path.resolve(__dirname, '{$appPath}'),\n            'Domain': path.resolve(__dirname, '{$projectRoot}/Domain'),\n            '@': path.resolve(__dirname, '{$frontendPath}'),\n        },\n    },\n    plugins: [",
                  $content
              );
         }
@@ -204,24 +208,6 @@ TS;
         }
         if ($mode === 'vue' && !str_contains($content, "vue()")) {
             $content = preg_replace('/(plugins:\s*\[)/', "$1\n        vue(),", $content);
-        }
-
-        // 4. Add aliases with path.resolve
-        if (!str_contains($content, 'resolve: {')) {
-            $aliasConfig = "\n" .
-                "    resolve: {\n" .
-                "        alias: {\n" .
-                "            '@': path.resolve(__dirname, 'app/Support/Frontend'),\n" .
-                "            '@domain': path.resolve(__dirname, 'app/Domain'),\n" .
-                "            '@support': path.resolve(__dirname, 'app/Support'),\n" .
-                "            '@ui': path.resolve(__dirname, 'app/Support/Frontend/components/ui'),\n" .
-                "        },\n" .
-                "    },";
-
-            $pattern = '/(defineConfig\s*\(\s*\{)/';
-            if (preg_match($pattern, $content)) {
-                $content = preg_replace($pattern, "$1" . $aliasConfig, $content);
-            }
         }
 
         File::put($path, $content);
