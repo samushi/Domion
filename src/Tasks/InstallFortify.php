@@ -20,12 +20,22 @@ class InstallFortify
 
         (new Process(['composer', 'require', 'laravel/fortify', 'pragmarx/google2fa-laravel'], base_path()))
             ->setTimeout(300)
-            ->run(function ($type, $buffer) {
-                // $this->command->getOutput()->write($buffer);
-            });
+            ->run();
 
-        $this->command->call('vendor:publish', ['--provider' => 'Laravel\Fortify\FortifyServiceProvider']);
+        // 2. Force publish migrations (to ensure they appear in database/migrations)
+        $this->command->info('Publishing Fortify migrations...');
+        $this->command->call('vendor:publish', [
+            '--provider' => 'Laravel\Fortify\FortifyServiceProvider',
+            '--tag' => 'fortify-migrations',
+            '--force' => true
+        ]);
+
+        // 3. Run migrations
+        $this->command->info('Updating database schema...');
         $this->command->call('migrate');
+
+        // 4. Force refresh to ensure SQLite/MySQL sees the new columns
+        $this->command->call('optimize:clear');
 
         $this->configureConfig();
         $this->copyServiceProvider();
