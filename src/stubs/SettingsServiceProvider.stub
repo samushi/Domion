@@ -13,6 +13,11 @@ class SettingsServiceProvider extends AbstractServiceProvider
         return 'Settings';
     }
 
+    public function getRoutePrefix(): ?string
+    {
+        return 'dashboard/settings';
+    }
+
     public function getWebMiddleware(): array
     {
         return ['web', 'auth'];

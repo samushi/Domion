@@ -12,6 +12,15 @@
         <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
+        <script>
+            try {
+                if (localStorage.getItem('appearance') === 'dark' || (!localStorage.getItem('appearance') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch (_) {}
+        </script>
         @routes
         {{viteReactRefresh}}
         @vite(['app/Support/Frontend/app.{{ext}}', 'app/Support/Frontend/app.css'])

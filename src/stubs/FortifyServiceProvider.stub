@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Providers;
+
+use App\Domain\User\Models\User;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
+use Laravel\Fortify\Fortify;
+use Inertia\Inertia;
+
+class FortifyServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        //
+    }
+
+    public function boot(): void
+    {
+        Fortify::createUsersUsing(\App\Domain\Auth\Actions\CreateNewUser::class);
+        Fortify::updateUserProfileInformationUsing(\App\Domain\Settings\Actions\UpdateUserProfileAction::class);
+        Fortify::updateUserPasswordsUsing(\App\Domain\Settings\Actions\UpdateUserPasswordAction::class);
+
+        RateLimiter::for('login', function (Request $request) {
+            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
+
+            return Limit::perMinute(5)->by($throttleKey);
+        });
+
+        RateLimiter::for('two-factor', function (Request $request) {
+            return Limit::perMinute(5)->by($request->session()->get('login.id'));
+        });
+
+        Fortify::confirmPasswordView(function () {
+            return Inertia::render('Auth/ConfirmPassword');
+        });
+
+        Fortify::twoFactorChallengeView(function () {
+            return Inertia::render('Auth/TwoFactorChallenge');
+        });
+    }
+}

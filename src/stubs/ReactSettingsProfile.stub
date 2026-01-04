@@ -1,11 +1,23 @@
 import SettingsLayout from '@/Layouts/SettingsLayout';
-import { useForm, usePage } from '@inertiajs/react';
+import { useForm, usePage, router } from '@inertiajs/react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { route } from 'ziggy-js';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useState } from 'react';
 
 export default function SettingsProfile({ mustVerifyEmail, status }: { mustVerifyEmail: boolean, status?: string }) {
     const user = usePage().props.auth.user as { name: string; email: string };
@@ -14,9 +26,23 @@ export default function SettingsProfile({ mustVerifyEmail, status }: { mustVerif
         email: user.email,
     });
 
+    const [deletePassword, setDeletePassword] = useState('');
+    const [deleteProcessing, setDeleteProcessing] = useState(false);
+
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
         patch(route('settings.profile.update'));
+    };
+
+    const deleteAccount = () => {
+        setDeleteProcessing(true);
+        router.delete(route('settings.profile.destroy'), {
+            data: { password: deletePassword },
+            onFinish: () => {
+                setDeleteProcessing(false);
+                setDeletePassword('');
+            },
+        });
     };
 
     return (
@@ -50,12 +76,63 @@ export default function SettingsProfile({ mustVerifyEmail, status }: { mustVerif
                             required 
                         />
                         {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
+                        {mustVerifyEmail && (
+                            <p className="text-sm text-muted-foreground">
+                                Your email address is unverified.
+                            </p>
+                        )}
                      </div>
                      <div className="flex items-center gap-4">
                         <Button type="submit" disabled={processing}>Save</Button>
                         {recentlySuccessful && <p className="text-sm text-green-600">Saved.</p>}
                      </div>
                 </form>
+
+                <Separator className="my-8" />
+
+                <Card className="border-destructive">
+                    <CardHeader>
+                        <CardTitle className="text-destructive">Delete Account</CardTitle>
+                        <CardDescription>
+                            Once your account is deleted, all of its resources and data will be permanently deleted.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive">Delete Account</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete your account and remove your data from our servers.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <div className="grid gap-2 py-4">
+                                    <Label htmlFor="delete-password">Enter your password to confirm</Label>
+                                    <Input
+                                        id="delete-password"
+                                        type="password"
+                                        value={deletePassword}
+                                        onChange={(e) => setDeletePassword(e.target.value)}
+                                        placeholder="Password"
+                                    />
+                                </div>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={deleteAccount}
+                                        disabled={deleteProcessing || !deletePassword}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                        {deleteProcessing ? 'Deleting...' : 'Delete Account'}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </CardContent>
+                </Card>
              </div>
         </SettingsLayout>
     );

@@ -126,7 +126,7 @@ TS;
 
         // 4. Add core components used by the Starter Kit (including Sidebar layout elements)
         $this->command->info('Adding Shadcn UI components...');
-        exec('npx -y shadcn@latest add button card badge input label checkbox alert avatar dropdown-menu sidebar breadcrumb separator collapsible sheet tooltip -y --cwd .', $output, $returnVar);
+        exec('npx -y shadcn@latest add button card badge input label checkbox alert alert-dialog radio-group avatar dropdown-menu sidebar breadcrumb separator collapsible sheet tooltip sonner -y --cwd .', $output, $returnVar);
     }
 
     public function configureVite(string $mode): void

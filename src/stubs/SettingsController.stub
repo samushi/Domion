@@ -31,7 +31,7 @@ class SettingsController extends {{base_controller}}
         $dto = UpdateProfileDto::fromRequest($request);
         UpdateUserProfileAction::run($request->user()->id, $dto);
 
-        return $this->toRoute('settings.profile');
+        return $this->toRoute('settings.profile')->with('success', 'Profile updated successfully.');
     }
 
     public function editPassword()
@@ -44,7 +44,7 @@ class SettingsController extends {{base_controller}}
         $dto = UpdatePasswordDto::fromRequest($request);
         UpdateUserPasswordAction::run($request->user()->id, $dto);
 
-        return $this->back();
+        return $this->back()->with('success', 'Password updated successfully.');
     }
 
     public function editAppearance()
@@ -63,6 +63,6 @@ class SettingsController extends {{base_controller}}
     {
         DeleteUserAction::run($request->user()->id);
 
-        return $this->toUrl('/');
+        return $this->toUrl('/')->with('success', 'Your account has been deleted.');
     }
 }

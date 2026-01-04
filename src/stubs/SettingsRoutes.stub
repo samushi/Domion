@@ -14,4 +14,7 @@ Route::put('password', [SettingsController::class, 'updatePassword'])->name('pas
 
 Route::get('appearance', [SettingsController::class, 'editAppearance'])->name('appearance');
 
-Route::get('two-factor', [SettingsController::class, 'editTwoFactor'])->name('two-factor');
+Route::get('two-factor', [SettingsController::class, 'editTwoFactor'])
+    ->middleware('password.confirm')
+    ->name('two-factor');
+

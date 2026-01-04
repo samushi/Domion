@@ -1,4 +1,4 @@
-import { PropsWithChildren, ReactNode } from 'react';
+import { PropsWithChildren, ReactNode, useEffect } from 'react';
 import { AppSidebar } from '@/components/app-sidebar';
 import {
   SidebarInset,
@@ -12,11 +12,29 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb';
+import { Toaster } from '@/components/ui/sonner';
+import { toast } from 'sonner';
+import { usePage } from '@inertiajs/react';
 
 export default function Authenticated({ header, children }: PropsWithChildren<{ header?: ReactNode }>) {
+  const { flash } = usePage().props as any;
+
+  useEffect(() => {
+    if (flash?.success) {
+      toast.success(flash.success);
+    }
+    if (flash?.error) {
+      toast.error(flash.error);
+    }
+    if (flash?.status) {
+      toast.info(flash.status);
+    }
+  }, [flash]);
+
   return (
     <SidebarProvider>
       <AppSidebar />
+      <Toaster position="top-right" closeButton richColors />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
           <div className="flex items-center gap-2 px-4">
@@ -38,3 +56,4 @@ export default function Authenticated({ header, children }: PropsWithChildren<{ 
     </SidebarProvider>
   )
 }
+

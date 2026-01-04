@@ -26,8 +26,20 @@ class InstallFortify
         $this->command->call('migrate');
 
         $this->configureConfig();
+        $this->copyServiceProvider();
         $this->registerProvider();
         $this->updateUserModel();
+    }
+
+    protected function copyServiceProvider(): void
+    {
+        $targetPath = base_path('app/Providers/FortifyServiceProvider.php');
+        $stubPath = __DIR__ . '/../stubs/FortifyServiceProvider.stub';
+        
+        if (File::exists($stubPath)) {
+            File::ensureDirectoryExists(dirname($targetPath));
+            File::copy($stubPath, $targetPath);
+        }
     }
 
     protected function configureConfig(): void

@@ -1,0 +1,142 @@
+<script setup lang="ts">
+import SettingsLayout from '@/Layouts/SettingsLayout.vue';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ShieldCheck, ShieldAlert, KeyRound, RefreshCw, Eye } from 'lucide-vue-next';
+import { ref } from 'vue';
+import axios from 'axios';
+import { router } from '@inertiajs/vue3';
+
+const props = defineProps<{
+    enabled: boolean;
+}>();
+
+const qrCode = ref<string | null>(null);
+const recoveryCodes = ref<string[]>([]);
+const loading = ref(false);
+const showingQrCode = ref(false);
+const showingRecoveryCodes = ref(false);
+
+const enableTwoFactor = () => {
+    loading.value = true;
+    axios.post('/user/two-factor-authentication')
+        .then(() => {
+            showingQrCode.value = true;
+            showingRecoveryCodes.value = true;
+            showQrCode();
+            showRecoveryCodes();
+        })
+        .finally(() => loading.value = false);
+};
+
+const disableTwoFactor = () => {
+    loading.value = true;
+    axios.delete('/user/two-factor-authentication')
+        .then(() => {
+            qrCode.value = null;
+            recoveryCodes.value = [];
+            router.reload();
+        })
+        .finally(() => loading.value = false);
+};
+
+const showQrCode = () => {
+    axios.get('/user/two-factor-qr-code').then(res => qrCode.value = res.data.svg);
+};
+
+const showRecoveryCodes = () => {
+    axios.get('/user/two-factor-recovery-codes').then(res => recoveryCodes.value = res.data);
+};
+
+const regenerateRecoveryCodes = () => {
+    loading.value = true;
+    axios.post('/user/two-factor-recovery-codes')
+        .then(() => showRecoveryCodes())
+        .finally(() => loading.value = false);
+};
+</script>
+
+<template>
+    <SettingsLayout>
+        <div class="space-y-6">
+            <div>
+                <h3 class="text-lg font-medium">Two-Factor Authentication</h3>
+                <p class="text-sm text-muted-foreground">
+                    Add an extra layer of security to your account.
+                </p>
+            </div>
+            <Separator />
+            
+            <Alert :variant="enabled ? 'default' : 'destructive'" :class="enabled ? 'border-green-500 bg-green-50 dark:bg-green-900/10' : ''">
+                <ShieldCheck v-if="enabled" class="h-4 w-4 text-green-600" />
+                <ShieldAlert v-else class="h-4 w-4" />
+                <AlertTitle>{{ enabled ? 'Active' : 'Not Enabled' }}</AlertTitle>
+                <AlertDescription>
+                    {{ enabled 
+                        ? 'Two-factor authentication is currently enabled on your account.' 
+                        : 'We strongly recommend enabling two-factor authentication for better security.' }}
+                </AlertDescription>
+            </Alert>
+
+            <div class="space-y-4">
+                <div v-if="!enabled" class="space-y-4">
+                    <p class="text-sm text-muted-foreground">
+                        When two-factor authentication is enabled, you will be prompted for a secure, random token during authentication. You may retrieve this token from your phone's Google Authenticator application.
+                    </p>
+                    <Button @click="enableTwoFactor" :disabled="loading">
+                        Enable Two-Factor Authentication
+                    </Button>
+                </div>
+                
+                <div v-else class="space-y-6">
+                    <Card v-if="showingQrCode && qrCode">
+                        <CardHeader>
+                            <CardTitle class="text-base">Scan QR Code</CardTitle>
+                            <CardDescription>
+                                Two-factor authentication is now enabled. Scan the following QR code using your phone's authenticator application.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent class="flex justify-center p-6 bg-white rounded-lg m-4">
+                            <div v-html="qrCode"></div>
+                        </CardContent>
+                    </Card>
+
+                    <Card v-if="showingRecoveryCodes && recoveryCodes.length > 0">
+                        <CardHeader>
+                            <CardTitle class="text-base flex items-center gap-2">
+                                <KeyRound class="h-4 w-4" />
+                                Recovery Codes
+                            </CardTitle>
+                            <CardDescription>
+                                Store these recovery codes in a secure password manager. They can be used to recover access to your account if your secondary device is lost.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div class="grid gap-2 grid-cols-2 bg-muted p-4 rounded-md font-mono text-xs">
+                                <div v-for="code in recoveryCodes" :key="code">{{ code }}</div>
+                            </div>
+                            <div class="mt-4 flex gap-2">
+                                <Button variant="outline" size="sm" @click="regenerateRecoveryCodes" :disabled="loading">
+                                    <RefreshCw class="mr-2 h-3 w-3" />
+                                    Regenerate
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <div class="flex flex-wrap gap-2">
+                        <Button v-if="!showingRecoveryCodes" variant="outline" @click="showingRecoveryCodes = true; showRecoveryCodes();" :disabled="loading">
+                            <Eye class="mr-2 h-4 w-4" />
+                            Show Recovery Codes
+                        </Button>
+                        <Button variant="destructive" @click="disableTwoFactor" :disabled="loading">
+                            Disable Two-Factor Authentication
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </SettingsLayout>
+</template>

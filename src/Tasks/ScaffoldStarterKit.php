@@ -278,18 +278,24 @@ class ScaffoldStarterKit
 
         // 1. User Model
         $targetUserPath = $base . '/Models/User.php';
-        if (File::exists($targetUserPath)) {
-            return;
+        if (!File::exists($targetUserPath)) {
+            $oldUserPath = base_path('app/Models/User.php');
+            if (File::exists($oldUserPath)) {
+                $content = File::get($oldUserPath);
+                $content = str_replace('namespace App\Models;', 'namespace App\Domain\User\Models;', $content);
+                File::put($targetUserPath, $content);
+            } else {
+                $this->generateFile('UserModel', $targetUserPath, [
+                    'namespace' => 'App\Domain\User\Models'
+                ]);
+            }
         }
 
-        $oldUserPath = base_path('app/Models/User.php');
-        if (File::exists($oldUserPath)) {
-            $content = File::get($oldUserPath);
-            $content = str_replace('namespace App\Models;', 'namespace App\Domain\User\Models;', $content);
-            File::put($targetUserPath, $content);
-        } else {
-            $this->generateFile('UserModel', $targetUserPath, [
-                'namespace' => 'App\Domain\User\Models'
+        // 2. UserRepository
+        $repoPath = $base . '/Repository/UserRepository.php';
+        if (!File::exists($repoPath)) {
+            $this->generateFile('UserRepository', $repoPath, [
+                'namespace' => 'App\Domain\User\Repository'
             ]);
         }
     }

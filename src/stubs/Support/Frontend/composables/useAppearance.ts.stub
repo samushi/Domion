@@ -17,7 +17,7 @@ function applyTheme(appearance: Appearance) {
 export function useAppearance() {
     const appearance = ref<Appearance>('system');
 
-    const setAppearance = (mode: Appearance) => {
+    const updateAppearance = (mode: Appearance) => {
         appearance.value = mode;
         localStorage.setItem(STORAGE_KEY, mode);
         applyTheme(mode);
@@ -39,5 +39,5 @@ export function useAppearance() {
         onUnmounted(() => mediaQuery.removeEventListener('change', handleChange));
     });
 
-    return { appearance, setAppearance };
+    return { appearance, updateAppearance };
 }

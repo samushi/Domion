@@ -18,7 +18,7 @@ function applyTheme(appearance: Appearance) {
 export function useAppearance() {
     const [appearance, setAppearanceState] = useState<Appearance>('system');
 
-    const setAppearance = useCallback((mode: Appearance) => {
+    const updateAppearance = useCallback((mode: Appearance) => {
         setAppearanceState(mode);
         localStorage.setItem(STORAGE_KEY, mode);
         applyTheme(mode);
@@ -40,5 +40,5 @@ export function useAppearance() {
         return () => mediaQuery.removeEventListener('change', handleChange);
     }, []);
 
-    return { appearance, setAppearance } as const;
+    return { appearance, updateAppearance } as const;
 }

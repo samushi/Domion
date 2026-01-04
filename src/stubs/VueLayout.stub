@@ -12,11 +12,33 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
 } from '@/components/ui/breadcrumb'
+import { Toaster, toast } from 'vue-sonner'
+import { usePage } from '@inertiajs/vue3'
+import { watch } from 'vue'
+
+const page = usePage()
+
+watch(
+  () => (page.props as any).flash,
+  (flash) => {
+    if (flash?.success) {
+      toast.success(flash.success)
+    }
+    if (flash?.error) {
+      toast.error(flash.error)
+    }
+    if (flash?.status) {
+      toast.info(flash.status)
+    }
+  },
+  { immediate: true, deep: true }
+)
 </script>
 
 <template>
     <SidebarProvider>
       <AppSidebar />
+      <Toaster position="top-right" close-button rich-colors />
       <SidebarInset>
         <header class="flex h-16 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
           <div class="flex items-center gap-2 px-4">

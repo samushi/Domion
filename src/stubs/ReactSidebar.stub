@@ -1,23 +1,15 @@
 import * as React from "react"
 import {
-  AudioWaveform,
   BookOpen,
-  Bot,
-  Command,
-  Frame,
   GalleryVerticalEnd,
-  Map,
-  PieChart,
   Settings2,
-  SquareTerminal,
   LogOut,
-  User,
   LayoutDashboard,
   ChevronsUpDown,
-  Sparkles,
-  BadgeCheck,
-  CreditCard,
-  Bell
+  User,
+  Lock,
+  Palette,
+  ShieldCheck
 } from "lucide-react"
 
 import {
@@ -39,14 +31,25 @@ import {
     DropdownMenuContent, 
     DropdownMenuLabel, 
     DropdownMenuSeparator, 
-    DropdownMenuItem 
+    DropdownMenuItem,
+    DropdownMenuGroup
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Link, usePage } from "@inertiajs/react"
 import { route } from "ziggy-js"
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) {
+    return parts[0].substring(0, 2).toUpperCase();
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const user = usePage().props.auth.user as { name: string; email: string };
+  const { auth } = usePage().props as { auth: { user: { name: string; email: string } } };
+  const user = auth.user;
+  const initials = getInitials(user.name);
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -55,12 +58,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href={route('dashboard')}>
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-white">
-                   <GalleryVerticalEnd className="size-4" />
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold text-sm">
+                   D
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Domion</span>
-                  <span className="truncate text-xs">Starter Kit</span>
+                  <span className="truncate text-xs text-muted-foreground">Starter Kit</span>
                 </div>
               </Link>
             </SidebarMenuButton>
@@ -84,13 +87,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarGroupContent>
         </SidebarGroup>
         
-        <SidebarGroup>
+        <SidebarGroup className="mt-auto">
             <SidebarGroupLabel>Shortcuts</SidebarGroupLabel>
             <SidebarGroupContent>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild>
-                            <a href="#">
+                            <a href="https://github.com/samushi/domion" target="_blank" rel="noopener noreferrer">
                                 <BookOpen />
                                 <span>Documentation</span>
                             </a>
@@ -110,12 +113,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                   >
                     <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} alt={user.name} />
-                      <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                      <AvatarFallback className="rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-medium text-sm">
+                        {initials}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">{user.name}</span>
-                      <span className="truncate text-xs">{user.email}</span>
+                      <span className="truncate text-xs text-muted-foreground">{user.email}</span>
                     </div>
                     <ChevronsUpDown className="ml-auto size-4" />
                   </SidebarMenuButton>
@@ -129,20 +133,43 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <DropdownMenuLabel className="p-0 font-normal">
                     <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                       <Avatar className="h-8 w-8 rounded-lg">
-                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} alt={user.name} />
-                        <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                        <AvatarFallback className="rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-medium text-sm">
+                          {initials}
+                        </AvatarFallback>
                       </Avatar>
                       <div className="grid flex-1 text-left text-sm leading-tight">
                         <span className="truncate font-semibold">{user.name}</span>
-                        <span className="truncate text-xs">{user.email}</span>
+                        <span className="truncate text-xs text-muted-foreground">{user.email}</span>
                       </div>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <BadgeCheck className="mr-2 h-4 w-4" />
-                    Profile
-                  </DropdownMenuItem>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem asChild>
+                      <Link href={route('settings.profile')} className="cursor-pointer">
+                        <User className="mr-2 h-4 w-4" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={route('settings.password')} className="cursor-pointer">
+                        <Lock className="mr-2 h-4 w-4" />
+                        Password
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={route('settings.appearance')} className="cursor-pointer">
+                        <Palette className="mr-2 h-4 w-4" />
+                        Appearance
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={route('settings.two-factor')} className="cursor-pointer">
+                        <ShieldCheck className="mr-2 h-4 w-4" />
+                        Two-Factor Auth
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link href={route('logout')} method="post" as="button" className="w-full cursor-pointer flex items-center">

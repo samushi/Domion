@@ -1,7 +1,10 @@
 import SettingsLayout from '@/Layouts/SettingsLayout';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ShieldCheck, ShieldAlert, KeyRound, RefreshCw, Eye } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { router } from '@inertiajs/react';
 
@@ -9,19 +12,17 @@ export default function SettingsTwoFactor({ enabled }: { enabled: boolean }) {
     const [qrCode, setQrCode] = useState<string | null>(null);
     const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
-    const [showRecovery, setShowRecovery] = useState(false);
+    const [showingQrCode, setShowingQrCode] = useState(false);
+    const [showingRecoveryCodes, setShowingRecoveryCodes] = useState(false);
 
     const enableTwoFactor = () => {
         setLoading(true);
         axios.post('/user/two-factor-authentication')
             .then(() => {
-                return Promise.all([
-                    axios.get('/user/two-factor-qr-code').then(res => setQrCode(res.data.svg)),
-                    axios.get('/user/two-factor-recovery-codes').then(res => setRecoveryCodes(res.data))
-                ]);
-            })
-            .then(() => {
-                router.reload(); // Refresh props
+                setShowingQrCode(true);
+                setShowingRecoveryCodes(true);
+                showQrCode();
+                showRecoveryCodes();
             })
             .finally(() => setLoading(false));
     };
@@ -36,80 +37,106 @@ export default function SettingsTwoFactor({ enabled }: { enabled: boolean }) {
             })
             .finally(() => setLoading(false));
     };
+
+    const showQrCode = () => {
+        axios.get('/user/two-factor-qr-code').then(res => setQrCode(res.data.svg));
+    };
+
+    const showRecoveryCodes = () => {
+        axios.get('/user/two-factor-recovery-codes').then(res => setRecoveryCodes(res.data));
+    };
     
-    const regenerateCodes = () => {
+    const regenerateRecoveryCodes = () => {
         setLoading(true);
         axios.post('/user/two-factor-recovery-codes')
-             .then(() => axios.get('/user/two-factor-recovery-codes').then(res => setRecoveryCodes(res.data)))
+             .then(() => showRecoveryCodes())
              .finally(() => setLoading(false));
-    }
-    
-    const showCodes = () => {
-         setLoading(true);
-         axios.get('/user/two-factor-recovery-codes').then(res => {
-             setRecoveryCodes(res.data);
-             setShowRecovery(true);
-         })
-         .finally(() => setLoading(false));
-    }
+    };
 
     return (
         <SettingsLayout>
              <div className="space-y-6">
                 <div>
-                    <h3 className="text-lg font-medium">Two Factor Authentication</h3>
+                    <h3 className="text-lg font-medium">Two-Factor Authentication</h3>
                     <p className="text-sm text-muted-foreground">
-                        Add additional security to your account using two factor authentication.
+                        Add an extra layer of security to your account.
                     </p>
                 </div>
                 <Separator />
                 
+                <Alert variant={enabled ? "default" : "destructive"} className={enabled ? "border-green-500 bg-green-50 dark:bg-green-900/10" : ""}>
+                    {enabled ? <ShieldCheck className="h-4 w-4 text-green-600" /> : <ShieldAlert className="h-4 w-4" />}
+                    <AlertTitle>{enabled ? 'Active' : 'Not Enabled'}</AlertTitle>
+                    <AlertDescription>
+                        {enabled 
+                            ? 'Two-factor authentication is currently enabled on your account.' 
+                            : 'We strongly recommend enabling two-factor authentication for better security.'}
+                    </AlertDescription>
+                </Alert>
+
                 <div className="space-y-4">
-                    <h4 className="text-md font-medium">
-                        {enabled ? 'You have enabled two factor authentication.' : 'You have not enabled two factor authentication.'}
-                    </h4>
-                    <p className="text-sm text-gray-500">
-                        When two factor authentication is enabled, you will be prompted for a secure, random token during authentication. You may retrieve this token from your phone's Google Authenticator application.
-                    </p>
-
-                    {enabled ? (
-                        <div className="py-4 space-y-4">
-                             {qrCode && (
-                                <div className="mb-4">
-                                     <p className="font-semibold mb-2">Two factor authentication is now enabled. Scan the following QR code using your phone's authenticator application.</p>
-                                     <div className="p-4 bg-white inline-block" dangerouslySetInnerHTML={{ __html: qrCode }} />
-                                </div>
-                             )}
-
-                             {(recoveryCodes.length > 0 || showRecovery) && (
-                                <div className="mb-4">
-                                    <p className="font-semibold mb-2">Store these recovery codes in a secure password manager. They can be used to recover access to your account if your two factor authentication device is lost.</p>
-                                    <div className="grid gap-1 bg-gray-100 p-4 rounded-md font-mono text-sm">
-                                        {recoveryCodes.map(code => <div key={code}>{code}</div>)}
-                                    </div>
-                                </div>
-                             )}
-                             
-                             <div className="flex gap-2">
-                                 {(!showRecovery && recoveryCodes.length === 0) && (
-                                     <Button variant="outline" onClick={showCodes} disabled={loading}>
-                                         Show Recovery Codes
-                                     </Button>
-                                 )}
-                                 
-                                 <Button variant="outline" onClick={regenerateCodes} disabled={loading}>
-                                     Regenerate Recovery Codes
-                                 </Button>
-                                 
-                                 <Button variant="destructive" onClick={disableTwoFactor} disabled={loading}>
-                                    Disable Two Factor Authentication
-                                 </Button>
-                             </div>
+                    {!enabled ? (
+                        <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                When two-factor authentication is enabled, you will be prompted for a secure, random token during authentication. You may retrieve this token from your phone's Google Authenticator application.
+                            </p>
+                            <Button onClick={enableTwoFactor} disabled={loading}>
+                                Enable Two-Factor Authentication
+                            </Button>
                         </div>
                     ) : (
-                        <Button onClick={enableTwoFactor} disabled={loading}>
-                            Enable
-                        </Button>
+                        <div className="space-y-6">
+                            {(showingQrCode && qrCode) && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-base">Scan QR Code</CardTitle>
+                                        <CardDescription>
+                                            Two-factor authentication is now enabled. Scan the following QR code using your phone's authenticator application.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="flex justify-center p-6 bg-white rounded-lg m-4">
+                                        <div dangerouslySetInnerHTML={{ __html: qrCode }} />
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            {showingRecoveryCodes && recoveryCodes.length > 0 && (
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            <KeyRound className="h-4 w-4" />
+                                            Recovery Codes
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Store these recovery codes in a secure password manager. They can be used to recover access to your account if your secondary device is lost.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="grid gap-2 grid-cols-2 bg-muted p-4 rounded-md font-mono text-xs">
+                                            {recoveryCodes.map(code => <div key={code}>{code}</div>)}
+                                        </div>
+                                        <div className="mt-4 flex gap-2">
+                                            <Button variant="outline" size="sm" onClick={regenerateRecoveryCodes} disabled={loading}>
+                                                <RefreshCw className="mr-2 h-3 w-3" />
+                                                Regenerate
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
+
+                            <div className="flex flex-wrap gap-2">
+                                {!showingRecoveryCodes && (
+                                    <Button variant="outline" onClick={() => { setShowingRecoveryCodes(true); showRecoveryCodes(); }} disabled={loading}>
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        Show Recovery Codes
+                                    </Button>
+                                )}
+                                <Button variant="destructive" onClick={disableTwoFactor} disabled={loading}>
+                                    Disable Two-Factor Authentication
+                                </Button>
+                            </div>
+                        </div>
                     )}
                 </div>
              </div>
