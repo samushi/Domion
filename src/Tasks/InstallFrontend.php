@@ -48,56 +48,11 @@ class InstallFrontend
         $cssPath = base_path("{$frontendPath}/app.css");
         File::ensureDirectoryExists(dirname($cssPath));
         
-        // Tailwind v4 uses @import instead of @tailwind directives
-        $directives = "@import \"tailwindcss\";\n\n" .
-            "@theme {\n" .
-            "  --color-background: hsl(0 0% 100%);\n" .
-            "  --color-foreground: hsl(222.2 84% 4.9%);\n" .
-            "  --color-card: hsl(0 0% 100%);\n" .
-            "  --color-card-foreground: hsl(222.2 84% 4.9%);\n" .
-            "  --color-popover: hsl(0 0% 100%);\n" .
-            "  --color-popover-foreground: hsl(222.2 84% 4.9%);\n" .
-            "  --color-primary: hsl(222.2 47.4% 11.2%);\n" .
-            "  --color-primary-foreground: hsl(210 40% 98%);\n" .
-            "  --color-secondary: hsl(210 40% 96.1%);\n" .
-            "  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);\n" .
-            "  --color-muted: hsl(210 40% 96.1%);\n" .
-            "  --color-muted-foreground: hsl(215.4 16.3% 46.9%);\n" .
-            "  --color-accent: hsl(210 40% 96.1%);\n" .
-            "  --color-accent-foreground: hsl(222.2 47.4% 11.2%);\n" .
-            "  --color-destructive: hsl(0 84.2% 60.2%);\n" .
-            "  --color-destructive-foreground: hsl(210 40% 98%);\n" .
-            "  --color-border: hsl(214.3 31.8% 91.4%);\n" .
-            "  --color-input: hsl(214.3 31.8% 91.4%);\n" .
-            "  --color-ring: hsl(222.2 84% 4.9%);\n" .
-            "  --radius: 0.5rem;\n" .
-            "}\n\n" .
-            "@variant dark (&:where(.dark, .dark *));\n\n" .
-            "@layer base {\n" .
-            "  .dark {\n" .
-            "    --color-background: hsl(222.2 84% 4.9%);\n" .
-            "    --color-foreground: hsl(210 40% 98%);\n" .
-            "    --color-card: hsl(222.2 84% 4.9%);\n" .
-            "    --color-card-foreground: hsl(210 40% 98%);\n" .
-            "    --color-popover: hsl(222.2 84% 4.9%);\n" .
-            "    --color-popover-foreground: hsl(210 40% 98%);\n" .
-            "    --color-primary: hsl(210 40% 98%);\n" .
-            "    --color-primary-foreground: hsl(222.2 47.4% 11.2%);\n" .
-            "    --color-secondary: hsl(217.2 32.6% 17.5%);\n" .
-            "    --color-secondary-foreground: hsl(210 40% 98%);\n" .
-            "    --color-muted: hsl(217.2 32.6% 17.5%);\n" .
-            "    --color-muted-foreground: hsl(215 20.2% 65.1%);\n" .
-            "    --color-accent: hsl(217.2 32.6% 17.5%);\n" .
-            "    --color-accent-foreground: hsl(210 40% 98%);\n" .
-            "    --color-destructive: hsl(0 62.8% 30.6%);\n" .
-            "    --color-destructive-foreground: hsl(210 40% 98%);\n" .
-            "    --color-border: hsl(217.2 32.6% 17.5%);\n" .
-            "    --color-input: hsl(217.2 32.6% 17.5%);\n" .
-            "    --color-ring: hsl(212.7 26.8% 83.9%);\n" .
-            "  }\n" .
-            "}\n";
-        
-        File::put($cssPath, $directives);
+        // Copy CSS from stub
+        $cssStubPath = __DIR__ . '/../stubs/AppCss.stub';
+        if (File::exists($cssStubPath)) {
+            File::copy($cssStubPath, $cssPath);
+        }
 
         // 1.1 Create lib/utils.ts if missing (critical for shadcn)
         $utilsPath = base_path("{$frontendPath}/lib/utils.ts");
