@@ -63,8 +63,12 @@ class InstallFortify
         if (File::exists($providers)) {
             $content = File::get($providers);
             if (!str_contains($content, 'FortifyServiceProvider')) {
-                $content = str_replace("return [", "return [\n    App\Providers\FortifyServiceProvider::class,", $content);
-                File::put($providers, $content);
+                // Try to find the start of the array
+                $pattern = '/return\s*\[/';
+                if (preg_match($pattern, $content)) {
+                    $content = preg_replace($pattern, "return [\n    App\Providers\FortifyServiceProvider::class,", $content);
+                    File::put($providers, $content);
+                }
             }
         }
     }

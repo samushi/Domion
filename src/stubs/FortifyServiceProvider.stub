@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Domain\User\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -32,6 +31,15 @@ class FortifyServiceProvider extends ServiceProvider
 
         RateLimiter::for('two-factor', function (Request $request) {
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
+        });
+
+        // Register Inertia Views
+        Fortify::loginView(function () {
+            return Inertia::render('auth::Login');
+        });
+
+        Fortify::registerView(function () {
+            return Inertia::render('auth::Register');
         });
 
         Fortify::confirmPasswordView(function () {
