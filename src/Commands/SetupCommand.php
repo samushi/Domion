@@ -67,10 +67,9 @@ class SetupCommand extends Command
             );
 
             if (in_array($config['mode'], ['react', 'vue'])) {
-                \Laravel\Prompts\spin(
-                    fn() => $frontend->setupShadcn($config['mode']),
-                    'Initializing Shadcn UI and Components...'
-                );
+                // Run Shadcn with visible output (can take 1-2 minutes)
+                $this->info("\n📦 Installing Shadcn UI components (this may take 1-2 minutes)...");
+                $frontend->setupShadcnWithOutput($config['mode']);
             }
 
             \Laravel\Prompts\spin(

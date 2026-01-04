@@ -172,6 +172,95 @@ TS;
         exec('npx -y shadcn@latest add sonner --yes --overwrite 2>&1', $output, $returnVar);
     }
 
+    /**
+     * Setup Shadcn with visible output (for long-running installs)
+     */
+    public function setupShadcnWithOutput(string $mode): void
+    {
+        if (!in_array($mode, ['react', 'vue'])) {
+            return;
+        }
+
+        // Ensure CSS and lib files exist first
+        $this->prepareShadcnFiles($mode);
+
+        // Run shadcn init with visible output
+        $this->command->line('  → Initializing Shadcn...');
+        passthru('npx -y shadcn@latest init --yes --force 2>&1');
+
+        // Add components with visible progress
+        $components = ['button', 'card', 'input', 'label', 'badge', 'checkbox', 'alert', 'avatar', 'dropdown-menu', 'separator', 'sonner'];
+        
+        $this->command->line('  → Installing components: ' . implode(', ', $components));
+        passthru('npx -y shadcn@latest add ' . implode(' ', $components) . ' --yes --overwrite 2>&1');
+        
+        $this->command->info('  ✓ Shadcn UI installed');
+    }
+
+    /**
+     * Prepare files required by Shadcn before initialization
+     */
+    protected function prepareShadcnFiles(string $mode): void
+    {
+        $projectRoot = PathHelper::getProjectAppRoot();
+        $frontendPath = "{$projectRoot}/Support/Frontend";
+
+        // Create CSS with Tailwind v4 theme
+        $cssPath = base_path("{$frontendPath}/app.css");
+        if (!File::exists($cssPath)) {
+            File::ensureDirectoryExists(dirname($cssPath));
+            $this->createTailwindCss($cssPath);
+        }
+
+        // Create utils.ts
+        $utilsPath = base_path("{$frontendPath}/lib/utils.ts");
+        if (!File::exists($utilsPath)) {
+            File::ensureDirectoryExists(dirname($utilsPath));
+            File::put($utilsPath, "import { type ClassValue, clsx } from \"clsx\"\nimport { twMerge } from \"tailwind-merge\"\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs))\n}\n");
+        }
+
+        // Create components.json
+        $componentsJson = [
+            '$schema' => 'https://ui.shadcn.com/schema.json',
+            'style' => 'new-york',
+            'rsc' => false,
+            'tsx' => true,
+            'tailwind' => [
+                'config' => 'tailwind.config.js',
+                'css' => "{$frontendPath}/app.css",
+                'baseColor' => 'slate',
+                'cssVariables' => true,
+                'prefix' => '',
+            ],
+            'aliases' => [
+                'components' => '@/components',
+                'utils' => '@/lib/utils',
+                'ui' => '@/components/ui',
+                'lib' => '@/lib',
+                'hooks' => '@/hooks',
+            ],
+        ];
+
+        File::put(base_path('components.json'), json_encode($componentsJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
+    protected function createTailwindCss(string $path): void
+    {
+        $css = "@import \"tailwindcss\";\n\n" .
+            "@theme {\n" .
+            "  --color-background: hsl(0 0% 100%);\n" .
+            "  --color-foreground: hsl(222.2 84% 4.9%);\n" .
+            "  --color-primary: hsl(222.2 47.4% 11.2%);\n" .
+            "  --color-primary-foreground: hsl(210 40% 98%);\n" .
+            "  --color-muted: hsl(210 40% 96.1%);\n" .
+            "  --color-muted-foreground: hsl(215.4 16.3% 46.9%);\n" .
+            "  --color-border: hsl(214.3 31.8% 91.4%);\n" .
+            "  --radius: 0.5rem;\n" .
+            "}\n";
+        
+        File::put($path, $css);
+    }
+
     public function configureVite(string $mode): void
     {
         $path = base_path('vite.config.js');
