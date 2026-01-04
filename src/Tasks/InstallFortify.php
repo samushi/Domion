@@ -67,11 +67,11 @@ class InstallFortify
         $configPath = base_path('config/fortify.php');
         if (File::exists($configPath)) {
             $content = File::get($configPath);
-            // Enable 2FA feature
+            // Enable 2FA feature with confirmation required
             if (!str_contains($content, 'twoFactorAuthentication')) {
                 $content = str_replace(
                     "'features' => [",
-                    "'features' => [\n        Features::twoFactorAuthentication(['confirmPassword' => true]),",
+                    "'features' => [\n        Features::twoFactorAuthentication([\n            'confirm' => true,\n            'confirmPassword' => true,\n        ]),",
                     $content
                 );
                 File::put($configPath, $content);

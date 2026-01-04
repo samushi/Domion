@@ -153,12 +153,23 @@ TS;
 
         File::put(base_path('components.json'), json_encode($componentsJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
-        // 3. Run shadcn init (pick up components.json)
-        exec('npx -y shadcn@latest init -y --cwd .', $output, $returnVar);
+        // 3. Run shadcn init with force flag to skip prompts
+        exec('npx -y shadcn@latest init --yes --force 2>&1', $initOutput, $initReturn);
 
-        // 4. Add core components used by the Starter Kit (including Sidebar layout elements)
+        // 4. Add core components in smaller batches to avoid timeouts
+        $coreComponents = ['button', 'card', 'input', 'label', 'badge'];
+        $formComponents = ['checkbox', 'radio-group', 'alert', 'alert-dialog'];
+        $uiComponents = ['avatar', 'dropdown-menu', 'tooltip', 'separator', 'sheet', 'collapsible'];
+        
         $this->command->info('Adding Shadcn UI components...');
-        exec('npx -y shadcn@latest add button card badge input label checkbox alert alert-dialog radio-group avatar dropdown-menu sidebar breadcrumb separator collapsible sheet tooltip sonner -y --cwd .', $output, $returnVar);
+        
+        foreach ([$coreComponents, $formComponents, $uiComponents] as $batch) {
+            $components = implode(' ', $batch);
+            exec("npx -y shadcn@latest add {$components} --yes --overwrite 2>&1", $output, $returnVar);
+        }
+        
+        // Add sonner (toast) separately as it sometimes needs special handling
+        exec('npx -y shadcn@latest add sonner --yes --overwrite 2>&1', $output, $returnVar);
     }
 
     public function configureVite(string $mode): void

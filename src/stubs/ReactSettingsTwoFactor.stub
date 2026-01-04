@@ -1,145 +1,306 @@
 import SettingsLayout from '@/Layouts/SettingsLayout';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldCheck, ShieldAlert, KeyRound, RefreshCw, Eye } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ShieldCheck, ShieldAlert, KeyRound, RefreshCw, Copy, X, Smartphone } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { router } from '@inertiajs/react';
 
+type Step = 'idle' | 'qr-code' | 'verify-code' | 'recovery-codes';
+
 export default function SettingsTwoFactor({ enabled }: { enabled: boolean }) {
+    const [step, setStep] = useState<Step>('idle');
     const [qrCode, setQrCode] = useState<string | null>(null);
+    const [secretKey, setSecretKey] = useState<string>('');
     const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
-    const [showingQrCode, setShowingQrCode] = useState(false);
-    const [showingRecoveryCodes, setShowingRecoveryCodes] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [code, setCode] = useState(['', '', '', '', '', '']);
+    const [showRecoveryCodes, setShowRecoveryCodes] = useState(false);
+    const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-    const enableTwoFactor = () => {
+    const enableTwoFactor = async () => {
         setLoading(true);
-        axios.post('/user/two-factor-authentication')
-            .then(() => {
-                setShowingQrCode(true);
-                setShowingRecoveryCodes(true);
-                showQrCode();
-                showRecoveryCodes();
-            })
-            .finally(() => setLoading(false));
+        setError(null);
+        try {
+            await axios.post('/user/two-factor-authentication');
+            const qrRes = await axios.get('/user/two-factor-qr-code');
+            const secretRes = await axios.get('/user/two-factor-secret-key');
+            setQrCode(qrRes.data.svg);
+            setSecretKey(secretRes.data.secretKey);
+            setStep('qr-code');
+        } catch (err) {
+            setError('Failed to enable 2FA. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const disableTwoFactor = () => {
+    const confirmTwoFactor = async () => {
+        const fullCode = code.join('');
+        if (fullCode.length !== 6) {
+            setError('Please enter all 6 digits');
+            return;
+        }
+        
         setLoading(true);
-        axios.delete('/user/two-factor-authentication')
-            .then(() => {
-                 setQrCode(null);
-                 setRecoveryCodes([]);
-                 router.reload();
-            })
-            .finally(() => setLoading(false));
+        setError(null);
+        try {
+            await axios.post('/user/confirmed-two-factor-authentication', { code: fullCode });
+            const res = await axios.get('/user/two-factor-recovery-codes');
+            setRecoveryCodes(res.data);
+            setStep('recovery-codes');
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Invalid authentication code');
+            setCode(['', '', '', '', '', '']);
+            inputRefs.current[0]?.focus();
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const showQrCode = () => {
-        axios.get('/user/two-factor-qr-code').then(res => setQrCode(res.data.svg));
-    };
-
-    const showRecoveryCodes = () => {
-        axios.get('/user/two-factor-recovery-codes').then(res => setRecoveryCodes(res.data));
-    };
-    
-    const regenerateRecoveryCodes = () => {
+    const disableTwoFactor = async () => {
         setLoading(true);
-        axios.post('/user/two-factor-recovery-codes')
-             .then(() => showRecoveryCodes())
-             .finally(() => setLoading(false));
+        try {
+            await axios.delete('/user/two-factor-authentication');
+            router.reload();
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const regenerateRecoveryCodes = async () => {
+        setLoading(true);
+        try {
+            await axios.post('/user/two-factor-recovery-codes');
+            const res = await axios.get('/user/two-factor-recovery-codes');
+            setRecoveryCodes(res.data);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadRecoveryCodes = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get('/user/two-factor-recovery-codes');
+            setRecoveryCodes(res.data);
+            setShowRecoveryCodes(true);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCodeChange = (index: number, value: string) => {
+        if (!/^\d*$/.test(value)) return;
+        
+        const newCode = [...code];
+        newCode[index] = value.slice(-1);
+        setCode(newCode);
+        
+        if (value && index < 5) {
+            inputRefs.current[index + 1]?.focus();
+        }
+    };
+
+    const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+        if (e.key === 'Backspace' && !code[index] && index > 0) {
+            inputRefs.current[index - 1]?.focus();
+        }
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+    };
+
+    const closeModal = () => {
+        setStep('idle');
+        setCode(['', '', '', '', '', '']);
+        setError(null);
+        router.reload();
+    };
+
+    const Modal = ({ children, title, icon: Icon }: { children: React.ReactNode; title: string; icon?: any }) => (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="relative w-full max-w-md mx-4 bg-background rounded-2xl shadow-2xl border">
+                <button onClick={closeModal} className="absolute right-4 top-4 p-1 rounded-full hover:bg-muted transition-colors">
+                    <X className="h-5 w-5 text-muted-foreground" />
+                </button>
+                <div className="p-8 text-center">
+                    {Icon && (
+                        <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                            <Icon className="h-8 w-8" />
+                        </div>
+                    )}
+                    <h2 className="text-xl font-semibold mb-2">{title}</h2>
+                    {children}
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <SettingsLayout>
-             <div className="space-y-6">
+            <div className="space-y-6">
                 <div>
                     <h3 className="text-lg font-medium">Two-Factor Authentication</h3>
                     <p className="text-sm text-muted-foreground">
-                        Add an extra layer of security to your account.
+                        Manage your two-factor authentication settings.
                     </p>
                 </div>
                 <Separator />
                 
-                <Alert variant={enabled ? "default" : "destructive"} className={enabled ? "border-green-500 bg-green-50 dark:bg-green-900/10" : ""}>
+                <Alert variant={enabled ? "default" : "destructive"} className={enabled ? "border-green-500 bg-green-50 dark:bg-green-950/30" : ""}>
                     {enabled ? <ShieldCheck className="h-4 w-4 text-green-600" /> : <ShieldAlert className="h-4 w-4" />}
-                    <AlertTitle>{enabled ? 'Active' : 'Not Enabled'}</AlertTitle>
+                    <AlertTitle>{enabled ? 'Enabled' : 'Disabled'}</AlertTitle>
                     <AlertDescription>
                         {enabled 
-                            ? 'Two-factor authentication is currently enabled on your account.' 
-                            : 'We strongly recommend enabling two-factor authentication for better security.'}
+                            ? 'Two-factor authentication is active on your account.' 
+                            : 'When you enable two-factor authentication, you will be prompted for a secure random token during login. The token can be retrieved from your phone\'s authenticator app.'}
                     </AlertDescription>
                 </Alert>
 
                 <div className="space-y-4">
                     {!enabled ? (
-                        <div className="space-y-4">
-                            <p className="text-sm text-muted-foreground">
-                                When two-factor authentication is enabled, you will be prompted for a secure, random token during authentication. You may retrieve this token from your phone's Google Authenticator application.
-                            </p>
-                            <Button onClick={enableTwoFactor} disabled={loading}>
-                                Enable Two-Factor Authentication
-                            </Button>
-                        </div>
+                        <Button onClick={enableTwoFactor} disabled={loading} className="gap-2">
+                            <Smartphone className="h-4 w-4" />
+                            Continue Setup
+                        </Button>
                     ) : (
-                        <div className="space-y-6">
-                            {(showingQrCode && qrCode) && (
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="text-base">Scan QR Code</CardTitle>
-                                        <CardDescription>
-                                            Two-factor authentication is now enabled. Scan the following QR code using your phone's authenticator application.
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="flex justify-center p-6 bg-white rounded-lg m-4">
-                                        <div dangerouslySetInnerHTML={{ __html: qrCode }} />
-                                    </CardContent>
-                                </Card>
-                            )}
-
-                            {showingRecoveryCodes && recoveryCodes.length > 0 && (
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="text-base flex items-center gap-2">
-                                            <KeyRound className="h-4 w-4" />
-                                            Recovery Codes
-                                        </CardTitle>
-                                        <CardDescription>
-                                            Store these recovery codes in a secure password manager. They can be used to recover access to your account if your secondary device is lost.
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid gap-2 grid-cols-2 bg-muted p-4 rounded-md font-mono text-xs">
-                                            {recoveryCodes.map(code => <div key={code}>{code}</div>)}
-                                        </div>
-                                        <div className="mt-4 flex gap-2">
-                                            <Button variant="outline" size="sm" onClick={regenerateRecoveryCodes} disabled={loading}>
-                                                <RefreshCw className="mr-2 h-3 w-3" />
-                                                Regenerate
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )}
-
+                        <div className="space-y-4">
                             <div className="flex flex-wrap gap-2">
-                                {!showingRecoveryCodes && (
-                                    <Button variant="outline" onClick={() => { setShowingRecoveryCodes(true); showRecoveryCodes(); }} disabled={loading}>
-                                        <Eye className="mr-2 h-4 w-4" />
-                                        Show Recovery Codes
-                                    </Button>
-                                )}
+                                <Button variant="outline" onClick={loadRecoveryCodes} disabled={loading || showRecoveryCodes}>
+                                    <KeyRound className="mr-2 h-4 w-4" />
+                                    Show Recovery Codes
+                                </Button>
                                 <Button variant="destructive" onClick={disableTwoFactor} disabled={loading}>
-                                    Disable Two-Factor Authentication
+                                    Disable 2FA
                                 </Button>
                             </div>
+                            
+                            {showRecoveryCodes && recoveryCodes.length > 0 && (
+                                <div className="border rounded-lg p-4 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-medium flex items-center gap-2">
+                                            <KeyRound className="h-4 w-4" />
+                                            Recovery Codes
+                                        </h4>
+                                        <Button variant="ghost" size="sm" onClick={regenerateRecoveryCodes} disabled={loading}>
+                                            <RefreshCw className="h-3 w-3 mr-1" />
+                                            Regenerate
+                                        </Button>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        Store these codes in a secure place. They can recover access if you lose your device.
+                                    </p>
+                                    <div className="grid gap-2 grid-cols-2 bg-muted p-4 rounded-md font-mono text-xs">
+                                        {recoveryCodes.map(code => <div key={code}>{code}</div>)}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
-             </div>
+            </div>
+
+            {step === 'qr-code' && (
+                <Modal title="Enable Two-Factor Authentication" icon={Smartphone}>
+                    <p className="text-sm text-muted-foreground mb-6">
+                        To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app.
+                    </p>
+                    
+                    {qrCode && (
+                        <div className="p-4 bg-white rounded-lg border inline-block mb-6">
+                            <div dangerouslySetInnerHTML={{ __html: qrCode }} />
+                        </div>
+                    )}
+                    
+                    <Button onClick={() => setStep('verify-code')} className="w-full mb-4">
+                        Continue
+                    </Button>
+                    
+                    <div className="relative my-4">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">or, enter the code manually</span>
+                        </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 border rounded-lg p-3">
+                        <code className="flex-1 text-sm font-mono">{secretKey}</code>
+                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(secretKey)}>
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </Modal>
+            )}
+
+            {step === 'verify-code' && (
+                <Modal title="Verify Authentication Code" icon={Smartphone}>
+                    <p className="text-sm text-muted-foreground mb-6">
+                        Enter the 6-digit code from your authenticator app.
+                    </p>
+                    
+                    {error && (
+                        <p className="text-sm text-destructive mb-4">{error}</p>
+                    )}
+                    
+                    <div className="flex justify-center gap-2 mb-6">
+                        {code.map((digit, index) => (
+                            <Input
+                                key={index}
+                                ref={el => inputRefs.current[index] = el}
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={1}
+                                value={digit}
+                                onChange={e => handleCodeChange(index, e.target.value)}
+                                onKeyDown={e => handleKeyDown(index, e)}
+                                className="w-12 h-14 text-center text-xl font-semibold"
+                                autoFocus={index === 0}
+                            />
+                        ))}
+                    </div>
+                    
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => setStep('qr-code')} className="flex-1">
+                            Back
+                        </Button>
+                        <Button onClick={confirmTwoFactor} disabled={loading || code.some(d => !d)} className="flex-1">
+                            Confirm
+                        </Button>
+                    </div>
+                </Modal>
+            )}
+
+            {step === 'recovery-codes' && (
+                <Modal title="Save Your Recovery Codes" icon={KeyRound}>
+                    <p className="text-sm text-muted-foreground mb-6">
+                        Two-factor authentication is now enabled. Store these recovery codes securely - they can be used to access your account if you lose your device.
+                    </p>
+                    
+                    <div className="grid gap-2 grid-cols-2 bg-muted p-4 rounded-lg mb-6 text-left">
+                        {recoveryCodes.map(code => (
+                            <code key={code} className="text-xs font-mono">{code}</code>
+                        ))}
+                    </div>
+                    
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => copyToClipboard(recoveryCodes.join('\n'))} className="flex-1 gap-2">
+                            <Copy className="h-4 w-4" />
+                            Copy All
+                        </Button>
+                        <Button onClick={closeModal} className="flex-1">
+                            Done
+                        </Button>
+                    </div>
+                </Modal>
+            )}
         </SettingsLayout>
     );
 }

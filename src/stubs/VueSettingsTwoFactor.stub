@@ -2,10 +2,10 @@
 import SettingsLayout from '@/Layouts/SettingsLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldCheck, ShieldAlert, KeyRound, RefreshCw, Eye } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { Input } from '@/components/ui/input';
+import { ShieldCheck, ShieldAlert, KeyRound, RefreshCw, Copy, X, Smartphone } from 'lucide-vue-next';
+import { ref, nextTick } from 'vue';
 import axios from 'axios';
 import { router } from '@inertiajs/vue3';
 
@@ -13,48 +13,126 @@ const props = defineProps<{
     enabled: boolean;
 }>();
 
+type Step = 'idle' | 'qr-code' | 'verify-code' | 'recovery-codes';
+
+const step = ref<Step>('idle');
 const qrCode = ref<string | null>(null);
+const secretKey = ref('');
 const recoveryCodes = ref<string[]>([]);
 const loading = ref(false);
-const showingQrCode = ref(false);
-const showingRecoveryCodes = ref(false);
+const error = ref<string | null>(null);
+const code = ref(['', '', '', '', '', '']);
+const showRecoveryCodes = ref(false);
+const inputRefs = ref<(HTMLInputElement | null)[]>([]);
 
-const enableTwoFactor = () => {
+const enableTwoFactor = async () => {
     loading.value = true;
-    axios.post('/user/two-factor-authentication')
-        .then(() => {
-            showingQrCode.value = true;
-            showingRecoveryCodes.value = true;
-            showQrCode();
-            showRecoveryCodes();
-        })
-        .finally(() => loading.value = false);
+    error.value = null;
+    try {
+        await axios.post('/user/two-factor-authentication');
+        const qrRes = await axios.get('/user/two-factor-qr-code');
+        const secretRes = await axios.get('/user/two-factor-secret-key');
+        qrCode.value = qrRes.data.svg;
+        secretKey.value = secretRes.data.secretKey;
+        step.value = 'qr-code';
+    } catch (err) {
+        error.value = 'Failed to enable 2FA. Please try again.';
+    } finally {
+        loading.value = false;
+    }
 };
 
-const disableTwoFactor = () => {
+const confirmTwoFactor = async () => {
+    const fullCode = code.value.join('');
+    if (fullCode.length !== 6) {
+        error.value = 'Please enter all 6 digits';
+        return;
+    }
+    
     loading.value = true;
-    axios.delete('/user/two-factor-authentication')
-        .then(() => {
-            qrCode.value = null;
-            recoveryCodes.value = [];
-            router.reload();
-        })
-        .finally(() => loading.value = false);
+    error.value = null;
+    try {
+        await axios.post('/user/confirmed-two-factor-authentication', { code: fullCode });
+        const res = await axios.get('/user/two-factor-recovery-codes');
+        recoveryCodes.value = res.data;
+        step.value = 'recovery-codes';
+    } catch (err: any) {
+        error.value = err.response?.data?.message || 'Invalid authentication code';
+        code.value = ['', '', '', '', '', ''];
+        await nextTick();
+        inputRefs.value[0]?.focus();
+    } finally {
+        loading.value = false;
+    }
 };
 
-const showQrCode = () => {
-    axios.get('/user/two-factor-qr-code').then(res => qrCode.value = res.data.svg);
-};
-
-const showRecoveryCodes = () => {
-    axios.get('/user/two-factor-recovery-codes').then(res => recoveryCodes.value = res.data);
-};
-
-const regenerateRecoveryCodes = () => {
+const disableTwoFactor = async () => {
     loading.value = true;
-    axios.post('/user/two-factor-recovery-codes')
-        .then(() => showRecoveryCodes())
-        .finally(() => loading.value = false);
+    try {
+        await axios.delete('/user/two-factor-authentication');
+        router.reload();
+    } finally {
+        loading.value = false;
+    }
+};
+
+const regenerateRecoveryCodes = async () => {
+    loading.value = true;
+    try {
+        await axios.post('/user/two-factor-recovery-codes');
+        const res = await axios.get('/user/two-factor-recovery-codes');
+        recoveryCodes.value = res.data;
+    } finally {
+        loading.value = false;
+    }
+};
+
+const loadRecoveryCodes = async () => {
+    loading.value = true;
+    try {
+        const res = await axios.get('/user/two-factor-recovery-codes');
+        recoveryCodes.value = res.data;
+        showRecoveryCodes.value = true;
+    } finally {
+        loading.value = false;
+    }
+};
+
+const handleCodeChange = (index: number, event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const value = target.value;
+    
+    if (!/^\d*$/.test(value)) {
+        target.value = code.value[index];
+        return;
+    }
+    
+    code.value[index] = value.slice(-1);
+    
+    if (value && index < 5) {
+        inputRefs.value[index + 1]?.focus();
+    }
+};
+
+const handleKeyDown = (index: number, event: KeyboardEvent) => {
+    if (event.key === 'Backspace' && !code.value[index] && index > 0) {
+        inputRefs.value[index - 1]?.focus();
+    }
+};
+
+const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+};
+
+const closeModal = () => {
+    step.value = 'idle';
+    code.value = ['', '', '', '', '', ''];
+    error.value = null;
+    router.reload();
+};
+
+const setInputRef = (el: any, index: number) => {
+    if (el) inputRefs.value[index] = el.$el || el;
 };
 </script>
 
@@ -64,79 +142,186 @@ const regenerateRecoveryCodes = () => {
             <div>
                 <h3 class="text-lg font-medium">Two-Factor Authentication</h3>
                 <p class="text-sm text-muted-foreground">
-                    Add an extra layer of security to your account.
+                    Manage your two-factor authentication settings.
                 </p>
             </div>
             <Separator />
             
-            <Alert :variant="enabled ? 'default' : 'destructive'" :class="enabled ? 'border-green-500 bg-green-50 dark:bg-green-900/10' : ''">
+            <Alert :variant="enabled ? 'default' : 'destructive'" :class="enabled ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : ''">
                 <ShieldCheck v-if="enabled" class="h-4 w-4 text-green-600" />
                 <ShieldAlert v-else class="h-4 w-4" />
-                <AlertTitle>{{ enabled ? 'Active' : 'Not Enabled' }}</AlertTitle>
+                <AlertTitle>{{ enabled ? 'Enabled' : 'Disabled' }}</AlertTitle>
                 <AlertDescription>
                     {{ enabled 
-                        ? 'Two-factor authentication is currently enabled on your account.' 
-                        : 'We strongly recommend enabling two-factor authentication for better security.' }}
+                        ? 'Two-factor authentication is active on your account.' 
+                        : "When you enable two-factor authentication, you will be prompted for a secure random token during login. The token can be retrieved from your phone's authenticator app." }}
                 </AlertDescription>
             </Alert>
 
             <div class="space-y-4">
-                <div v-if="!enabled" class="space-y-4">
-                    <p class="text-sm text-muted-foreground">
-                        When two-factor authentication is enabled, you will be prompted for a secure, random token during authentication. You may retrieve this token from your phone's Google Authenticator application.
-                    </p>
-                    <Button @click="enableTwoFactor" :disabled="loading">
-                        Enable Two-Factor Authentication
+                <div v-if="!enabled">
+                    <Button @click="enableTwoFactor" :disabled="loading" class="gap-2">
+                        <Smartphone class="h-4 w-4" />
+                        Continue Setup
                     </Button>
                 </div>
                 
-                <div v-else class="space-y-6">
-                    <Card v-if="showingQrCode && qrCode">
-                        <CardHeader>
-                            <CardTitle class="text-base">Scan QR Code</CardTitle>
-                            <CardDescription>
-                                Two-factor authentication is now enabled. Scan the following QR code using your phone's authenticator application.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent class="flex justify-center p-6 bg-white rounded-lg m-4">
-                            <div v-html="qrCode"></div>
-                        </CardContent>
-                    </Card>
-
-                    <Card v-if="showingRecoveryCodes && recoveryCodes.length > 0">
-                        <CardHeader>
-                            <CardTitle class="text-base flex items-center gap-2">
-                                <KeyRound class="h-4 w-4" />
-                                Recovery Codes
-                            </CardTitle>
-                            <CardDescription>
-                                Store these recovery codes in a secure password manager. They can be used to recover access to your account if your secondary device is lost.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div class="grid gap-2 grid-cols-2 bg-muted p-4 rounded-md font-mono text-xs">
-                                <div v-for="code in recoveryCodes" :key="code">{{ code }}</div>
-                            </div>
-                            <div class="mt-4 flex gap-2">
-                                <Button variant="outline" size="sm" @click="regenerateRecoveryCodes" :disabled="loading">
-                                    <RefreshCw class="mr-2 h-3 w-3" />
-                                    Regenerate
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-
+                <div v-else class="space-y-4">
                     <div class="flex flex-wrap gap-2">
-                        <Button v-if="!showingRecoveryCodes" variant="outline" @click="showingRecoveryCodes = true; showRecoveryCodes();" :disabled="loading">
-                            <Eye class="mr-2 h-4 w-4" />
+                        <Button variant="outline" @click="loadRecoveryCodes" :disabled="loading || showRecoveryCodes">
+                            <KeyRound class="mr-2 h-4 w-4" />
                             Show Recovery Codes
                         </Button>
                         <Button variant="destructive" @click="disableTwoFactor" :disabled="loading">
-                            Disable Two-Factor Authentication
+                            Disable 2FA
                         </Button>
+                    </div>
+                    
+                    <div v-if="showRecoveryCodes && recoveryCodes.length > 0" class="border rounded-lg p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-medium flex items-center gap-2">
+                                <KeyRound class="h-4 w-4" />
+                                Recovery Codes
+                            </h4>
+                            <Button variant="ghost" size="sm" @click="regenerateRecoveryCodes" :disabled="loading">
+                                <RefreshCw class="h-3 w-3 mr-1" />
+                                Regenerate
+                            </Button>
+                        </div>
+                        <p class="text-sm text-muted-foreground">
+                            Store these codes in a secure place. They can recover access if you lose your device.
+                        </p>
+                        <div class="grid gap-2 grid-cols-2 bg-muted p-4 rounded-md font-mono text-xs">
+                            <div v-for="c in recoveryCodes" :key="c">{{ c }}</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- QR Code Modal -->
+        <Teleport to="body">
+            <div v-if="step === 'qr-code'" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                <div class="relative w-full max-w-md mx-4 bg-background rounded-2xl shadow-2xl border">
+                    <button @click="closeModal" class="absolute right-4 top-4 p-1 rounded-full hover:bg-muted transition-colors">
+                        <X class="h-5 w-5 text-muted-foreground" />
+                    </button>
+                    <div class="p-8 text-center">
+                        <div class="mx-auto mb-4 h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                            <Smartphone class="h-8 w-8" />
+                        </div>
+                        <h2 class="text-xl font-semibold mb-2">Enable Two-Factor Authentication</h2>
+                        <p class="text-sm text-muted-foreground mb-6">
+                            To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app.
+                        </p>
+                        
+                        <div v-if="qrCode" class="p-4 bg-white rounded-lg border inline-block mb-6">
+                            <div v-html="qrCode"></div>
+                        </div>
+                        
+                        <Button @click="step = 'verify-code'" class="w-full mb-4">
+                            Continue
+                        </Button>
+                        
+                        <div class="relative my-4">
+                            <div class="absolute inset-0 flex items-center">
+                                <span class="w-full border-t" />
+                            </div>
+                            <div class="relative flex justify-center text-xs uppercase">
+                                <span class="bg-background px-2 text-muted-foreground">or, enter the code manually</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 border rounded-lg p-3">
+                            <code class="flex-1 text-sm font-mono">{{ secretKey }}</code>
+                            <Button variant="ghost" size="icon" @click="copyToClipboard(secretKey)">
+                                <Copy class="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- Verify Code Modal -->
+        <Teleport to="body">
+            <div v-if="step === 'verify-code'" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                <div class="relative w-full max-w-md mx-4 bg-background rounded-2xl shadow-2xl border">
+                    <button @click="closeModal" class="absolute right-4 top-4 p-1 rounded-full hover:bg-muted transition-colors">
+                        <X class="h-5 w-5 text-muted-foreground" />
+                    </button>
+                    <div class="p-8 text-center">
+                        <div class="mx-auto mb-4 h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                            <Smartphone class="h-8 w-8" />
+                        </div>
+                        <h2 class="text-xl font-semibold mb-2">Verify Authentication Code</h2>
+                        <p class="text-sm text-muted-foreground mb-6">
+                            Enter the 6-digit code from your authenticator app.
+                        </p>
+                        
+                        <p v-if="error" class="text-sm text-destructive mb-4">{{ error }}</p>
+                        
+                        <div class="flex justify-center gap-2 mb-6">
+                            <Input
+                                v-for="(digit, index) in code"
+                                :key="index"
+                                :ref="(el) => setInputRef(el, index)"
+                                type="text"
+                                inputmode="numeric"
+                                maxlength="1"
+                                :value="digit"
+                                @input="handleCodeChange(index, $event)"
+                                @keydown="handleKeyDown(index, $event)"
+                                class="w-12 h-14 text-center text-xl font-semibold"
+                                :autofocus="index === 0"
+                            />
+                        </div>
+                        
+                        <div class="flex gap-3">
+                            <Button variant="outline" @click="step = 'qr-code'" class="flex-1">
+                                Back
+                            </Button>
+                            <Button @click="confirmTwoFactor" :disabled="loading || code.some((d: string) => !d)" class="flex-1">
+                                Confirm
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- Recovery Codes Modal -->
+        <Teleport to="body">
+            <div v-if="step === 'recovery-codes'" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                <div class="relative w-full max-w-md mx-4 bg-background rounded-2xl shadow-2xl border">
+                    <button @click="closeModal" class="absolute right-4 top-4 p-1 rounded-full hover:bg-muted transition-colors">
+                        <X class="h-5 w-5 text-muted-foreground" />
+                    </button>
+                    <div class="p-8 text-center">
+                        <div class="mx-auto mb-4 h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                            <KeyRound class="h-8 w-8" />
+                        </div>
+                        <h2 class="text-xl font-semibold mb-2">Save Your Recovery Codes</h2>
+                        <p class="text-sm text-muted-foreground mb-6">
+                            Two-factor authentication is now enabled. Store these recovery codes securely - they can be used to access your account if you lose your device.
+                        </p>
+                        
+                        <div class="grid gap-2 grid-cols-2 bg-muted p-4 rounded-lg mb-6 text-left">
+                            <code v-for="c in recoveryCodes" :key="c" class="text-xs font-mono">{{ c }}</code>
+                        </div>
+                        
+                        <div class="flex gap-3">
+                            <Button variant="outline" @click="copyToClipboard(recoveryCodes.join('\n'))" class="flex-1 gap-2">
+                                <Copy class="h-4 w-4" />
+                                Copy All
+                            </Button>
+                            <Button @click="closeModal" class="flex-1">
+                                Done
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </SettingsLayout>
 </template>
