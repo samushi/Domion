@@ -3,7 +3,7 @@
 namespace {{namespace}};
 
 use App\Domain\User\Models\User;
-use App\Support\Repositories;
+use Samushi\Domion\Support\Repositories;
 use Illuminate\Database\Eloquent\Model;
 
 class UserRepository extends Repositories

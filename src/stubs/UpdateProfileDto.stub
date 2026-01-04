@@ -2,7 +2,7 @@
 
 namespace {{namespace}};
 
-use App\Support\DataObjects;
+use Samushi\Domion\Support\DataObjects;
 
 class UpdateProfileDto extends DataObjects
 {

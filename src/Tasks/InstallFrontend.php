@@ -153,10 +153,17 @@ TS;
             $content = "import vue from '@vitejs/plugin-vue';\n" . $content;
         }
 
-        // 2. Update entry point
+        // 2. Update JS entry point
         $content = preg_replace(
             "/'resources\/js\/app\.(js|jsx|ts|tsx|vue)'/",
             "'app/Support/Frontend/app.$1'",
+            $content
+        );
+
+        // 2b. Update CSS entry point (resources/css/app.css -> app/Support/Frontend/app.css)
+        $content = preg_replace(
+            "/'resources\/css\/app\.css'/",
+            "'app/Support/Frontend/app.css'",
             $content
         );
 

@@ -2,7 +2,7 @@
 
 namespace {{namespace}};
 
-use App\Support\FormRequest;
+use Samushi\Domion\Support\FormRequest;
 use App\Domain\User\Models\User;
 use Illuminate\Validation\Rule;
 
