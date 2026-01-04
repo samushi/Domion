@@ -118,21 +118,59 @@ const handleCodeChange = (index: number, event: Event) => {
     const target = event.target as HTMLInputElement;
     const value = target.value;
     
-    if (!/^\d*$/.test(value)) {
+    // Only allow digits
+    const digits = value.replace(/\D/g, '');
+    if (!digits) {
         target.value = code.value[index];
         return;
     }
     
-    code.value[index] = value.slice(-1);
+    // If pasting multiple digits, distribute them across inputs
+    if (digits.length > 1) {
+        for (let i = 0; i < digits.length && index + i < 6; i++) {
+            code.value[index + i] = digits[i];
+        }
+        // Focus on the next empty input or last one
+        const nextIndex = Math.min(index + digits.length, 5);
+        inputRefs.value[nextIndex]?.focus();
+        return;
+    }
     
-    if (value && index < 5) {
+    // Single digit input
+    code.value[index] = digits;
+    
+    // Move to next input if available
+    if (index < 5) {
         inputRefs.value[index + 1]?.focus();
     }
 };
 
+const handlePaste = (event: ClipboardEvent) => {
+    event.preventDefault();
+    const pastedData = event.clipboardData?.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pastedData) {
+        for (let i = 0; i < pastedData.length; i++) {
+            code.value[i] = pastedData[i];
+        }
+        // Focus on the appropriate input
+        const focusIndex = Math.min(pastedData.length, 5);
+        inputRefs.value[focusIndex]?.focus();
+    }
+};
+
 const handleKeyDown = (index: number, event: KeyboardEvent) => {
-    if (event.key === 'Backspace' && !code.value[index] && index > 0) {
+    if (event.key === 'Backspace') {
+        if (!code.value[index] && index > 0) {
+            // If current is empty and backspace, go to previous
+            inputRefs.value[index - 1]?.focus();
+        } else {
+            // Clear current and stay
+            code.value[index] = '';
+        }
+    } else if (event.key === 'ArrowLeft' && index > 0) {
         inputRefs.value[index - 1]?.focus();
+    } else if (event.key === 'ArrowRight' && index < 5) {
+        inputRefs.value[index + 1]?.focus();
     }
 };
 
@@ -282,10 +320,11 @@ const setInputRef = (el: any, index: number) => {
                                 :ref="(el) => setInputRef(el, index)"
                                 type="text"
                                 inputmode="numeric"
-                                maxlength="1"
+                                maxlength="6"
                                 :value="digit"
                                 @input="handleCodeChange(index, $event)"
                                 @keydown="handleKeyDown(index, $event)"
+                                @paste="handlePaste"
                                 class="w-12 h-14 text-center text-xl font-semibold"
                                 :autofocus="index === 0"
                             />

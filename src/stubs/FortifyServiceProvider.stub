@@ -25,11 +25,18 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Inertia Views for Fortify (required for 2FA)
-        Fortify::loginView(fn() => Inertia::render('auth::Login'));
-        Fortify::registerView(fn() => Inertia::render('auth::Register'));
-        Fortify::confirmPasswordView(fn() => Inertia::render('auth::ConfirmPassword'));
-        Fortify::twoFactorChallengeView(fn() => Inertia::render('auth::TwoFactorChallenge'));
+        // Inertia Views for Fortify
+        // Using the full path from Domain structure: Auth/Frontend/Pages/Login
+        Fortify::loginView(fn() => Inertia::render('Auth/Login'));
+        Fortify::registerView(fn() => Inertia::render('Auth/Register'));
+        Fortify::confirmPasswordView(fn() => Inertia::render('Auth/ConfirmPassword'));
+        Fortify::twoFactorChallengeView(fn() => Inertia::render('Auth/TwoFactorChallenge'));
+        Fortify::requestPasswordResetLinkView(fn() => Inertia::render('Auth/ForgotPassword'));
+        Fortify::resetPasswordView(fn(Request $request) => Inertia::render('Auth/ResetPassword', [
+            'email' => $request->input('email'),
+            'token' => $request->route('token'),
+        ]));
+        Fortify::verifyEmailView(fn() => Inertia::render('Auth/VerifyEmail'));
 
         // Rate limiting
         RateLimiter::for('login', function (Request $request) {

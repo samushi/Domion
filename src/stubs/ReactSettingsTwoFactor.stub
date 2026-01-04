@@ -117,20 +117,64 @@ export default function SettingsTwoFactor({ enabled, confirmed }: Props) {
     };
 
     const handleCodeChange = (index: number, value: string) => {
-        if (!/^\d*$/.test(value)) return;
+        // Only allow digits
+        const digits = value.replace(/\D/g, '');
+        if (!digits) return;
         
+        // If pasting multiple digits, distribute them across inputs
+        if (digits.length > 1) {
+            const newCode = [...code];
+            for (let i = 0; i < digits.length && index + i < 6; i++) {
+                newCode[index + i] = digits[i];
+            }
+            setCode(newCode);
+            // Focus on the next empty input or last one
+            const nextIndex = Math.min(index + digits.length, 5);
+            inputRefs.current[nextIndex]?.focus();
+            return;
+        }
+        
+        // Single digit input
         const newCode = [...code];
-        newCode[index] = value.slice(-1);
+        newCode[index] = digits;
         setCode(newCode);
         
-        if (value && index < 5) {
+        // Move to next input if available
+        if (index < 5) {
             inputRefs.current[index + 1]?.focus();
         }
     };
 
+    const handlePaste = (e: React.ClipboardEvent) => {
+        e.preventDefault();
+        const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+        if (pastedData) {
+            const newCode = [...code];
+            for (let i = 0; i < pastedData.length; i++) {
+                newCode[i] = pastedData[i];
+            }
+            setCode(newCode);
+            // Focus on the appropriate input
+            const focusIndex = Math.min(pastedData.length, 5);
+            inputRefs.current[focusIndex]?.focus();
+        }
+    };
+
     const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-        if (e.key === 'Backspace' && !code[index] && index > 0) {
+        if (e.key === 'Backspace') {
+            if (!code[index] && index > 0) {
+                // If current is empty and backspace, go to previous
+                inputRefs.current[index - 1]?.focus();
+            } else {
+                // Clear current and stay
+                const newCode = [...code];
+                newCode[index] = '';
+                setCode(newCode);
+            }
+        } else if (e.key === 'ArrowLeft' && index > 0) {
             inputRefs.current[index - 1]?.focus();
+        } else if (e.key === 'ArrowRight' && index < 5) {
+            inputRefs.current[index + 1]?.focus();
         }
     };
 
@@ -277,10 +321,11 @@ export default function SettingsTwoFactor({ enabled, confirmed }: Props) {
                                 ref={el => inputRefs.current[index] = el}
                                 type="text"
                                 inputMode="numeric"
-                                maxLength={1}
+                                maxLength={6}
                                 value={digit}
                                 onChange={e => handleCodeChange(index, e.target.value)}
                                 onKeyDown={e => handleKeyDown(index, e)}
+                                onPaste={handlePaste}
                                 className="w-12 h-14 text-center text-xl font-semibold"
                                 autoFocus={index === 0}
                             />

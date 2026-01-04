@@ -107,8 +107,8 @@ TS;
 
         File::put(base_path('components.json'), json_encode($componentsJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
-        // 3. Run shadcn init with force flag to skip prompts
-        exec('npx -y shadcn@latest init --yes --force 2>&1', $initOutput, $initReturn);
+        // 3. Run shadcn init with all options specified to skip any prompts
+        exec('npx -y shadcn@latest init -d -b neutral --force 2>&1', $initOutput, $initReturn);
 
         // 4. Add core components in smaller batches to avoid timeouts
         $coreComponents = ['button', 'card', 'input', 'label', 'badge'];
@@ -136,12 +136,12 @@ TS;
         // Ensure CSS and lib files exist first
         $this->prepareShadcnFiles($mode);
 
-        // Run shadcn init with visible output
+        // Run shadcn init with all options specified (no prompts)
         $this->command->line('  → Initializing Shadcn...');
-        passthru('npx -y shadcn@latest init --yes --force 2>&1');
+        passthru('npx -y shadcn@latest init -d -b neutral --force 2>&1');
 
-        // Add components with visible progress (including sidebar for layout)
-        $components = ['button', 'card', 'input', 'label', 'badge', 'checkbox', 'alert', 'avatar', 'dropdown-menu', 'separator', 'sonner', 'sidebar', 'sheet', 'tooltip', 'breadcrumb', 'collapsible'];
+        // Add components with visible progress (all required for starter kit)
+        $components = ['button', 'card', 'input', 'label', 'badge', 'checkbox', 'alert', 'alert-dialog', 'radio-group', 'avatar', 'dropdown-menu', 'separator', 'sonner', 'sidebar', 'sheet', 'tooltip', 'breadcrumb', 'collapsible'];
         
         $this->command->line('  → Installing components: ' . implode(', ', $components));
         passthru('npx -y shadcn@latest add ' . implode(' ', $components) . ' --yes --overwrite 2>&1');
