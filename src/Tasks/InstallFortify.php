@@ -38,7 +38,7 @@ class InstallFortify
         
         if (File::exists($stubPath)) {
             File::ensureDirectoryExists(dirname($targetPath));
-            File::copy($stubPath, $targetPath);
+            File::put($targetPath, File::get($stubPath));
         }
     }
 
@@ -60,25 +60,37 @@ class InstallFortify
     protected function registerProvider(): void
     {
         $providersFile = base_path('bootstrap/providers.php');
-        if (!File::exists($providersFile)) {
-            return;
-        }
-
-        $content = File::get($providersFile);
-        
-        // Remove old registration if exists with wrong formatting
-        $content = str_replace('App\Providers\FortifyServiceProvider::class,', '', $content);
-        
-        if (!str_contains($content, 'App\\Providers\\FortifyServiceProvider::class')) {
+        if (File::exists($providersFile)) {
+            $content = File::get($providersFile);
+            
+            // Cleanup any existing flawed variants
+            $content = preg_replace('/\\s*App\\\\Providers\\\\FortifyServiceProvider::class,?/', '', $content);
+            $content = str_replace('App\Providers\FortifyServiceProvider::class,', '', $content);
+            
+            // Add right at the beginning of the return array
             $content = preg_replace(
                 '/(return\s*\[)/',
                 "$1\n    App\\Providers\\FortifyServiceProvider::class,",
                 $content
             );
+            
             File::put($providersFile, $content);
         }
 
-        // Force clear cache so Laravel sees the new provider
+        // Also check config/app.php
+        $appConfig = base_path('config/app.php');
+        if (File::exists($appConfig)) {
+            $content = File::get($appConfig);
+            if (str_contains($content, "'providers' => [") && !str_contains($content, 'FortifyServiceProvider')) {
+                $content = str_replace(
+                    "'providers' => [",
+                    "'providers' => [\n        App\\Providers\\FortifyServiceProvider::class,",
+                    $content
+                );
+                File::put($appConfig, $content);
+            }
+        }
+
         $this->command->call('optimize:clear');
     }
 

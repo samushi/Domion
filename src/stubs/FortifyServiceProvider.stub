@@ -12,14 +12,21 @@ use Inertia\Inertia;
 
 class FortifyServiceProvider extends ServiceProvider
 {
+    /**
+     * Register any application services.
+     */
     public function register(): void
     {
         //
     }
 
+    /**
+     * Bootstrap any application services.
+     */
     public function boot(): void
     {
-        Fortify::createUsersUsing(\App\Domain\Auth\Actions\CreateNewUser::class);
+        // Bind the actions created by the package
+        Fortify::createUsersUsing(\App\Domain\Auth\Actions\RegisterAction::class);
         Fortify::updateUserProfileInformationUsing(\App\Domain\Settings\Actions\UpdateUserProfileAction::class);
         Fortify::updateUserPasswordsUsing(\App\Domain\Settings\Actions\UpdateUserPasswordAction::class);
 

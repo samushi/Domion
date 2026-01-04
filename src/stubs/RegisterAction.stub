@@ -10,14 +10,37 @@ use Samushi\Domion\Actions\ActionFactory;
 use Samushi\Domion\Support\Traits\HasLoginActionResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Auth\Events\Registered;
+use Laravel\Fortify\Contracts\CreatesNewUsers;
+use Illuminate\Support\Facades\Validator;
 
-class RegisterAction extends ActionFactory
+class RegisterAction extends ActionFactory implements CreatesNewUsers
 {
     use HasLoginActionResponse;
 
     public function __construct(
         protected UserRepository $userRepository,
     ) {
+    }
+
+    /**
+     * Create a new mandated user.
+     * (Fortify entry point)
+     */
+    public function create(array $input): mixed
+    {
+        Validator::make($input, [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ])->validate();
+
+        $dto = new RegisterDto(
+            name: $input['name'],
+            email: $input['email'],
+            password: $input['password']
+        );
+
+        return $this->handle($dto);
     }
 
     /**
