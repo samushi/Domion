@@ -4,14 +4,45 @@ import { Head } from '@inertiajs/vue3';
 </script>
 
 <template>
-    <Head title="Dashboard" />
-
     <AuthenticatedLayout>
+        <Head title="Dashboard" />
+
         <div class="grid auto-rows-min gap-4 md:grid-cols-3">
-             <div class="aspect-video rounded-xl bg-muted/50" />
-             <div class="aspect-video rounded-xl bg-muted/50" />
-             <div class="aspect-video rounded-xl bg-muted/50" />
+            <div class="relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm">
+                <div class="aspect-video p-6">
+                     <div class="h-full w-full rounded-lg bg-muted/50 border border-dashed border-muted-foreground/20 flex items-center justify-center">
+                        <span class="text-muted-foreground text-sm font-medium">Metric One</span>
+                     </div>
+                </div>
+            </div>
+            <div class="relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm">
+                <div class="aspect-video p-6">
+                     <div class="h-full w-full rounded-lg bg-muted/50 border border-dashed border-muted-foreground/20 flex items-center justify-center">
+                        <span class="text-muted-foreground text-sm font-medium">Metric Two</span>
+                     </div>
+                </div>
+            </div>
+            <div class="relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm">
+                <div class="aspect-video p-6">
+                     <div class="h-full w-full rounded-lg bg-muted/50 border border-dashed border-muted-foreground/20 flex items-center justify-center">
+                        <span class="text-muted-foreground text-sm font-medium">Metric Three</span>
+                     </div>
+                </div>
+            </div>
         </div>
-        <div class="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" />
+        
+        <div class="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm md:min-h-min mt-4">
+            <div class="p-6 h-full w-full">
+                <div class="h-full w-full rounded-xl bg-muted/50 border border-dashed border-muted-foreground/20 flex flex-col items-center justify-center gap-2 p-12">
+                    <div class="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <div class="h-6 w-6 rounded-full bg-primary/20 animate-pulse" />
+                    </div>
+                    <h3 class="text-lg font-semibold tracking-tight">Welcome to Domion</h3>
+                    <p class="text-sm text-muted-foreground text-center max-w-sm">
+                        Everything is ready. You can now start building your next great application with our premium architecture.
+                    </p>
+                </div>
+            </div>
+        </div>
     </AuthenticatedLayout>
 </template>

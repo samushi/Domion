@@ -63,12 +63,22 @@ const isActive = (routeName: string) => {
         <SidebarMenuItem>
           <SidebarMenuButton size="lg" as-child>
             <Link :href="route('dashboard')">
-              <div class="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold text-sm">
-                 D
+              <div class="flex aspect-square size-8 items-center justify-center rounded-lg">
+                <svg viewBox="0 0 100 100" class="size-6" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="logoGradientVue" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#2563eb" />
+                            <stop offset="50%" stop-color="#3b82f6" />
+                            <stop offset="100%" stop-color="#06b6d4" />
+                        </linearGradient>
+                    </defs>
+                    <polygon points="50,2 93,25 93,75 50,98 7,75 7,25" fill="url(#logoGradientVue)" />
+                    <path d="M35 30 L35 70 L55 70 C70 70 75 55 75 50 C75 45 70 30 55 30 Z M45 40 L55 40 C60 40 65 45 65 50 C65 55 60 60 55 60 L45 60 Z" fill="white" opacity="0.95" />
+                </svg>
               </div>
               <div class="grid flex-1 text-left text-sm leading-tight">
-                <span class="truncate font-semibold">Domion</span>
-                <span class="truncate text-xs text-muted-foreground">Starter Kit</span>
+                <span class="truncate font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Domion</span>
+                <span class="truncate text-xs text-muted-foreground font-medium uppercase tracking-wider">Starter Kit</span>
               </div>
             </Link>
           </SidebarMenuButton>

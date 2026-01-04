@@ -1,59 +1,46 @@
 <script setup lang="ts">
 import SettingsLayout from '@/Layouts/SettingsLayout.vue';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Separator } from '@/components/ui/separator';
 import { useAppearance } from '@/composables/useAppearance';
 import { Monitor, Moon, Sun } from 'lucide-vue-next';
+import { cn } from '@/lib/utils';
 
 const { appearance, updateAppearance } = useAppearance();
+
+const themes = [
+    { value: 'light', label: 'Light', icon: Sun },
+    { value: 'dark', label: 'Dark', icon: Moon },
+    { value: 'system', label: 'System', icon: Monitor },
+] as const;
 </script>
 
 <template>
     <SettingsLayout>
         <div class="space-y-6">
             <div>
-                <h3 class="text-lg font-medium">Appearance</h3>
+                <h3 class="text-lg font-medium">Appearance settings</h3>
                 <p class="text-sm text-muted-foreground">
-                    Customize how the application looks.
+                    Update your account's appearance settings
                 </p>
             </div>
-            <Separator />
             
             <div class="space-y-4">
-                <Label>Theme</Label>
-                <RadioGroup 
-                    :model-value="appearance" 
-                    @update:model-value="updateAppearance"
-                    class="grid max-w-md grid-cols-3 gap-8 pt-2"
-                >
-                    <Label
-                        for="light"
-                        class="flex flex-col items-center justify-between gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer"
+                <div class="inline-flex items-center rounded-lg bg-muted p-1">
+                    <button
+                        v-for="theme in themes"
+                        :key="theme.value"
+                        @click="updateAppearance(theme.value)"
+                        type="button"
+                        :class="cn(
+                            'flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all outline-none',
+                            appearance === theme.value 
+                                ? 'bg-background text-foreground shadow-sm' 
+                                : 'text-muted-foreground hover:text-foreground'
+                        )"
                     >
-                        <RadioGroupItem value="light" id="light" class="sr-only" />
-                        <Sun class="h-6 w-6" />
-                        <span class="text-sm font-medium">Light</span>
-                    </Label>
-                    
-                    <Label
-                        for="dark"
-                        class="flex flex-col items-center justify-between gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer"
-                    >
-                        <RadioGroupItem value="dark" id="dark" class="sr-only" />
-                        <Moon class="h-6 w-6" />
-                        <span class="text-sm font-medium">Dark</span>
-                    </Label>
-                    
-                    <Label
-                        for="system"
-                        class="flex flex-col items-center justify-between gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary cursor-pointer"
-                    >
-                        <RadioGroupItem value="system" id="system" class="sr-only" />
-                        <Monitor class="h-6 w-6" />
-                        <span class="text-sm font-medium">System</span>
-                    </Label>
-                </RadioGroup>
+                        <component :is="theme.icon" class="h-4 w-4" />
+                        {{ theme.label }}
+                    </button>
+                </div>
             </div>
         </div>
     </SettingsLayout>

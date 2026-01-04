@@ -1,58 +1,52 @@
 import SettingsLayout from '@/Layouts/SettingsLayout';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { useAppearance } from '@/hooks/use-appearance';
 import { Monitor, Moon, Sun } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function SettingsAppearance() {
     const { appearance, updateAppearance } = useAppearance();
+
+    const themes = [
+        { value: 'light', label: 'Light', icon: Sun },
+        { value: 'dark', label: 'Dark', icon: Moon },
+        { value: 'system', label: 'System', icon: Monitor },
+    ] as const;
 
     return (
         <SettingsLayout>
             <div className="space-y-6">
                 <div>
-                    <h3 className="text-lg font-medium">Appearance</h3>
+                    <h3 className="text-lg font-medium">Appearance settings</h3>
                     <p className="text-sm text-muted-foreground">
-                        Customize how the application looks.
+                        Update your account's appearance settings
                     </p>
                 </div>
-                <Separator />
                 
                 <div className="space-y-4">
-                    <Label>Theme</Label>
-                    <RadioGroup 
-                        value={appearance} 
-                        onValueChange={(value) => updateAppearance(value as any)}
-                        className="grid max-w-md grid-cols-3 gap-8 pt-2"
-                    >
-                        <Label
-                            htmlFor="light"
-                            className="flex flex-col items-center justify-between gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary"
-                        >
-                            <RadioGroupItem value="light" id="light" className="sr-only" />
-                            <Sun className="h-6 w-6" />
-                            <span className="text-sm font-medium">Light</span>
-                        </Label>
-                        
-                        <Label
-                            htmlFor="dark"
-                            className="flex flex-col items-center justify-between gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary"
-                        >
-                            <RadioGroupItem value="dark" id="dark" className="sr-only" />
-                            <Moon className="h-6 w-6" />
-                            <span className="text-sm font-medium">Dark</span>
-                        </Label>
-                        
-                        <Label
-                            htmlFor="system"
-                            className="flex flex-col items-center justify-between gap-4 rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground [&:has([data-state=checked])]:border-primary"
-                        >
-                            <RadioGroupItem value="system" id="system" className="sr-only" />
-                            <Monitor className="h-6 w-6" />
-                            <span className="text-sm font-medium">System</span>
-                        </Label>
-                    </RadioGroup>
+                    <div className="inline-flex items-center rounded-lg bg-muted p-1">
+                        {themes.map((theme) => {
+                            const Icon = theme.icon;
+                            const isActive = appearance === theme.value;
+                            
+                            return (
+                                <button
+                                    key={theme.value}
+                                    onClick={() => updateAppearance(theme.value)}
+                                    className={cn(
+                                        "flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all outline-none",
+                                        isActive 
+                                            ? "bg-background text-foreground shadow-sm" 
+                                            : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    <Icon className="h-4 w-4" />
+                                    {theme.label}
+                                </button>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         </SettingsLayout>

@@ -35,11 +35,11 @@ class FortifyServiceProvider extends ServiceProvider
         });
 
         Fortify::confirmPasswordView(function () {
-            return Inertia::render('Auth/ConfirmPassword');
+            return Inertia::render('auth::ConfirmPassword');
         });
 
         Fortify::twoFactorChallengeView(function () {
-            return Inertia::render('Auth/TwoFactorChallenge');
+            return Inertia::render('auth::TwoFactorChallenge');
         });
     }
 }
