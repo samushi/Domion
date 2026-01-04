@@ -82,18 +82,16 @@ TS;
             File::put($bootstrapPath, $bootstrapContent);
         }
 
-        // 2. Pre-create components.json to make it non-interactive
-        // $appPath and $frontendPath already defined above
-
+        // 2. Pre-create components.json to make it non-interactive (matching Laravel Starter Kit)
         $componentsJson = [
             '$schema' => 'https://ui.shadcn.com/schema.json',
             'style' => 'new-york',
             'rsc' => false,
             'tsx' => true,
             'tailwind' => [
-                'config' => 'tailwind.config.js',
+                'config' => '',
                 'css' => "{$frontendPath}/app.css",
-                'baseColor' => 'slate',
+                'baseColor' => 'neutral',
                 'cssVariables' => true,
                 'prefix' => '',
             ],
@@ -104,6 +102,7 @@ TS;
                 'lib' => '@/lib',
                 'hooks' => '@/hooks',
             ],
+            'iconLibrary' => 'lucide',
         ];
 
         File::put(base_path('components.json'), json_encode($componentsJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
@@ -158,11 +157,14 @@ TS;
         $projectRoot = PathHelper::getProjectAppRoot();
         $frontendPath = "{$projectRoot}/Support/Frontend";
 
-        // Create CSS with Tailwind v4 theme
+        // Copy CSS from stub
         $cssPath = base_path("{$frontendPath}/app.css");
         if (!File::exists($cssPath)) {
             File::ensureDirectoryExists(dirname($cssPath));
-            $this->createTailwindCss($cssPath);
+            $cssStubPath = __DIR__ . '/../stubs/AppCss.stub';
+            if (File::exists($cssStubPath)) {
+                File::copy($cssStubPath, $cssPath);
+            }
         }
 
         // Create utils.ts
@@ -193,16 +195,16 @@ TS;
             File::put($bootstrapPath, $bootstrapContent);
         }
 
-        // Create components.json
+        // Create components.json (matching Laravel Starter Kit)
         $componentsJson = [
             '$schema' => 'https://ui.shadcn.com/schema.json',
             'style' => 'new-york',
             'rsc' => false,
             'tsx' => true,
             'tailwind' => [
-                'config' => 'tailwind.config.js',
+                'config' => '',
                 'css' => "{$frontendPath}/app.css",
-                'baseColor' => 'slate',
+                'baseColor' => 'neutral',
                 'cssVariables' => true,
                 'prefix' => '',
             ],
@@ -213,27 +215,12 @@ TS;
                 'lib' => '@/lib',
                 'hooks' => '@/hooks',
             ],
+            'iconLibrary' => 'lucide',
         ];
 
         File::put(base_path('components.json'), json_encode($componentsJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
 
-    protected function createTailwindCss(string $path): void
-    {
-        $css = "@import \"tailwindcss\";\n\n" .
-            "@theme {\n" .
-            "  --color-background: hsl(0 0% 100%);\n" .
-            "  --color-foreground: hsl(222.2 84% 4.9%);\n" .
-            "  --color-primary: hsl(222.2 47.4% 11.2%);\n" .
-            "  --color-primary-foreground: hsl(210 40% 98%);\n" .
-            "  --color-muted: hsl(210 40% 96.1%);\n" .
-            "  --color-muted-foreground: hsl(215.4 16.3% 46.9%);\n" .
-            "  --color-border: hsl(214.3 31.8% 91.4%);\n" .
-            "  --radius: 0.5rem;\n" .
-            "}\n";
-        
-        File::put($path, $css);
-    }
 
     public function configureVite(string $mode): void
     {

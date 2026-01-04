@@ -5,12 +5,13 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { ShieldCheck, ShieldAlert, KeyRound, RefreshCw, Copy, X, Smartphone } from 'lucide-vue-next';
-import { ref, nextTick } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import axios from 'axios';
 import { router } from '@inertiajs/vue3';
 
 const props = defineProps<{
     enabled: boolean;
+    confirmed: boolean;
 }>();
 
 type Step = 'idle' | 'qr-code' | 'verify-code' | 'recovery-codes';
@@ -24,6 +25,8 @@ const error = ref<string | null>(null);
 const code = ref(['', '', '', '', '', '']);
 const showRecoveryCodes = ref(false);
 const inputRefs = ref<(HTMLInputElement | null)[]>([]);
+
+const is2FAActive = computed(() => props.enabled && props.confirmed);
 
 const enableTwoFactor = async () => {
     loading.value = true;
@@ -57,13 +60,26 @@ const confirmTwoFactor = async () => {
         recoveryCodes.value = res.data;
         step.value = 'recovery-codes';
     } catch (err: any) {
-        error.value = err.response?.data?.message || 'Invalid authentication code';
+        error.value = err.response?.data?.message || 'Invalid authentication code. Please try again.';
         code.value = ['', '', '', '', '', ''];
         await nextTick();
         inputRefs.value[0]?.focus();
     } finally {
         loading.value = false;
     }
+};
+
+const cancelSetup = async () => {
+    if (props.enabled && !props.confirmed) {
+        try {
+            await axios.delete('/user/two-factor-authentication');
+        } catch (e) {}
+    }
+    step.value = 'idle';
+    code.value = ['', '', '', '', '', ''];
+    error.value = null;
+    qrCode.value = null;
+    router.reload();
 };
 
 const disableTwoFactor = async () => {
@@ -124,10 +140,8 @@ const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
 };
 
-const closeModal = () => {
+const finishSetup = () => {
     step.value = 'idle';
-    code.value = ['', '', '', '', '', ''];
-    error.value = null;
     router.reload();
 };
 
@@ -147,22 +161,22 @@ const setInputRef = (el: any, index: number) => {
             </div>
             <Separator />
             
-            <Alert :variant="enabled ? 'default' : 'destructive'" :class="enabled ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : ''">
-                <ShieldCheck v-if="enabled" class="h-4 w-4 text-green-600" />
+            <Alert :variant="is2FAActive ? 'default' : 'destructive'" :class="is2FAActive ? 'border-green-500 bg-green-50 dark:bg-green-950/30' : ''">
+                <ShieldCheck v-if="is2FAActive" class="h-4 w-4 text-green-600" />
                 <ShieldAlert v-else class="h-4 w-4" />
-                <AlertTitle>{{ enabled ? 'Enabled' : 'Disabled' }}</AlertTitle>
+                <AlertTitle>{{ is2FAActive ? 'Enabled' : 'Disabled' }}</AlertTitle>
                 <AlertDescription>
-                    {{ enabled 
+                    {{ is2FAActive 
                         ? 'Two-factor authentication is active on your account.' 
-                        : "When you enable two-factor authentication, you will be prompted for a secure random token during login. The token can be retrieved from your phone's authenticator app." }}
+                        : "When you enable two-factor authentication, you will be prompted for a secure random token during login." }}
                 </AlertDescription>
             </Alert>
 
             <div class="space-y-4">
-                <div v-if="!enabled">
+                <div v-if="!is2FAActive">
                     <Button @click="enableTwoFactor" :disabled="loading" class="gap-2">
                         <Smartphone class="h-4 w-4" />
-                        Continue Setup
+                        Enable Two-Factor Authentication
                     </Button>
                 </div>
                 
@@ -189,7 +203,7 @@ const setInputRef = (el: any, index: number) => {
                             </Button>
                         </div>
                         <p class="text-sm text-muted-foreground">
-                            Store these codes in a secure place. They can recover access if you lose your device.
+                            Store these codes securely. They can recover access if you lose your device.
                         </p>
                         <div class="grid gap-2 grid-cols-2 bg-muted p-4 rounded-md font-mono text-xs">
                             <div v-for="c in recoveryCodes" :key="c">{{ c }}</div>
@@ -203,7 +217,7 @@ const setInputRef = (el: any, index: number) => {
         <Teleport to="body">
             <div v-if="step === 'qr-code'" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
                 <div class="relative w-full max-w-md mx-4 bg-background rounded-2xl shadow-2xl border">
-                    <button @click="closeModal" class="absolute right-4 top-4 p-1 rounded-full hover:bg-muted transition-colors">
+                    <button @click="cancelSetup" class="absolute right-4 top-4 p-1 rounded-full hover:bg-muted transition-colors">
                         <X class="h-5 w-5 text-muted-foreground" />
                     </button>
                     <div class="p-8 text-center">
@@ -212,7 +226,7 @@ const setInputRef = (el: any, index: number) => {
                         </div>
                         <h2 class="text-xl font-semibold mb-2">Enable Two-Factor Authentication</h2>
                         <p class="text-sm text-muted-foreground mb-6">
-                            To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app.
+                            Scan the QR code with your authenticator app, then click Continue.
                         </p>
                         
                         <div v-if="qrCode" class="p-4 bg-white rounded-lg border inline-block mb-6">
@@ -228,7 +242,7 @@ const setInputRef = (el: any, index: number) => {
                                 <span class="w-full border-t" />
                             </div>
                             <div class="relative flex justify-center text-xs uppercase">
-                                <span class="bg-background px-2 text-muted-foreground">or, enter the code manually</span>
+                                <span class="bg-background px-2 text-muted-foreground">or, enter manually</span>
                             </div>
                         </div>
                         
@@ -247,7 +261,7 @@ const setInputRef = (el: any, index: number) => {
         <Teleport to="body">
             <div v-if="step === 'verify-code'" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
                 <div class="relative w-full max-w-md mx-4 bg-background rounded-2xl shadow-2xl border">
-                    <button @click="closeModal" class="absolute right-4 top-4 p-1 rounded-full hover:bg-muted transition-colors">
+                    <button @click="cancelSetup" class="absolute right-4 top-4 p-1 rounded-full hover:bg-muted transition-colors">
                         <X class="h-5 w-5 text-muted-foreground" />
                     </button>
                     <div class="p-8 text-center">
@@ -294,7 +308,7 @@ const setInputRef = (el: any, index: number) => {
         <Teleport to="body">
             <div v-if="step === 'recovery-codes'" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
                 <div class="relative w-full max-w-md mx-4 bg-background rounded-2xl shadow-2xl border">
-                    <button @click="closeModal" class="absolute right-4 top-4 p-1 rounded-full hover:bg-muted transition-colors">
+                    <button @click="finishSetup" class="absolute right-4 top-4 p-1 rounded-full hover:bg-muted transition-colors">
                         <X class="h-5 w-5 text-muted-foreground" />
                     </button>
                     <div class="p-8 text-center">
@@ -303,7 +317,7 @@ const setInputRef = (el: any, index: number) => {
                         </div>
                         <h2 class="text-xl font-semibold mb-2">Save Your Recovery Codes</h2>
                         <p class="text-sm text-muted-foreground mb-6">
-                            Two-factor authentication is now enabled. Store these recovery codes securely - they can be used to access your account if you lose your device.
+                            Two-factor authentication is now enabled! Store these codes securely.
                         </p>
                         
                         <div class="grid gap-2 grid-cols-2 bg-muted p-4 rounded-lg mb-6 text-left">
@@ -315,7 +329,7 @@ const setInputRef = (el: any, index: number) => {
                                 <Copy class="h-4 w-4" />
                                 Copy All
                             </Button>
-                            <Button @click="closeModal" class="flex-1">
+                            <Button @click="finishSetup" class="flex-1">
                                 Done
                             </Button>
                         </div>

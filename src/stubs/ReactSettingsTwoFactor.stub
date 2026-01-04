@@ -3,15 +3,19 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { ShieldCheck, ShieldAlert, KeyRound, RefreshCw, Copy, X, Smartphone } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import axios from 'axios';
 import { router } from '@inertiajs/react';
 
 type Step = 'idle' | 'qr-code' | 'verify-code' | 'recovery-codes';
 
-export default function SettingsTwoFactor({ enabled }: { enabled: boolean }) {
+interface Props {
+    enabled: boolean;
+    confirmed: boolean;
+}
+
+export default function SettingsTwoFactor({ enabled, confirmed }: Props) {
     const [step, setStep] = useState<Step>('idle');
     const [qrCode, setQrCode] = useState<string | null>(null);
     const [secretKey, setSecretKey] = useState<string>('');
@@ -21,6 +25,8 @@ export default function SettingsTwoFactor({ enabled }: { enabled: boolean }) {
     const [code, setCode] = useState(['', '', '', '', '', '']);
     const [showRecoveryCodes, setShowRecoveryCodes] = useState(false);
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+    const is2FAActive = enabled && confirmed;
 
     const enableTwoFactor = async () => {
         setLoading(true);
@@ -54,12 +60,28 @@ export default function SettingsTwoFactor({ enabled }: { enabled: boolean }) {
             setRecoveryCodes(res.data);
             setStep('recovery-codes');
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Invalid authentication code');
+            setError(err.response?.data?.message || 'Invalid authentication code. Please try again.');
             setCode(['', '', '', '', '', '']);
             inputRefs.current[0]?.focus();
         } finally {
             setLoading(false);
         }
+    };
+
+    const cancelSetup = async () => {
+        // If user cancels before confirming, disable 2FA
+        if (enabled && !confirmed) {
+            try {
+                await axios.delete('/user/two-factor-authentication');
+            } catch (e) {
+                // Ignore errors when canceling
+            }
+        }
+        setStep('idle');
+        setCode(['', '', '', '', '', '']);
+        setError(null);
+        setQrCode(null);
+        router.reload();
     };
 
     const disableTwoFactor = async () => {
@@ -116,17 +138,15 @@ export default function SettingsTwoFactor({ enabled }: { enabled: boolean }) {
         navigator.clipboard.writeText(text);
     };
 
-    const closeModal = () => {
+    const finishSetup = () => {
         setStep('idle');
-        setCode(['', '', '', '', '', '']);
-        setError(null);
         router.reload();
     };
 
     const Modal = ({ children, title, icon: Icon }: { children: React.ReactNode; title: string; icon?: any }) => (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <div className="relative w-full max-w-md mx-4 bg-background rounded-2xl shadow-2xl border">
-                <button onClick={closeModal} className="absolute right-4 top-4 p-1 rounded-full hover:bg-muted transition-colors">
+                <button onClick={cancelSetup} className="absolute right-4 top-4 p-1 rounded-full hover:bg-muted transition-colors">
                     <X className="h-5 w-5 text-muted-foreground" />
                 </button>
                 <div className="p-8 text-center">
@@ -153,21 +173,21 @@ export default function SettingsTwoFactor({ enabled }: { enabled: boolean }) {
                 </div>
                 <Separator />
                 
-                <Alert variant={enabled ? "default" : "destructive"} className={enabled ? "border-green-500 bg-green-50 dark:bg-green-950/30" : ""}>
-                    {enabled ? <ShieldCheck className="h-4 w-4 text-green-600" /> : <ShieldAlert className="h-4 w-4" />}
-                    <AlertTitle>{enabled ? 'Enabled' : 'Disabled'}</AlertTitle>
+                <Alert variant={is2FAActive ? "default" : "destructive"} className={is2FAActive ? "border-green-500 bg-green-50 dark:bg-green-950/30" : ""}>
+                    {is2FAActive ? <ShieldCheck className="h-4 w-4 text-green-600" /> : <ShieldAlert className="h-4 w-4" />}
+                    <AlertTitle>{is2FAActive ? 'Enabled' : 'Disabled'}</AlertTitle>
                     <AlertDescription>
-                        {enabled 
+                        {is2FAActive 
                             ? 'Two-factor authentication is active on your account.' 
                             : 'When you enable two-factor authentication, you will be prompted for a secure random token during login. The token can be retrieved from your phone\'s authenticator app.'}
                     </AlertDescription>
                 </Alert>
 
                 <div className="space-y-4">
-                    {!enabled ? (
+                    {!is2FAActive ? (
                         <Button onClick={enableTwoFactor} disabled={loading} className="gap-2">
                             <Smartphone className="h-4 w-4" />
-                            Continue Setup
+                            Enable Two-Factor Authentication
                         </Button>
                     ) : (
                         <div className="space-y-4">
@@ -209,7 +229,7 @@ export default function SettingsTwoFactor({ enabled }: { enabled: boolean }) {
             {step === 'qr-code' && (
                 <Modal title="Enable Two-Factor Authentication" icon={Smartphone}>
                     <p className="text-sm text-muted-foreground mb-6">
-                        To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app.
+                        Scan the QR code with your authenticator app, then click Continue to verify.
                     </p>
                     
                     {qrCode && (
@@ -281,7 +301,7 @@ export default function SettingsTwoFactor({ enabled }: { enabled: boolean }) {
             {step === 'recovery-codes' && (
                 <Modal title="Save Your Recovery Codes" icon={KeyRound}>
                     <p className="text-sm text-muted-foreground mb-6">
-                        Two-factor authentication is now enabled. Store these recovery codes securely - they can be used to access your account if you lose your device.
+                        Two-factor authentication is now enabled! Store these recovery codes securely.
                     </p>
                     
                     <div className="grid gap-2 grid-cols-2 bg-muted p-4 rounded-lg mb-6 text-left">
@@ -295,7 +315,7 @@ export default function SettingsTwoFactor({ enabled }: { enabled: boolean }) {
                             <Copy className="h-4 w-4" />
                             Copy All
                         </Button>
-                        <Button onClick={closeModal} className="flex-1">
+                        <Button onClick={finishSetup} className="flex-1">
                             Done
                         </Button>
                     </div>

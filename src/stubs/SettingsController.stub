@@ -54,8 +54,10 @@ class SettingsController extends {{base_controller}}
 
     public function editTwoFactor(\Illuminate\Http\Request $request)
     {
+        $user = $request->user();
         return $this->render('Settings/TwoFactor', [
-            'enabled' => ! is_null($request->user()->two_factor_secret),
+            'enabled' => ! is_null($user->two_factor_secret),
+            'confirmed' => ! is_null($user->two_factor_confirmed_at),
         ]);
     }
 
