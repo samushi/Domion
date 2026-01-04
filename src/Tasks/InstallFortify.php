@@ -7,7 +7,6 @@ namespace Samushi\Domion\Tasks;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Process\Process;
-
 use Samushi\Domion\Support\PathHelper;
 
 class InstallFortify
@@ -22,15 +21,18 @@ class InstallFortify
             ->setTimeout(300)
             ->run();
 
-        // 2. Register the provider
+        // Register the provider and copy stubs
         $this->copyServiceProvider();
         $this->registerProvider();
-
-        // 3. Setup configuration
         $this->configureConfig();
         $this->updateUserModel();
-        
-        $this->command->info('✓ Fortify files prepared (migrations will run at the end).');
+
+        $this->command->info('✓ Fortify prepared.');
+    }
+
+    protected function getAppPath(): string
+    {
+        return PathHelper::getAppPath();
     }
 
     protected function copyServiceProvider(): void
@@ -45,63 +47,31 @@ class InstallFortify
         }
     }
 
-    protected function configureConfig(): void
-    {
-        $config = base_path('config/fortify.php');
-        if (File::exists($config)) {
-            $content = File::get($config);
-            $content = str_replace("Features::registration(),", "// Features::registration(),", $content);
-            $content = str_replace("Features::resetPasswords(),", "// Features::resetPasswords(),", $content);
-            $content = str_replace("// Features::emailVerification(),", "// Features::emailVerification(),", $content);
-            $content = str_replace("Features::updateProfileInformation(),", "// Features::updateProfileInformation(),", $content);
-            $content = str_replace("Features::updatePasswords(),", "// Features::updatePasswords(),", $content);
-            $content = str_replace("// Features::twoFactorAuthentication([", "Features::twoFactorAuthentication([", $content);
-            File::put($config, $content);
-        }
-    }
-
     protected function registerProvider(): void
     {
         $providersFile = base_path('bootstrap/providers.php');
-
         if (File::exists($providersFile)) {
             $content = File::get($providersFile);
-            
-            // Cleanup any existing flawed variants
-            $content = preg_replace('/\\s*App\\\\Providers\\\\FortifyServiceProvider::class,?/', '', $content);
-            $content = str_replace('App\Providers\FortifyServiceProvider::class,', '', $content);
-            
-            // Add right at the beginning of the return array
-            $content = preg_replace(
-                '/(return\s*\[)/',
-                "$1\n    App\\Providers\\FortifyServiceProvider::class,",
-                $content
-            );
-            
-            File::put($providersFile, $content);
-        }
-
-        // Also check config/app.php
-        $appConfig = base_path('config/app.php');
-        if (File::exists($appConfig)) {
-            $content = File::get($appConfig);
-            if (str_contains($content, "'providers' => [") && !str_contains($content, 'FortifyServiceProvider')) {
-                $content = str_replace(
-                    "'providers' => [",
-                    "'providers' => [\n        App\\Providers\\FortifyServiceProvider::class,",
-                    $content
-                );
-                File::put($appConfig, $content);
+            if (!str_contains($content, 'FortifyServiceProvider')) {
+                $content = str_replace('];', "    App\\Providers\\FortifyServiceProvider::class,\n];", $content);
+                File::put($providersFile, $content);
             }
         }
+    }
 
-        $this->command->call('optimize:clear');
+    protected function configureConfig(): void
+    {
+        $configPath = base_path('config/fortify.php');
+        if (File::exists($configPath)) {
+            $content = File::get($configPath);
+            $content = str_replace("'features' => [", "'features' => [\n        Features::twoFactorAuthentication([\n            'confirmPassword' => true,\n        ]),", $content);
+            File::put($configPath, $content);
+        }
     }
 
     protected function updateUserModel(): void
     {
         $appPath = PathHelper::getAppPath();
-        
         $paths = [
             base_path($appPath . '/Domain/User/Models/User.php'),
             base_path('app/Domain/User/Models/User.php'),
@@ -111,31 +81,11 @@ class InstallFortify
         foreach ($paths as $userModel) {
             if (File::exists($userModel)) {
                 $content = File::get($userModel);
-                
-                // 1. Check if use statement already exists
-                if (!str_contains($content, 'use Laravel\\Fortify\\TwoFactorAuthenticatable;')) {
-                    $content = preg_replace(
-                        '/(namespace\s+[^;]+;)/',
-                        "$1\n\nuse Laravel\\Fortify\\TwoFactorAuthenticatable;",
-                        $content
-                    );
+                if (!str_contains($content, 'TwoFactorAuthenticatable')) {
+                    $content = preg_replace('/(namespace\s+[^;]+;)/', "$1\n\nuse Laravel\\Fortify\\TwoFactorAuthenticatable;", $content);
+                    $content = preg_replace('/use\s+([^;]+)Notifiable;/', "use $1Notifiable, TwoFactorAuthenticatable;", $content);
+                    File::put($userModel, $content);
                 }
-
-                // 2. Check if trait is already used in the class
-                // We search for 'use ' followed by traits ending with ';'
-                if (!preg_match('/use\s+[^;]*TwoFactorAuthenticatable[^;]*;/', $content)) {
-                    // Try to append to existing use inside class
-                    if (preg_match('/use\s+([^;]+)Notifiable;/', $content)) {
-                        $content = preg_replace(
-                            '/use\s+([^;]+)Notifiable;/',
-                            "use $1Notifiable, TwoFactorAuthenticatable;",
-                            $content
-                        );
-                    }
-                }
-
-                File::put($userModel, $content);
-                $this->command->info("✓ User model updated at {$userModel}");
             }
         }
     }

@@ -127,9 +127,6 @@ TS;
         $appPath = PathHelper::getAppPath();
         $frontendPath = "{$appPath}/Support/Frontend";
 
-        // Create the frontend root if it doesn't exist
-        File::ensureDirectoryExists(base_path($frontendPath));
-
         $componentsJson = [
             '$schema' => 'https://ui.shadcn.com/schema.json',
             'style' => 'new-york',
@@ -143,11 +140,11 @@ TS;
                 'prefix' => '',
             ],
             'aliases' => [
-                'utils' => "@/lib/utils",
-                'components' => "@/components",
-                'ui' => "@/components/ui",
-                'hooks' => "@/hooks",
-                'lib' => "@/lib"
+                'components' => '@/components',
+                'utils' => '@/lib/utils',
+                'ui' => '@/components/ui',
+                'lib' => '@/lib',
+                'hooks' => '@/hooks',
             ],
         ];
 
@@ -185,19 +182,21 @@ TS;
             $content = "import vue from '@vitejs/plugin-vue';\n" . $content;
         }
 
-        // 2. Update JS entry point
-        $content = preg_replace(
-            "/'resources\/js\/app\.(js|jsx|ts|tsx|vue)'/",
-            "'app/Support/Frontend/app.$1'",
-            $content
-        );
+        $appPath = PathHelper::getAppPath();
+        $frontendPath = "{$appPath}/Support/Frontend";
 
-        // 2b. Update CSS entry point (resources/css/app.css -> app/Support/Frontend/app.css)
-        $content = preg_replace(
-            "/'resources\/css\/app\.css'/",
-            "'app/Support/Frontend/app.css'",
-            $content
-        );
+        // 2. Update entry points
+        $content = preg_replace("/'resources\/js\/app\.(js|jsx|ts|tsx|vue)'/", "'{$frontendPath}/app.$1'", $content);
+        $content = preg_replace("/'resources\/css\/app\.css'/", "'{$frontendPath}/app.css'", $content);
+
+        // 3. Add Aliases
+        if (!str_contains($content, 'resolve: {')) {
+             $content = str_replace(
+                 'plugins: [',
+                 "resolve: {\n        alias: {\n            'App': path.resolve(__dirname, '{$appPath}'),\n            'Domain': path.resolve(__dirname, '{$appPath}/Domain'),\n            '@': path.resolve(__dirname, '{$frontendPath}'),\n        },\n    },\n    plugins: [",
+                 $content
+             );
+        }
 
         // 3. Add plugins to defineConfig
         if ($mode === 'react' && !str_contains($content, "react()")) {
