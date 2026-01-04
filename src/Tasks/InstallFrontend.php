@@ -219,6 +219,27 @@ TS;
             File::put($utilsPath, "import { type ClassValue, clsx } from \"clsx\"\nimport { twMerge } from \"tailwind-merge\"\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs))\n}\n");
         }
 
+        // Create bootstrap.ts for axios setup
+        $bootstrapPath = base_path("{$frontendPath}/bootstrap.ts");
+        if (!File::exists($bootstrapPath)) {
+            $bootstrapContent = <<<'TS'
+import axios from 'axios';
+
+declare global {
+    interface Window {
+        axios: typeof axios;
+    }
+}
+
+window.axios = axios;
+window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+window.axios.defaults.withCredentials = true;
+window.axios.defaults.withXSRFToken = true;
+
+TS;
+            File::put($bootstrapPath, $bootstrapContent);
+        }
+
         // Create components.json
         $componentsJson = [
             '$schema' => 'https://ui.shadcn.com/schema.json',
