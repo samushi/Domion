@@ -11,7 +11,6 @@ use Samushi\Domion\Support\Traits\HasLoginActionResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Auth\Events\Registered;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
-use Illuminate\Support\Facades\Validator;
 
 class RegisterAction extends ActionFactory implements CreatesNewUsers
 {
@@ -23,42 +22,28 @@ class RegisterAction extends ActionFactory implements CreatesNewUsers
     }
 
     /**
-     * Create a new mandated user.
-     * (Fortify entry point)
+     * Bridge method for Laravel Fortify.
+     * Fortify handles validation via its own internal logic or a separate request.
      */
     public function create(array $input): mixed
     {
-        Validator::make($input, [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ])->validate();
-
-        $dto = new RegisterDto(
-            name: $input['name'],
-            email: $input['email'],
-            password: $input['password']
-        );
-
-        return $this->handle($dto);
+        return $this->handle(RegisterDto::fromArray($input));
     }
 
     /**
-     * Handle the registration.
+     * Handle the registration logic.
+     * Always accepts a DTO.
      */
     protected function handle(RegisterDto $dto): mixed
     {
-        // Create user
         $user = $this->userRepository->create([
             'name' => $dto->name,
             'email' => $dto->email,
             'password' => Hash::make($dto->password),
         ]);
 
-        // Fire registered event
         event(new Registered($user));
 
-        // Login the user (for session-based auth)
         auth()->login($user);
 
         return $user;

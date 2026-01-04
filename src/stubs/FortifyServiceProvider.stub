@@ -25,14 +25,12 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Bind the actions created by the package
         Fortify::createUsersUsing(\App\Domain\Auth\Actions\RegisterAction::class);
         Fortify::updateUserProfileInformationUsing(\App\Domain\Settings\Actions\UpdateUserProfileAction::class);
         Fortify::updateUserPasswordsUsing(\App\Domain\Settings\Actions\UpdateUserPasswordAction::class);
 
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
-
             return Limit::perMinute(5)->by($throttleKey);
         });
 
@@ -40,21 +38,11 @@ class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
 
-        // Register Inertia Views
-        Fortify::loginView(function () {
-            return Inertia::render('auth::Login');
-        });
-
-        Fortify::registerView(function () {
-            return Inertia::render('auth::Register');
-        });
-
-        Fortify::confirmPasswordView(function () {
-            return Inertia::render('auth::ConfirmPassword');
-        });
-
-        Fortify::twoFactorChallengeView(function () {
-            return Inertia::render('auth::TwoFactorChallenge');
-        });
+        // Register Inertia Views for Fortify
+        // This binds the interfaces to simple Inertia responses
+        Fortify::loginView(fn() => Inertia::render('auth::Login'));
+        Fortify::registerView(fn() => Inertia::render('auth::Register'));
+        Fortify::confirmPasswordView(fn() => Inertia::render('auth::ConfirmPassword'));
+        Fortify::twoFactorChallengeView(fn() => Inertia::render('auth::TwoFactorChallenge'));
     }
 }

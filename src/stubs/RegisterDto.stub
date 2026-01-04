@@ -12,6 +12,17 @@ class RegisterDto extends DataObjects
         public readonly string $name,
         public readonly string $email,
         public readonly string $password,
+        public readonly ?string $password_confirmation = null,
     ) {
+    }
+
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            name: $data['name'],
+            email: $data['email'],
+            password: $data['password'],
+            password_confirmation: $data['password_confirmation'] ?? null,
+        );
     }
 }

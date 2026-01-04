@@ -33,7 +33,9 @@ class InstallFortify
 
     protected function copyServiceProvider(): void
     {
-        $targetPath = base_path('app/Providers/FortifyServiceProvider.php');
+        // Detect if the project uses 'App' or 'app'
+        $baseAppPath = File::exists(base_path('App')) ? 'App' : 'app';
+        $targetPath = base_path($baseAppPath . '/Providers/FortifyServiceProvider.php');
         $stubPath = __DIR__ . '/../stubs/FortifyServiceProvider.stub';
         
         if (File::exists($stubPath)) {
