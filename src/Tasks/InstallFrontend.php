@@ -160,16 +160,14 @@ TS;
         $coreComponents = ['button', 'card', 'input', 'label', 'badge'];
         $formComponents = ['checkbox', 'radio-group', 'alert', 'alert-dialog'];
         $uiComponents = ['avatar', 'dropdown-menu', 'tooltip', 'separator', 'sheet', 'collapsible'];
+        $layoutComponents = ['sidebar', 'breadcrumb', 'sonner'];
         
         $this->command->info('Adding Shadcn UI components...');
         
-        foreach ([$coreComponents, $formComponents, $uiComponents] as $batch) {
+        foreach ([$coreComponents, $formComponents, $uiComponents, $layoutComponents] as $batch) {
             $components = implode(' ', $batch);
             exec("npx -y shadcn@latest add {$components} --yes --overwrite 2>&1", $output, $returnVar);
         }
-        
-        // Add sonner (toast) separately as it sometimes needs special handling
-        exec('npx -y shadcn@latest add sonner --yes --overwrite 2>&1', $output, $returnVar);
     }
 
     /**
@@ -188,8 +186,8 @@ TS;
         $this->command->line('  → Initializing Shadcn...');
         passthru('npx -y shadcn@latest init --yes --force 2>&1');
 
-        // Add components with visible progress
-        $components = ['button', 'card', 'input', 'label', 'badge', 'checkbox', 'alert', 'avatar', 'dropdown-menu', 'separator', 'sonner'];
+        // Add components with visible progress (including sidebar for layout)
+        $components = ['button', 'card', 'input', 'label', 'badge', 'checkbox', 'alert', 'avatar', 'dropdown-menu', 'separator', 'sonner', 'sidebar', 'sheet', 'tooltip', 'breadcrumb', 'collapsible'];
         
         $this->command->line('  → Installing components: ' . implode(', ', $components));
         passthru('npx -y shadcn@latest add ' . implode(' ', $components) . ' --yes --overwrite 2>&1');
