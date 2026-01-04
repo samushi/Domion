@@ -127,24 +127,27 @@ TS;
         $appPath = PathHelper::getAppPath();
         $frontendPath = "{$appPath}/Support/Frontend";
 
+        // Create the frontend root if it doesn't exist
+        File::ensureDirectoryExists(base_path($frontendPath));
+
         $componentsJson = [
             '$schema' => 'https://ui.shadcn.com/schema.json',
             'style' => 'new-york',
             'rsc' => false,
             'tsx' => true,
             'tailwind' => [
-                'config' => '',
+                'config' => 'tailwind.config.js',
                 'css' => "{$frontendPath}/app.css",
                 'baseColor' => 'slate',
                 'cssVariables' => true,
                 'prefix' => '',
             ],
             'aliases' => [
-                'components' => "App/Support/Frontend/components",
-                'utils' => "App/Support/Frontend/lib/utils",
-                'ui' => "App/Support/Frontend/components/ui",
-                'lib' => "App/Support/Frontend/lib",
-                'hooks' => "App/Support/Frontend/hooks",
+                'utils' => "@/lib/utils",
+                'components' => "@/components",
+                'ui' => "@/components/ui",
+                'hooks' => "@/hooks",
+                'lib' => "@/lib"
             ],
         ];
 

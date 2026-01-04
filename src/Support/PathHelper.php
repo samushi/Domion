@@ -22,14 +22,15 @@ class PathHelper
             
             foreach ($psr4 as $namespace => $path) {
                 if ($namespace === 'App\\') {
-                    $relativePath = is_array($path) ? $path[0] : $path;
+                    $pathStr = is_array($path) ? $path[0] : $path;
                     
-                    // CRITICAL: Strip any absolute path prefix if it exists
-                    // We only want the part relative to the project root
-                    $relativePath = str_replace(base_path() . '/', '', $relativePath);
-                    $relativePath = ltrim($relativePath, '/');
+                    // Remove base path if it's absolute
+                    $pathStr = str_replace(base_path(), '', $pathStr);
                     
-                    return rtrim($relativePath, '/');
+                    // Clean leading/trailing slashes
+                    $pathStr = trim($pathStr, '/');
+                    
+                    return $pathStr ?: 'app';
                 }
             }
         }
@@ -43,11 +44,14 @@ class PathHelper
     public static function resolveAppPath(string $subPath = ''): string
     {
         $appPath = self::getAppPath();
-        return base_path($appPath . ($subPath ? '/' . ltrim($subPath, '/') : ''));
+        $subPath = ltrim($subPath, '/');
+        
+        return base_path($appPath . ($subPath ? '/' . $subPath : ''));
     }
 
     /**
-     * Get the root folder of the app (usually 'app')
+     * Get the root folder where our DDD structure lives.
+     * Usually 'app'.
      */
     public static function getAppRoot(): string
     {
