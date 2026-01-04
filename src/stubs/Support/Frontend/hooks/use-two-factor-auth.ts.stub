@@ -1,0 +1,95 @@
+import { router } from '@inertiajs/react';
+import { useCallback, useState } from 'react';
+import { route } from 'ziggy-js';
+
+interface TwoFactorState {
+    enabled: boolean;
+    qrCode: string | null;
+    recoveryCodes: string[];
+    confirming: boolean;
+}
+
+export function useTwoFactorAuth(initialEnabled = false) {
+    const [state, setState] = useState<TwoFactorState>({
+        enabled: initialEnabled,
+        qrCode: null,
+        recoveryCodes: [],
+        confirming: false,
+    });
+    const [processing, setProcessing] = useState(false);
+
+    const enable = useCallback(async () => {
+        setProcessing(true);
+        router.post(route('two-factor.enable'), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setState(prev => ({ ...prev, confirming: true }));
+                fetchQrCode();
+            },
+            onFinish: () => setProcessing(false),
+        });
+    }, []);
+
+    const fetchQrCode = useCallback(() => {
+        fetch(route('two-factor.qr-code'))
+            .then(res => res.json())
+            .then(data => {
+                setState(prev => ({ ...prev, qrCode: data.svg }));
+            });
+    }, []);
+
+    const confirm = useCallback((code: string) => {
+        setProcessing(true);
+        router.post(route('two-factor.confirm'), { code }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setState(prev => ({ ...prev, enabled: true, confirming: false }));
+                fetchRecoveryCodes();
+            },
+            onFinish: () => setProcessing(false),
+        });
+    }, []);
+
+    const fetchRecoveryCodes = useCallback(() => {
+        fetch(route('two-factor.recovery-codes'))
+            .then(res => res.json())
+            .then(data => {
+                setState(prev => ({ ...prev, recoveryCodes: data }));
+            });
+    }, []);
+
+    const regenerateRecoveryCodes = useCallback(() => {
+        setProcessing(true);
+        router.post(route('two-factor.recovery-codes'), {}, {
+            preserveScroll: true,
+            onSuccess: () => fetchRecoveryCodes(),
+            onFinish: () => setProcessing(false),
+        });
+    }, [fetchRecoveryCodes]);
+
+    const disable = useCallback(() => {
+        setProcessing(true);
+        router.delete(route('two-factor.disable'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setState({
+                    enabled: false,
+                    qrCode: null,
+                    recoveryCodes: [],
+                    confirming: false,
+                });
+            },
+            onFinish: () => setProcessing(false),
+        });
+    }, []);
+
+    return {
+        ...state,
+        processing,
+        enable,
+        confirm,
+        disable,
+        regenerateRecoveryCodes,
+        fetchRecoveryCodes,
+    };
+}

@@ -1,0 +1,18 @@
+<script setup lang="ts">
+import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
+import AppLogo from '@/components/AppLogo.vue';
+import { Link } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
+</script>
+
+<template>
+    <SidebarMenu>
+        <SidebarMenuItem>
+            <SidebarMenuButton size="lg" as-child>
+                <Link :href="route('dashboard')">
+                    <AppLogo />
+                </Link>
+            </SidebarMenuButton>
+        </SidebarMenuItem>
+    </SidebarMenu>
+</template>

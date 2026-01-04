@@ -6,8 +6,6 @@ namespace Samushi\Domion\Tasks;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
-use Symfony\Component\Process\Process;
-use Samushi\Domion\Tasks\InstallFortify;
 
 class ConfigureArchitecture
 {
@@ -144,6 +142,15 @@ class ConfigureArchitecture
                 File::put($target, File::get($stubPath));
             }
         }
+
+        // Scaffold Global Components
+        $this->scaffoldGlobalComponents($mode);
+
+        // Scaffold Hooks (React) or Composables (Vue)
+        $this->scaffoldHooksOrComposables($mode);
+
+        // Scaffold Types
+        $this->scaffoldTypes($mode);
         
         // Clean up the old resources/js if it exists to avoid confusion
         // But maybe the user wants to keep it? The user said "pjese e Support... jo ne resource"
@@ -420,6 +427,110 @@ class ConfigureArchitecture
             $content = File::get($path);
             $content = str_replace('App\\Models\\User::class', 'App\\Domain\\User\\Models\\User::class', $content);
             File::put($path, $content);
+        }
+    }
+
+    protected function scaffoldGlobalComponents(string $mode): void
+    {
+        if (!in_array($mode, ['react', 'vue'])) {
+            return;
+        }
+
+        $ext = $mode === 'react' ? 'tsx' : 'vue';
+        $folder = $mode === 'react' ? 'react' : 'vue';
+        
+        $components = [
+            'AppContent', 'AppHeader', 'AppLogo', 'AppLogoIcon', 'AppShell',
+            'AppSidebarHeader', 'AlertError', 'Breadcrumbs', 'Heading', 
+            'HeadingSmall', 'InputError', 'NavMain', 'NavUser', 'NavFooter',
+            'TextLink', 'UserInfo'
+        ];
+
+        $stubDir = __DIR__ . "/../stubs/Support/Frontend/components/{$folder}";
+        
+        foreach ($components as $component) {
+            $stubPath = "{$stubDir}/{$component}.{$ext}.stub";
+            if (File::exists($stubPath)) {
+                $targetName = $mode === 'react' 
+                    ? strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $component)) 
+                    : $component;
+                $target = base_path("app/Support/Frontend/components/{$targetName}.{$ext}");
+                File::ensureDirectoryExists(dirname($target));
+                File::put($target, File::get($stubPath));
+            }
+        }
+    }
+
+    protected function scaffoldHooksOrComposables(string $mode): void
+    {
+        if (!in_array($mode, ['react', 'vue'])) {
+            return;
+        }
+
+        if ($mode === 'react') {
+            $hooks = [
+                'use-appearance.tsx',
+                'use-mobile.tsx',
+                'use-initials.tsx',
+                'use-clipboard.ts',
+                'use-mobile-navigation.ts',
+                'use-two-factor-auth.ts'
+            ];
+
+            $stubDir = __DIR__ . '/../stubs/Support/Frontend/hooks';
+            $targetDir = base_path('app/Support/Frontend/hooks');
+            File::ensureDirectoryExists($targetDir);
+
+            foreach ($hooks as $hook) {
+                $stubPath = "{$stubDir}/{$hook}.stub";
+                if (File::exists($stubPath)) {
+                    File::put("{$targetDir}/{$hook}", File::get($stubPath));
+                }
+            }
+        } else {
+            $composables = [
+                'useAppearance.ts',
+                'useInitials.ts',
+                'useTwoFactorAuth.ts'
+            ];
+
+            $stubDir = __DIR__ . '/../stubs/Support/Frontend/composables';
+            $targetDir = base_path('app/Support/Frontend/composables');
+            File::ensureDirectoryExists($targetDir);
+
+            foreach ($composables as $composable) {
+                $stubPath = "{$stubDir}/{$composable}.stub";
+                if (File::exists($stubPath)) {
+                    File::put("{$targetDir}/{$composable}", File::get($stubPath));
+                }
+            }
+        }
+    }
+
+    protected function scaffoldTypes(string $mode): void
+    {
+        if (!in_array($mode, ['react', 'vue'])) {
+            return;
+        }
+
+        $stubDir = __DIR__ . '/../stubs/Support/Frontend/types';
+        $targetDir = base_path('app/Support/Frontend/types');
+        File::ensureDirectoryExists($targetDir);
+
+        $types = ['index.d.ts', 'vite-env.d.ts'];
+
+        foreach ($types as $type) {
+            $stubPath = "{$stubDir}/{$type}.stub";
+            if (File::exists($stubPath)) {
+                File::put("{$targetDir}/{$type}", File::get($stubPath));
+            }
+        }
+
+        $libStubPath = __DIR__ . '/../stubs/Support/Frontend/lib/utils.ts.stub';
+        $libTargetPath = base_path('app/Support/Frontend/lib/utils.ts');
+        if (File::exists($libStubPath)) {
+            File::ensureDirectoryExists(dirname($libTargetPath));
+            File::put($libTargetPath, File::get($libStubPath));
         }
     }
 }

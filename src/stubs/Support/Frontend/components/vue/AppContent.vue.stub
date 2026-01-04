@@ -1,0 +1,17 @@
+<script setup lang="ts">
+import { cn } from '@/lib/utils';
+
+interface Props {
+    variant?: 'header' | 'sidebar';
+}
+
+const props = withDefaults(defineProps<Props>(), {
+    variant: 'header'
+});
+</script>
+
+<template>
+    <main :class="cn('mx-auto flex h-full w-full max-w-7xl flex-1 flex-col gap-4 p-4')">
+        <slot />
+    </main>
+</template>

@@ -1,0 +1,13 @@
+<script setup lang="ts">
+import AppLogoIcon from '@/components/AppLogoIcon.vue';
+</script>
+
+<template>
+    <div class="flex items-center gap-2">
+        <AppLogoIcon />
+        <div class="grid flex-1 text-left text-sm leading-tight">
+            <span class="truncate font-semibold">Domion</span>
+            <span class="truncate text-xs text-muted-foreground">Starter Kit</span>
+        </div>
+    </div>
+</template>

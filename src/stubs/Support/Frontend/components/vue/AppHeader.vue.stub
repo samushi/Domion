@@ -1,0 +1,24 @@
+<script setup lang="ts">
+import Breadcrumbs from '@/components/Breadcrumbs.vue';
+import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Separator } from '@/components/ui/separator';
+import { type BreadcrumbItem } from '@/types';
+
+interface Props {
+    breadcrumbs?: BreadcrumbItem[];
+}
+
+const props = withDefaults(defineProps<Props>(), {
+    breadcrumbs: () => []
+});
+</script>
+
+<template>
+    <header class="flex h-16 shrink-0 items-center gap-2 border-b px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+        <div class="flex items-center gap-2">
+            <SidebarTrigger class="-ml-1" />
+            <Separator orientation="vertical" class="mr-2 h-4" />
+            <Breadcrumbs :breadcrumbs="breadcrumbs" />
+        </div>
+    </header>
+</template>

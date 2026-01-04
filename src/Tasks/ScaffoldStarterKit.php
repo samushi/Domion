@@ -143,7 +143,7 @@ class ScaffoldStarterKit
             return;
         }
 
-        $pages = ['Login', 'Register', 'ForgotPassword', 'ResetPassword'];
+        $pages = ['Login', 'Register', 'ForgotPassword', 'ResetPassword', 'VerifyEmail', 'ConfirmPassword', 'TwoFactorChallenge'];
 
         foreach ($pages as $page) {
             $stub = ucfirst($mode) . $page;

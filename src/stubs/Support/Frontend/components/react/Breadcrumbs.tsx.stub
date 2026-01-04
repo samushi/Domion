@@ -1,0 +1,38 @@
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import { type BreadcrumbItem as BreadcrumbItemType } from '@/types';
+import { Link } from '@inertiajs/react';
+import { Fragment } from 'react';
+
+interface BreadcrumbsProps {
+    breadcrumbs: BreadcrumbItemType[];
+}
+
+export function Breadcrumbs({ breadcrumbs }: BreadcrumbsProps) {
+    return (
+        <Breadcrumb>
+            <BreadcrumbList>
+                {breadcrumbs.map((item, index) => (
+                    <Fragment key={index}>
+                        {index > 0 && <BreadcrumbSeparator />}
+                        <BreadcrumbItem>
+                            {index === breadcrumbs.length - 1 ? (
+                                <BreadcrumbPage>{item.title}</BreadcrumbPage>
+                            ) : (
+                                <BreadcrumbLink asChild>
+                                    <Link href={item.href}>{item.title}</Link>
+                                </BreadcrumbLink>
+                            )}
+                        </BreadcrumbItem>
+                    </Fragment>
+                ))}
+            </BreadcrumbList>
+        </Breadcrumb>
+    );
+}

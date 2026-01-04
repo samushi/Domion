@@ -1,0 +1,36 @@
+<script setup lang="ts">
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import { type BreadcrumbItem as BreadcrumbItemType } from '@/types';
+import { Link } from '@inertiajs/vue3';
+
+interface Props {
+    breadcrumbs: BreadcrumbItemType[];
+}
+
+const props = defineProps<Props>();
+</script>
+
+<template>
+    <Breadcrumb>
+        <BreadcrumbList>
+            <template v-for="(item, index) in breadcrumbs" :key="index">
+                <BreadcrumbSeparator v-if="index > 0" />
+                <BreadcrumbItem>
+                    <BreadcrumbPage v-if="index === breadcrumbs.length - 1">
+                        {{ item.title }}
+                    </BreadcrumbPage>
+                    <BreadcrumbLink v-else as-child>
+                        <Link :href="item.href">{{ item.title }}</Link>
+                    </BreadcrumbLink>
+                </BreadcrumbItem>
+            </template>
+        </BreadcrumbList>
+    </Breadcrumb>
+</template>

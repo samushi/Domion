@@ -1,0 +1,90 @@
+import { router } from '@inertiajs/vue3';
+import { ref, reactive } from 'vue';
+import { route } from 'ziggy-js';
+
+interface TwoFactorState {
+    enabled: boolean;
+    qrCode: string | null;
+    recoveryCodes: string[];
+    confirming: boolean;
+}
+
+export function useTwoFactorAuth(initialEnabled = false) {
+    const state = reactive<TwoFactorState>({
+        enabled: initialEnabled,
+        qrCode: null,
+        recoveryCodes: [],
+        confirming: false,
+    });
+    const processing = ref(false);
+
+    const fetchQrCode = async () => {
+        const response = await fetch(route('two-factor.qr-code'));
+        const data = await response.json();
+        state.qrCode = data.svg;
+    };
+
+    const fetchRecoveryCodes = async () => {
+        const response = await fetch(route('two-factor.recovery-codes'));
+        const data = await response.json();
+        state.recoveryCodes = data;
+    };
+
+    const enable = () => {
+        processing.value = true;
+        router.post(route('two-factor.enable'), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                state.confirming = true;
+                fetchQrCode();
+            },
+            onFinish: () => { processing.value = false; },
+        });
+    };
+
+    const confirm = (code: string) => {
+        processing.value = true;
+        router.post(route('two-factor.confirm'), { code }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                state.enabled = true;
+                state.confirming = false;
+                fetchRecoveryCodes();
+            },
+            onFinish: () => { processing.value = false; },
+        });
+    };
+
+    const regenerateRecoveryCodes = () => {
+        processing.value = true;
+        router.post(route('two-factor.recovery-codes'), {}, {
+            preserveScroll: true,
+            onSuccess: () => fetchRecoveryCodes(),
+            onFinish: () => { processing.value = false; },
+        });
+    };
+
+    const disable = () => {
+        processing.value = true;
+        router.delete(route('two-factor.disable'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                state.enabled = false;
+                state.qrCode = null;
+                state.recoveryCodes = [];
+                state.confirming = false;
+            },
+            onFinish: () => { processing.value = false; },
+        });
+    };
+
+    return {
+        state,
+        processing,
+        enable,
+        confirm,
+        disable,
+        regenerateRecoveryCodes,
+        fetchRecoveryCodes,
+    };
+}

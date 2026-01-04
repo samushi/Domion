@@ -1,0 +1,43 @@
+import { ref, onMounted, onUnmounted, watch } from 'vue';
+
+export type Appearance = 'light' | 'dark' | 'system';
+
+const STORAGE_KEY = 'appearance';
+
+function getSystemTheme(): 'light' | 'dark' {
+    if (typeof window === 'undefined') return 'light';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(appearance: Appearance) {
+    const isDark = appearance === 'dark' || (appearance === 'system' && getSystemTheme() === 'dark');
+    document.documentElement.classList.toggle('dark', isDark);
+}
+
+export function useAppearance() {
+    const appearance = ref<Appearance>('system');
+
+    const setAppearance = (mode: Appearance) => {
+        appearance.value = mode;
+        localStorage.setItem(STORAGE_KEY, mode);
+        applyTheme(mode);
+    };
+
+    onMounted(() => {
+        const saved = localStorage.getItem(STORAGE_KEY) as Appearance | null;
+        const initial = saved || 'system';
+        appearance.value = initial;
+        applyTheme(initial);
+
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleChange = () => {
+            const current = localStorage.getItem(STORAGE_KEY) as Appearance | null;
+            applyTheme(current || 'system');
+        };
+
+        mediaQuery.addEventListener('change', handleChange);
+        onUnmounted(() => mediaQuery.removeEventListener('change', handleChange));
+    });
+
+    return { appearance, setAppearance };
+}
