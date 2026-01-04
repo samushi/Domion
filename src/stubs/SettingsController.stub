@@ -2,7 +2,7 @@
 
 namespace {{namespace}};
 
-use App\Support\Controllers\{{base_controller}} as Controller;
+use Samushi\Domion\Support\{{base_controller}};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
@@ -16,7 +16,7 @@ use App\Domain\Settings\Actions\DeleteUserAction;
 use App\Domain\Settings\Dto\UpdateProfileDto;
 use App\Domain\Settings\Dto\UpdatePasswordDto;
 
-class SettingsController extends Controller
+class SettingsController extends {{base_controller}}
 {
     public function editProfile(Request $request)
     {
