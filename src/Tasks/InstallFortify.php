@@ -65,18 +65,21 @@ class InstallFortify
         }
 
         $content = File::get($providersFile);
-        if (str_contains($content, 'App\\Providers\\FortifyServiceProvider::class')) {
-            return;
+        
+        // Remove old registration if exists with wrong formatting
+        $content = str_replace('App\Providers\FortifyServiceProvider::class,', '', $content);
+        
+        if (!str_contains($content, 'App\\Providers\\FortifyServiceProvider::class')) {
+            $content = preg_replace(
+                '/(return\s*\[)/',
+                "$1\n    App\\Providers\\FortifyServiceProvider::class,",
+                $content
+            );
+            File::put($providersFile, $content);
         }
 
-        // Add the provider to the top of the array
-        $content = preg_replace(
-            '/(return\s*\[)/',
-            "$1\n    App\\Providers\\FortifyServiceProvider::class,",
-            $content
-        );
-
-        File::put($providersFile, $content);
+        // Force clear cache so Laravel sees the new provider
+        $this->command->call('optimize:clear');
     }
 
     protected function updateUserModel(): void
