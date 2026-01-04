@@ -18,7 +18,7 @@ class InstallFortify
     {
         $this->command->info('Installing and configuring Laravel Fortify (2FA)...');
 
-        (new Process(['composer', 'require', 'laravel/fortify'], base_path()))
+        (new Process(['composer', 'require', 'laravel/fortify', 'pragmarx/google2fa-laravel'], base_path()))
             ->setTimeout(300)
             ->run(function ($type, $buffer) {
                 // $this->command->getOutput()->write($buffer);
@@ -100,15 +100,42 @@ class InstallFortify
 
     protected function updateUserModel(): void
     {
-        $userModel = base_path('app/Domain/User/Models/User.php');
-        if (File::exists($userModel)) {
-             $content = File::get($userModel);
-             if (!str_contains($content, 'TwoFactorAuthenticatable')) {
-                 $content = str_replace("use Illuminate\Notifications\Notifiable;", "use Illuminate\Notifications\Notifiable;\nuse Laravel\Fortify\TwoFactorAuthenticatable;", $content);
-                 $content = str_replace("use HasApiTokens, HasFactory, Notifiable;", "use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable;", $content);
-                 $content = str_replace("use HasFactory, Notifiable;", "use HasFactory, Notifiable, TwoFactorAuthenticatable;", $content);
-                 File::put($userModel, $content);
-             }
+        $paths = [
+            base_path('app/Domain/User/Models/User.php'),
+            base_path('app/Models/User.php'),
+            base_path('App/Domain/User/Models/User.php'),
+        ];
+
+        foreach ($paths as $userModel) {
+            if (File::exists($userModel)) {
+                $content = File::get($userModel);
+                if (!str_contains($content, 'TwoFactorAuthenticatable')) {
+                    // Add use statement
+                    if (!str_contains($content, 'use Laravel\Fortify\TwoFactorAuthenticatable;')) {
+                        $content = preg_replace(
+                            '/namespace\s+[^;]+;/',
+                            "$0\n\nuse Laravel\\Fortify\\TwoFactorAuthenticatable;",
+                            $content
+                        );
+                    }
+                    
+                    // Add trait to class
+                    $content = preg_replace(
+                        '/use HasFactory, Notifiable;/',
+                        'use HasFactory, Notifiable, TwoFactorAuthenticatable;',
+                        $content
+                    );
+
+                    $content = preg_replace(
+                        '/use HasApiTokens, HasFactory, Notifiable;/',
+                        'use HasApiTokens, HasFactory, Notifiable, TwoFactorAuthenticatable;',
+                        $content
+                    );
+
+                    File::put($userModel, $content);
+                    $this->command->info("✓ TwoFactorAuthenticatable added to User model at {$userModel}");
+                }
+            }
         }
     }
 }
