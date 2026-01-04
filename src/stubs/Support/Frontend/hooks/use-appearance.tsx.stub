@@ -1,44 +1,50 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type Appearance = 'light' | 'dark' | 'system';
-
-const STORAGE_KEY = 'appearance';
-
-function getSystemTheme(): 'light' | 'dark' {
-    if (typeof window === 'undefined') return 'light';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
-function applyTheme(appearance: Appearance) {
-    const isDark = appearance === 'dark' || (appearance === 'system' && getSystemTheme() === 'dark');
-
-    document.documentElement.classList.toggle('dark', isDark);
-}
+type Appearance = 'light' | 'dark' | 'system';
 
 export function useAppearance() {
-    const [appearance, setAppearanceState] = useState<Appearance>('system');
+    const [appearance, setAppearance] = useState<Appearance>(() => {
+        if (typeof window !== 'undefined') {
+            return (localStorage.getItem('appearance') as Appearance) || 'system';
+        }
+        return 'system';
+    });
 
-    const updateAppearance = useCallback((mode: Appearance) => {
-        setAppearanceState(mode);
-        localStorage.setItem(STORAGE_KEY, mode);
-        applyTheme(mode);
+    const applyAppearance = useCallback((mode: Appearance) => {
+        const root = window.document.documentElement;
+        root.classList.remove('light', 'dark');
+
+        if (mode === 'system') {
+            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            root.classList.add(systemTheme);
+        } else {
+            root.classList.add(mode);
+        }
     }, []);
 
-    useEffect(() => {
-        const saved = localStorage.getItem(STORAGE_KEY) as Appearance | null;
-        const initial = saved || 'system';
-        setAppearanceState(initial);
-        applyTheme(initial);
+    const updateAppearance = useCallback((mode: Appearance) => {
+        setAppearance(mode);
+        localStorage.setItem('appearance', mode);
+        applyAppearance(mode);
+    }, [applyAppearance]);
 
+    useEffect(() => {
+        applyAppearance(appearance);
+
+        // Listen for system changes if in system mode
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         const handleChange = () => {
-            const current = localStorage.getItem(STORAGE_KEY) as Appearance | null;
-            applyTheme(current || 'system');
+            if (localStorage.getItem('appearance') === 'system' || !localStorage.getItem('appearance')) {
+                applyAppearance('system');
+            }
         };
 
         mediaQuery.addEventListener('change', handleChange);
         return () => mediaQuery.removeEventListener('change', handleChange);
-    }, []);
+    }, [appearance, applyAppearance]);
 
-    return { appearance, updateAppearance } as const;
+    return {
+        appearance,
+        updateAppearance,
+    };
 }

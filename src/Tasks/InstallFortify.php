@@ -59,18 +59,24 @@ class InstallFortify
 
     protected function registerProvider(): void
     {
-        $providers = base_path('bootstrap/providers.php');
-        if (File::exists($providers)) {
-            $content = File::get($providers);
-            if (!str_contains($content, 'FortifyServiceProvider')) {
-                // Try to find the start of the array
-                $pattern = '/return\s*\[/';
-                if (preg_match($pattern, $content)) {
-                    $content = preg_replace($pattern, "return [\n    App\Providers\FortifyServiceProvider::class,", $content);
-                    File::put($providers, $content);
-                }
-            }
+        $providersFile = base_path('bootstrap/providers.php');
+        if (!File::exists($providersFile)) {
+            return;
         }
+
+        $content = File::get($providersFile);
+        if (str_contains($content, 'App\\Providers\\FortifyServiceProvider::class')) {
+            return;
+        }
+
+        // Add the provider to the top of the array
+        $content = preg_replace(
+            '/(return\s*\[)/',
+            "$1\n    App\\Providers\\FortifyServiceProvider::class,",
+            $content
+        );
+
+        File::put($providersFile, $content);
     }
 
     protected function updateUserModel(): void

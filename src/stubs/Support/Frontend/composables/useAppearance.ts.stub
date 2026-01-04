@@ -1,43 +1,48 @@
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 
-export type Appearance = 'light' | 'dark' | 'system';
-
-const STORAGE_KEY = 'appearance';
-
-function getSystemTheme(): 'light' | 'dark' {
-    if (typeof window === 'undefined') return 'light';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
-function applyTheme(appearance: Appearance) {
-    const isDark = appearance === 'dark' || (appearance === 'system' && getSystemTheme() === 'dark');
-    document.documentElement.classList.toggle('dark', isDark);
-}
+type Appearance = 'light' | 'dark' | 'system';
 
 export function useAppearance() {
-    const appearance = ref<Appearance>('system');
+    const appearance = ref<Appearance>(
+        (localStorage.getItem('appearance') as Appearance) || 'system'
+    );
+
+    const applyAppearance = (mode: Appearance) => {
+        const root = window.document.documentElement;
+        root.classList.remove('light', 'dark');
+
+        if (mode === 'system') {
+            const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            root.classList.add(systemTheme);
+        } else {
+            root.classList.add(mode);
+        }
+    };
 
     const updateAppearance = (mode: Appearance) => {
         appearance.value = mode;
-        localStorage.setItem(STORAGE_KEY, mode);
-        applyTheme(mode);
+        localStorage.setItem('appearance', mode);
+        applyAppearance(mode);
+    };
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+        if (appearance.value === 'system') {
+            applyAppearance('system');
+        }
     };
 
     onMounted(() => {
-        const saved = localStorage.getItem(STORAGE_KEY) as Appearance | null;
-        const initial = saved || 'system';
-        appearance.value = initial;
-        applyTheme(initial);
-
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        const handleChange = () => {
-            const current = localStorage.getItem(STORAGE_KEY) as Appearance | null;
-            applyTheme(current || 'system');
-        };
-
+        applyAppearance(appearance.value);
         mediaQuery.addEventListener('change', handleChange);
-        onUnmounted(() => mediaQuery.removeEventListener('change', handleChange));
     });
 
-    return { appearance, updateAppearance };
+    onUnmounted(() => {
+        mediaQuery.removeEventListener('change', handleChange);
+    });
+
+    return {
+        appearance,
+        updateAppearance,
+    };
 }
