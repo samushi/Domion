@@ -8,6 +8,8 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Process\Process;
 
+use Samushi\Domion\Support\PathHelper;
+
 class InstallFortify
 {
     public function __construct(protected Command $command) {}
@@ -33,14 +35,13 @@ class InstallFortify
 
     protected function copyServiceProvider(): void
     {
-        // Detect if the project uses 'App' or 'app'
-        $baseAppPath = File::exists(base_path('App')) ? 'App' : 'app';
-        $targetPath = base_path($baseAppPath . '/Providers/FortifyServiceProvider.php');
+        $targetPath = PathHelper::resolveAppPath('Providers/FortifyServiceProvider.php');
         $stubPath = __DIR__ . '/../stubs/FortifyServiceProvider.stub';
         
         if (File::exists($stubPath)) {
             File::ensureDirectoryExists(dirname($targetPath));
             File::put($targetPath, File::get($stubPath));
+            $this->command->info("✓ FortifyServiceProvider copied to " . PathHelper::getAppPath() . "/Providers");
         }
     }
 
@@ -62,6 +63,7 @@ class InstallFortify
     protected function registerProvider(): void
     {
         $providersFile = base_path('bootstrap/providers.php');
+
         if (File::exists($providersFile)) {
             $content = File::get($providersFile);
             
